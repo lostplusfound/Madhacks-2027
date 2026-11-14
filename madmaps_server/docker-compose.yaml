@@ -1,0 +1,30 @@
+services:
+  # Development services
+  postgres:
+    image: ghcr.io/serverpod/postgres:16
+    ports:
+      - "8090:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: madmaps
+      POSTGRES_PASSWORD: "${MADMAPS_DATABASE_PASSWORD:?Set MADMAPS_DATABASE_PASSWORD to match config/passwords.yaml}"
+    volumes:
+      - madmaps_data:/var/lib/postgresql/data
+
+
+  # Test services
+  postgres_test:
+    image: ghcr.io/serverpod/postgres:16
+    ports:
+      - "9090:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: madmaps_test
+      POSTGRES_PASSWORD: "${MADMAPS_TEST_DATABASE_PASSWORD:?Set MADMAPS_TEST_DATABASE_PASSWORD to match config/passwords.yaml}"
+    volumes:
+      - madmaps_test_data:/var/lib/postgresql/data
+
+
+volumes:
+  madmaps_data:
+  madmaps_test_data:

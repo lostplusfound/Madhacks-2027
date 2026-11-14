@@ -1,0 +1,33 @@
+.env
+.env.*
+!.env.example
+**/config/passwords.yaml
+**/.dart_tool/
+**/build/
+**/.flutter-plugins-dependencies
+**/android/local.properties
+**/android/key.properties
+*.jks
+*.keystore
+.idea/
+.vscode/
+**/.serverpod/
+# Files and directories created by pub
+.dart_tool/
+.packages
+
+# Pubspec overrides
+pubspec_overrides.yaml
+
+# Agents
+.dart_skills/
+.agents/
+.claude/
+.gemini/
+.cursor/
+.vscode/mcp.json
+.codex/
+.mcp.json
+
+# Serverpod Cloud CLI
+.scloud/
