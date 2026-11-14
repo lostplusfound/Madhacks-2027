@@ -37,8 +37,8 @@ void main() {
         'f1-demo-cafe',
         20,
       );
-      expect(route, isNotNull);
-      expect(route!.points.last, graph.nodes['f1-demo-cafe']!.point);
+      expect(route.failure, isNull);
+      expect(route.route!.points.last, graph.nodes['f1-demo-cafe']!.point);
     },
   );
   test('Dijkstra uses weighted shortest path from a fractional edge', () {
@@ -48,20 +48,32 @@ void main() {
       const Offset(50, -5),
       'room',
       10,
-    )!;
+    ).route!;
     expect(route.cost, closeTo(165, .001));
     expect(route.points, contains(const Offset(100, 0)));
     expect(
-      findRoute(fixture(), FloorSetup(), const Offset(50, 0), 'isolated', 10),
-      isNull,
+      findRoute(
+        fixture(),
+        FloorSetup(),
+        const Offset(50, 0),
+        'isolated',
+        10,
+      ).failure,
+      RouteFailure.disconnected,
     );
     expect(
-      findRoute(fixture(), FloorSetup(), const Offset(500, 0), 'room', 10),
-      isNull,
+      findRoute(
+        fixture(),
+        FloorSetup(),
+        const Offset(500, 0),
+        'room',
+        10,
+      ).failure,
+      RouteFailure.noNearbyEdge,
     );
     expect(
-      findRoute(fixture(), FloorSetup(), Offset.zero, 'missing', 10),
-      isNull,
+      findRoute(fixture(), FloorSetup(), Offset.zero, 'missing', 10).failure,
+      RouteFailure.invalidDestination,
     );
   });
   test('one-way start edge cannot travel backward', () {
@@ -69,11 +81,11 @@ void main() {
     // No return path exists once the unrelated diagonal is removed.
     graph.edges.removeLast();
     expect(
-      findRoute(graph, FloorSetup(), const Offset(50, 0), 'a', 10),
-      isNull,
+      findRoute(graph, FloorSetup(), const Offset(50, 0), 'a', 10).failure,
+      RouteFailure.disconnected,
     );
     expect(
-      findRoute(graph, FloorSetup(), const Offset(50, 0), 'room', 10),
+      findRoute(graph, FloorSetup(), const Offset(50, 0), 'room', 10).route,
       isNotNull,
     );
   });
@@ -170,14 +182,14 @@ void main() {
     final c = FloorCalibration(Offset.zero, Offset.zero, 10, 0);
     final now = DateTime(2026);
     g.update(graph, setup, c, const Offset(50, 0), now);
-    expect(g.next, const Offset(100, 0));
+    expect(g.next, const Offset(70, 0));
     expect(g.status, contains('Turn right'));
     g.update(graph, setup, c, null, now);
     expect(g.next, isNull);
     expect(g.status, contains('paused'));
     // A localization correction can move past a turn without sampling its radius.
     g.update(graph, setup, c, const Offset(100, 40), now);
-    expect(g.next, const Offset(100, 100));
+    expect(g.next, const Offset(100, 60));
     g.update(graph, setup, c, const Offset(100, 100), now);
     expect(g.status, 'Near entrance (estimated)');
   });
@@ -187,7 +199,7 @@ void main() {
     final c = FloorCalibration(Offset.zero, Offset.zero, 10, 0);
     g.update(graph, setup, c, const Offset(50, 0), now);
     g.update(graph, setup, c, const Offset(500, 500), now);
-    expect(g.next, isNull);
+    expect(g.next, isNotNull);
     expect(g.route, isNotNull);
     g.update(
       graph,

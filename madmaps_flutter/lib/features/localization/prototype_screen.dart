@@ -327,7 +327,10 @@ class _MapSessionScreenState extends State<MapSessionScreen>
   SavedAnchor? destination;
   FloorGraph? floorGraph;
   String? floorError, roomName;
-  final guidance = GuidanceState();
+  final guidance = GuidanceState(
+    onDiagnostic: kDebugMode ? (message) => debugPrint(message) : null,
+  );
+  DateTime? navigationFix;
   String? navigationMapId;
 
   Future<void> loadFloor() async {
@@ -441,6 +444,8 @@ class _MapSessionScreenState extends State<MapSessionScreen>
     final graph = floorGraph;
     if (graph == null) return;
     final calibration = map.floor.calibration(map), pose = camera;
+    final relocalized = navigationFix != localization.lastConfirmed;
+    navigationFix = localization.lastConfirmed;
     guidance.update(
       graph,
       map.floor,
@@ -449,6 +454,7 @@ class _MapSessionScreenState extends State<MapSessionScreen>
           ? null
           : calibration.toImage(Offset(pose.entry(0, 3), pose.entry(2, 3))),
       DateTime.now(),
+      relocalized: relocalized,
     );
   }
 

@@ -2,6 +2,16 @@ import 'dart:math' as math;
 import 'dart:ui';
 import 'floor_data.dart';
 
+class NavigationTuning {
+  static const attachmentMeters = 3.0;
+  static const corridorMeters = 3.0;
+  static const offRouteMeters = 4.0;
+  static const offRouteFor = Duration(seconds: 2);
+  static const lookAheadMeters = 2.0;
+  static const turnMeters = 1.5;
+  static const arrivalMeters = 1.5;
+}
+
 Offset project(Offset p, Offset a, Offset b) {
   final d = b - a, n = d.dx * d.dx + d.dy * d.dy;
   final t = n == 0
@@ -10,41 +20,64 @@ Offset project(Offset p, Offset a, Offset b) {
   return a + d * t;
 }
 
-class NavigationRoute {
-  NavigationRoute(this.points, this.cost);
-  final List<Offset> points;
-  final double cost;
+enum RouteFailure {
+  invalidDestination,
+  unmappedDestination,
+  noNearbyEdge,
+  disconnected,
 }
 
-NavigationRoute? findRoute(
+class NavigationRoute {
+  NavigationRoute(
+    this.points,
+    this.cost,
+    this.startEdge,
+    this.attachmentPixels,
+  );
+
+  /// Graph geometry only: the projection is not a compulsory access waypoint.
+  final List<Offset> points;
+  final double cost, attachmentPixels;
+  final String startEdge;
+}
+
+class RouteResult {
+  RouteResult.success(this.route)
+    : failure = null,
+      nearestPixels = route!.attachmentPixels,
+      startEdge = route.startEdge;
+  RouteResult.failure(this.failure, {this.nearestPixels, this.startEdge})
+    : route = null;
+  final NavigationRoute? route;
+  final RouteFailure? failure;
+  final double? nearestPixels;
+  final String? startEdge;
+  String get message => switch (failure) {
+    RouteFailure.invalidDestination =>
+      'Destination is no longer in this map. Choose another destination.',
+    RouteFailure.unmappedDestination =>
+      'Not mapped yet — assign a destination approach point in setup.',
+    RouteFailure.noNearbyEdge =>
+      'No mapped walkway nearby. Move closer or check floor calibration.',
+    RouteFailure.disconnected =>
+      'No connected route to this destination. Check the draft graph connections.',
+    null => 'Route ready',
+  };
+}
+
+RouteResult findRoute(
   FloorGraph graph,
   FloorSetup setup,
   Offset start,
-  String target,
+  String? target,
   double pixelsPerMeter,
 ) {
-  if (!graph.nodes.containsKey(target)) return null;
-  FloorEdge? nearest;
-  Offset? snapped;
-  var best = 3 * pixelsPerMeter;
-  for (final e in graph.edges) {
-    if (graph.nodes[e.from]!.kind == 'approach' ||
-        graph.nodes[e.to]!.kind == 'approach') {
-      continue;
-    }
-    final p = project(
-      start,
-      graph.point(e.from, setup),
-      graph.point(e.to, setup),
-    );
-    final distance = (start - p).distance;
-    if (distance <= best) {
-      best = distance;
-      nearest = e;
-      snapped = p;
-    }
+  if (target == null) {
+    return RouteResult.failure(RouteFailure.unmappedDestination);
   }
-  if (nearest == null || snapped == null) return null;
+  if (!graph.nodes.containsKey(target)) {
+    return RouteResult.failure(RouteFailure.invalidDestination);
+  }
   final adjacency = <String, List<(String, double)>>{};
   void link(String a, String b, double cost) =>
       adjacency.putIfAbsent(a, () => []).add((b, cost));
@@ -52,47 +85,76 @@ NavigationRoute? findRoute(
     link(e.from, e.to, graph.cost(e, setup));
     if (e.bidirectional) link(e.to, e.from, graph.cost(e, setup));
   }
-  final a = graph.point(nearest.from, setup),
-      b = graph.point(nearest.to, setup);
-  final length = (b - a).distance;
-  final fraction = length == 0 ? 0.0 : (snapped - a).distance / length;
-  link('@start', nearest.to, graph.cost(nearest, setup) * (1 - fraction));
-  if (nearest.bidirectional || fraction < 1e-8) {
-    link('@start', nearest.from, graph.cost(nearest, setup) * fraction);
-  }
-  final distances = <String, double>{'@start': 0},
-      previous = <String, String>{},
-      visited = <String>{};
-  while (true) {
-    String? current;
-    for (final id in distances.keys) {
-      if (!visited.contains(id) &&
-          (current == null || distances[id]! < distances[current]!)) {
-        current = id;
+  NavigationRoute? best;
+  var nearestPixels = double.infinity;
+  String? nearestEdge;
+  for (final edge in graph.edges) {
+    // Approaches are real walk edges too, including University exit -> hallway.
+    final a = graph.point(edge.from, setup), b = graph.point(edge.to, setup);
+    final snapped = project(start, a, b), distance = (start - snapped).distance;
+    if (distance < nearestPixels) {
+      nearestPixels = distance;
+      nearestEdge = '${edge.from}->${edge.to}';
+    }
+    if (distance > NavigationTuning.attachmentMeters * pixelsPerMeter) continue;
+    final length = (b - a).distance;
+    final fraction = length == 0 ? 0.0 : (snapped - a).distance / length;
+    final distances = <String, double>{
+      edge.to: graph.cost(edge, setup) * (1 - fraction),
+    };
+    if (edge.bidirectional || fraction < 1e-8) {
+      distances[edge.from] = graph.cost(edge, setup) * fraction;
+    }
+    final previous = <String, String>{}, visited = <String>{};
+    while (true) {
+      String? current;
+      for (final id in distances.keys) {
+        if (!visited.contains(id) &&
+            (current == null || distances[id]! < distances[current]!)) {
+          current = id;
+        }
+      }
+      if (current == null || current == target) break;
+      visited.add(current);
+      for (final next in adjacency[current] ?? <(String, double)>[]) {
+        final candidate = distances[current]! + next.$2;
+        if (candidate < (distances[next.$1] ?? double.infinity)) {
+          distances[next.$1] = candidate;
+          previous[next.$1] = current;
+        }
       }
     }
-    if (current == null) return null;
-    if (current == target) break;
-    visited.add(current);
-    for (final next in adjacency[current] ?? <(String, double)>[]) {
-      final candidate = distances[current]! + next.$2;
-      if (candidate < (distances[next.$1] ?? double.infinity)) {
-        distances[next.$1] = candidate;
-        previous[next.$1] = current;
-      }
+    if (!distances.containsKey(target)) continue;
+    final ids = <String>[target];
+    while (previous.containsKey(ids.last)) {
+      ids.add(previous[ids.last]!);
+    }
+    final points = <Offset>[snapped];
+    for (final id in ids.reversed) {
+      final p = graph.point(id, setup);
+      if ((p - points.last).distance > 1e-8) points.add(p);
+    }
+    final cost = distances[target]! + distance;
+    if (best == null ||
+        distance < best.attachmentPixels - 1e-6 ||
+        ((distance - best.attachmentPixels).abs() <= 1e-6 &&
+            cost < best.cost)) {
+      best = NavigationRoute(
+        points,
+        cost,
+        '${edge.from}->${edge.to}',
+        distance,
+      );
     }
   }
-  final ids = <String>[];
-  var id = target;
-  while (id != '@start') {
-    ids.add(id);
-    id = previous[id]!;
-  }
-  return NavigationRoute([
-    start,
-    snapped,
-    ...ids.reversed.map((id) => graph.point(id, setup)),
-  ], distances[target]! + best);
+  if (best != null) return RouteResult.success(best);
+  return RouteResult.failure(
+    nearestPixels > NavigationTuning.attachmentMeters * pixelsPerMeter
+        ? RouteFailure.noNearbyEdge
+        : RouteFailure.disconnected,
+    nearestPixels: nearestPixels,
+    startEdge: nearestEdge,
+  );
 }
 
 String turnInstruction(Offset incoming, Offset outgoing) {
@@ -106,13 +168,21 @@ String turnInstruction(Offset incoming, Offset outgoing) {
 }
 
 class GuidanceState {
+  GuidanceState({this.onDiagnostic});
+  final void Function(String)? onDiagnostic;
   String? target;
   NavigationRoute? route;
-  int waypoint = 1;
+  RouteResult? result;
+  int segment = 0;
+  double progressPixels = 0;
+  Offset? projected;
   DateTime? offRouteSince;
   String status = 'Select a room';
+
+  /// Virtual compass aim point; not a vertex that the pedestrian must visit.
   Offset? next;
   double? remainingMeters;
+  String? _diagnosticKey;
   void select(String id) {
     target = id;
     reset();
@@ -120,10 +190,44 @@ class GuidanceState {
 
   void reset() {
     route = null;
-    waypoint = 1;
+    result = null;
+    segment = 0;
+    progressPixels = 0;
+    projected = null;
     offRouteSince = null;
     next = null;
     remainingMeters = null;
+    _diagnosticKey = null;
+  }
+
+  void _diagnose(double scale) {
+    final key =
+        '${result?.failure}|${result?.startEdge}|${(progressPixels / scale / 5).floor()}|${next == null}|${offRouteSince != null}';
+    if (key == _diagnosticKey) return;
+    _diagnosticKey = key;
+    onDiagnostic?.call(
+      '[MadMaps navigation] destination=$target startEdge=${result?.startEdge} '
+      'attachmentMeters=${result?.nearestPixels == null ? null : result!.nearestPixels! / scale} '
+      'pixelsPerMeter=$scale progressMeters=${progressPixels / scale} failure=${result?.failure} status=$status',
+    );
+  }
+
+  bool _recalculate(
+    FloorGraph graph,
+    FloorSetup setup,
+    Offset position,
+    double scale,
+  ) {
+    result = findRoute(graph, setup, position, target, scale);
+    route = result!.route;
+    segment = 0;
+    progressPixels = 0;
+    projected = null;
+    if (route == null) {
+      status = result!.message;
+      return false;
+    }
+    return true;
   }
 
   void update(
@@ -131,8 +235,9 @@ class GuidanceState {
     FloorSetup setup,
     FloorCalibration? calibration,
     Offset? position,
-    DateTime now,
-  ) {
+    DateTime now, {
+    bool relocalized = false,
+  }) {
     next = null;
     remainingMeters = null;
     if (target == null) return;
@@ -141,79 +246,137 @@ class GuidanceState {
       status = 'Guidance paused — calibrate and localize';
       return;
     }
-    if (route == null) {
-      route = findRoute(graph, setup, position, target!, calibration.scale);
-      waypoint = 1;
-      if (route == null) {
-        status = 'No route here — return to a mapped hallway';
+    final scale = calibration.scale;
+    if (route == null && !_recalculate(graph, setup, position, scale)) {
+      _diagnose(scale);
+      return;
+    }
+    var points = route!.points;
+    if (points.length == 1) {
+      remainingMeters = (position - points.single).distance / scale;
+      if (remainingMeters! <= NavigationTuning.arrivalMeters) {
+        projected = points.single;
+        status = 'Near entrance (estimated)';
+        _diagnose(scale);
+        return;
+      }
+      // A route selected while already at its endpoint may later need a new start.
+      route = null;
+      if (!_recalculate(graph, setup, position, scale)) {
+        _diagnose(scale);
+        return;
+      }
+      points = route!.points;
+      if (points.length == 1) {
+        status = 'Move toward the entrance';
+        next = points.single;
+        _diagnose(scale);
         return;
       }
     }
-    var points = route!.points;
-    var distance = double.infinity;
-    // Only consider the current and next segments, avoiding jumps across loops.
-    for (var i = waypoint; i < points.length && i <= waypoint + 1; i++) {
-      distance = math.min(
-        distance,
-        (position - project(position, points[i - 1], points[i])).distance,
-      );
-    }
-    if (distance > 3 * calibration.scale) {
-      offRouteSince ??= now;
-      status = 'Off route — return to a mapped hallway';
-      if (now.difference(offRouteSince!) >= const Duration(seconds: 2)) {
-        route = findRoute(graph, setup, position, target!, calibration.scale);
-        waypoint = 1;
-        offRouteSince = null;
-      }
-      return;
-    }
-    offRouteSince = null;
-    points = route!.points;
-    bool passedWaypoint() {
-      final incoming = points[waypoint] - points[waypoint - 1];
-      final beyond = position - points[waypoint];
-      final forward = incoming.dx * beyond.dx + incoming.dy * beyond.dy;
-      return incoming.distance > 0 &&
-          forward >= 0 &&
-          (position - project(position, points[waypoint], points[waypoint + 1]))
-                  .distance <=
-              1.5 * calibration.scale;
+    Offset projection(int i) => project(position, points[i], points[i + 1]);
+    double distance(int i) => (position - projection(i)).distance;
+    bool beyond(Offset start, Offset end) {
+      final d = end - start, p = position - end;
+      return d.dx * p.dx + d.dy * p.dy >= 0;
     }
 
-    while (waypoint < points.length - 1 &&
-        ((position - points[waypoint]).distance <= 1.5 * calibration.scale ||
-            passedWaypoint())) {
-      waypoint++;
+    // Preserve the current leg near parallel lines; only advance across connected turns.
+    while (segment < points.length - 2 &&
+        (beyond(points[segment], points[segment + 1]) ||
+            (position - points[segment + 1]).distance <=
+                NavigationTuning.turnMeters * scale) &&
+        distance(segment + 1) <= NavigationTuning.corridorMeters * scale &&
+        distance(segment + 1) <= distance(segment) + 1e-6) {
+      segment++;
     }
-    if (waypoint == points.length - 1 &&
-        (position - points.last).distance <= 1.5 * calibration.scale) {
-      status = 'Near entrance (estimated)';
-      remainingMeters = (position - points.last).distance / calibration.scale;
-      return;
+    while (segment > 0 &&
+        beyond(points[segment + 1], points[segment]) &&
+        distance(segment - 1) < distance(segment) &&
+        distance(segment - 1) <= NavigationTuning.corridorMeters * scale) {
+      segment--;
     }
-    next = points[waypoint];
-    var remaining = (position - next!).distance;
-    for (var i = waypoint + 1; i < points.length; i++) {
-      remaining += (points[i] - points[i - 1]).distance;
-    }
-    remainingMeters = remaining / calibration.scale;
-    var instruction = 'Continue';
-    for (var i = waypoint; i < points.length - 1; i++) {
-      final turn = turnInstruction(
-        points[i] - points[i - 1],
-        points[i + 1] - points[i],
-      );
-      if (turn != 'Continue') {
-        var until = (position - points[waypoint]).distance;
-        for (var j = waypoint; j < i; j++) {
-          until += (points[j + 1] - points[j]).distance;
+    // Recover missed samples/corrections, without jumping to a parallel leg while
+    // the current segment is still a plausible match.
+    if (distance(segment) > NavigationTuning.corridorMeters * scale) {
+      var best = segment;
+      for (var i = 0; i < points.length - 1; i++) {
+        if (distance(i) < distance(best) - 1e-6 ||
+            (relocalized &&
+                (distance(i) - distance(best)).abs() < 1e-6 &&
+                (i - segment).abs() < (best - segment).abs())) {
+          best = i;
         }
-        instruction =
-            '$turn in ${(until / calibration.scale).toStringAsFixed(1)} m';
-        break;
+      }
+      if (distance(best) <= NavigationTuning.corridorMeters * scale) {
+        segment = best;
       }
     }
-    status = instruction;
+    var lateral = distance(segment) / scale;
+    if (lateral <= NavigationTuning.corridorMeters) offRouteSince = null;
+    if (lateral > NavigationTuning.offRouteMeters) offRouteSince ??= now;
+    if (offRouteSince != null &&
+        now.difference(offRouteSince!) >= NavigationTuning.offRouteFor) {
+      offRouteSince = null;
+      if (!_recalculate(graph, setup, position, scale)) {
+        _diagnose(scale);
+        return;
+      }
+      // Re-enter once with the newly selected route, not an obsolete segment.
+      update(graph, setup, calibration, position, now);
+      return;
+    }
+    projected = projection(segment);
+    progressPixels = (projected! - points[segment]).distance;
+    for (var i = 0; i < segment; i++) {
+      progressPixels += (points[i + 1] - points[i]).distance;
+    }
+    var remaining = (points[segment + 1] - projected!).distance;
+    for (var i = segment + 1; i < points.length - 1; i++) {
+      remaining += (points[i + 1] - points[i]).distance;
+    }
+    remainingMeters = remaining / scale;
+    if (segment == points.length - 2 &&
+        (position - points.last).distance <=
+            NavigationTuning.arrivalMeters * scale) {
+      status = 'Near entrance (estimated)';
+      _diagnose(scale);
+      return;
+    }
+    final vector = points[segment + 1] - projected!;
+    if (vector.distance > 1e-8) {
+      // Translate the forward vector to the actual pedestrian position. Walking
+      // beside the centerline therefore does not produce a sideways correction.
+      next =
+          position +
+          vector /
+              vector.distance *
+              math.min(
+                vector.distance,
+                NavigationTuning.lookAheadMeters * scale,
+              );
+    } else {
+      // At the end plane but outside arrival tolerance, the approach itself is
+      // meaningful; unlike internal centerline projections it may need reaching.
+      next = points[segment + 1];
+    }
+    status = offRouteSince == null
+        ? 'Continue'
+        : 'Rechecking route — continue toward the next turn';
+    if (offRouteSince == null) {
+      var until = (points[segment + 1] - projected!).distance;
+      for (var i = segment + 1; i < points.length - 1; i++) {
+        final turn = turnInstruction(
+          points[i] - points[i - 1],
+          points[i + 1] - points[i],
+        );
+        if (turn != 'Continue') {
+          status = '$turn in ${(until / scale).toStringAsFixed(1)} m';
+          break;
+        }
+        until += (points[i + 1] - points[i]).distance;
+      }
+    }
+    _diagnose(scale);
   }
 }
