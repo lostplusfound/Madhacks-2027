@@ -173,6 +173,7 @@ enum NavigationPhase {
   unavailable,
   navigating,
   rerouting,
+  returningToRoute,
   arrived,
 }
 
@@ -194,14 +195,22 @@ class GuidanceState {
   String maneuver = 'Continue';
   double? maneuverMeters;
   bool arrived = false;
+  bool _localizationPaused = false;
+  Offset? rejoinPoint;
+  double? rejoinMeters;
+  DateTime? _lastReroute;
   NavigationPhase get phase => target == null
       ? NavigationPhase.idle
+      : _localizationPaused
+      ? NavigationPhase.paused
       : arrived
       ? NavigationPhase.arrived
       : remainingMeters == null
       ? (result?.failure == null
             ? NavigationPhase.paused
             : NavigationPhase.unavailable)
+      : rejoinPoint != null
+      ? NavigationPhase.returningToRoute
       : offRouteSince != null
       ? NavigationPhase.rerouting
       : NavigationPhase.navigating;
@@ -225,12 +234,16 @@ class GuidanceState {
     remainingMeters = null;
     maneuverMeters = null;
     arrived = false;
+    rejoinPoint = null;
+    rejoinMeters = null;
+    _lastReroute = null;
+    _localizationPaused = false;
     _diagnosticKey = null;
   }
 
   void _diagnose(double scale) {
     final key =
-        '${result?.failure}|${result?.startEdge}|${(progressPixels / scale / 5).floor()}|${next == null}|${offRouteSince != null}';
+        '$phase|${result?.failure}|${result?.startEdge}|${(progressPixels / scale / 5).floor()}|${next == null}|${offRouteSince != null}';
     if (key == _diagnosticKey) return;
     _diagnosticKey = key;
     onDiagnostic?.call(
@@ -247,14 +260,16 @@ class GuidanceState {
     double scale,
   ) {
     result = findRoute(graph, setup, position, target, scale);
+    if (result!.route == null) {
+      status = result!.message;
+      return false;
+    }
     route = result!.route;
     segment = 0;
     progressPixels = 0;
     projected = null;
-    if (route == null) {
-      status = result!.message;
-      return false;
-    }
+    rejoinPoint = null;
+    rejoinMeters = null;
     return true;
   }
 
@@ -272,12 +287,28 @@ class GuidanceState {
     maneuverMeters = null;
     arrived = false;
     if (target == null) return;
+    _localizationPaused = calibration == null || position == null;
     if (calibration == null || position == null) {
       offRouteSince = null;
       status = 'Guidance paused — calibrate and localize';
       return;
     }
     final scale = calibration.scale;
+    if (!graph.nodes.containsKey(target)) {
+      route = null;
+      result = RouteResult.failure(RouteFailure.invalidDestination);
+      status = result!.message;
+      return;
+    }
+    if (route != null && result?.failure == RouteFailure.disconnected) {
+      if (_lastReroute != null &&
+          now.difference(_lastReroute!) < NavigationTuning.offRouteFor) {
+        status = result!.message;
+        return;
+      }
+      _lastReroute = now;
+      if (!_recalculate(graph, setup, position, scale)) return;
+    }
     if (route == null && !_recalculate(graph, setup, position, scale)) {
       _diagnose(scale);
       return;
@@ -293,8 +324,18 @@ class GuidanceState {
         return;
       }
       // A route selected while already at its endpoint may later need a new start.
-      route = null;
       if (!_recalculate(graph, setup, position, scale)) {
+        if (result!.failure != RouteFailure.noNearbyEdge) {
+          remainingMeters = null;
+          return;
+        }
+        rejoinPoint = points.single;
+        rejoinMeters = (position - points.single).distance / scale;
+        next = rejoinPoint;
+        maneuver = 'Return to route';
+        maneuverMeters = rejoinMeters;
+        status =
+            'Return to route - ${rejoinMeters!.toStringAsFixed(1)} m (estimated)';
         _diagnose(scale);
         return;
       }
@@ -313,50 +354,68 @@ class GuidanceState {
       return d.dx * p.dx + d.dy * p.dy >= 0;
     }
 
-    // Preserve the current leg near parallel lines; only advance across connected turns.
-    while (segment < points.length - 2 &&
-        (beyond(points[segment], points[segment + 1]) ||
-            (position - points[segment + 1]).distance <=
-                NavigationTuning.turnMeters * scale) &&
-        distance(segment + 1) <= NavigationTuning.corridorMeters * scale &&
-        distance(segment + 1) <= distance(segment) + 1e-6) {
-      segment++;
-    }
-    while (segment > 0 &&
-        beyond(points[segment + 1], points[segment]) &&
-        distance(segment - 1) < distance(segment) &&
-        distance(segment - 1) <= NavigationTuning.corridorMeters * scale) {
-      segment--;
-    }
-    // Recover missed samples/corrections, without jumping to a parallel leg while
-    // the current segment is still a plausible match.
-    if (distance(segment) > NavigationTuning.corridorMeters * scale) {
-      var best = segment;
-      for (var i = 0; i < points.length - 1; i++) {
-        if (distance(i) < distance(best) - 1e-6 ||
-            (relocalized &&
-                (distance(i) - distance(best)).abs() < 1e-6 &&
-                (i - segment).abs() < (best - segment).abs())) {
-          best = i;
+    // Hold the recovery leg unless localization was corrected or it was rejoined.
+    final holdRecovery =
+        rejoinPoint != null &&
+        !relocalized &&
+        distance(segment) > NavigationTuning.corridorMeters * scale;
+    if (!holdRecovery) {
+      // Preserve the current leg near parallel lines; only advance across connected turns.
+      while (segment < points.length - 2 &&
+          (beyond(points[segment], points[segment + 1]) ||
+              (position - points[segment + 1]).distance <=
+                  NavigationTuning.turnMeters * scale) &&
+          distance(segment + 1) <= NavigationTuning.corridorMeters * scale &&
+          distance(segment + 1) <= distance(segment) + 1e-6) {
+        segment++;
+      }
+      while (segment > 0 &&
+          beyond(points[segment + 1], points[segment]) &&
+          distance(segment - 1) < distance(segment) &&
+          distance(segment - 1) <= NavigationTuning.corridorMeters * scale) {
+        segment--;
+      }
+      // Recover missed samples/corrections, without jumping to a parallel leg while
+      // the current segment is still a plausible match.
+      if (distance(segment) > NavigationTuning.corridorMeters * scale) {
+        var best = segment;
+        for (var i = 0; i < points.length - 1; i++) {
+          if (distance(i) < distance(best) - 1e-6 ||
+              (relocalized &&
+                  (distance(i) - distance(best)).abs() < 1e-6 &&
+                  (i - segment).abs() < (best - segment).abs())) {
+            best = i;
+          }
+        }
+        if (relocalized ||
+            distance(best) <= NavigationTuning.corridorMeters * scale) {
+          segment = best;
         }
       }
-      if (distance(best) <= NavigationTuning.corridorMeters * scale) {
-        segment = best;
-      }
     }
-    var lateral = distance(segment) / scale;
+    final lateral = distance(segment) / scale;
+    if (lateral <= NavigationTuning.corridorMeters) {
+      rejoinPoint = null;
+      rejoinMeters = null;
+      result = RouteResult.success(route!);
+    }
     if (lateral <= NavigationTuning.corridorMeters) offRouteSince = null;
     if (lateral > NavigationTuning.offRouteMeters) offRouteSince ??= now;
     if (offRouteSince != null &&
-        now.difference(offRouteSince!) >= NavigationTuning.offRouteFor) {
-      offRouteSince = null;
-      if (!_recalculate(graph, setup, position, scale)) {
+        now.difference(offRouteSince!) >= NavigationTuning.offRouteFor &&
+        (_lastReroute == null ||
+            now.difference(_lastReroute!) >= NavigationTuning.offRouteFor)) {
+      _lastReroute = now;
+      if (_recalculate(graph, setup, position, scale)) {
+        offRouteSince = null;
+        update(graph, setup, calibration, position, now);
+        return;
+      }
+      if (result!.failure != RouteFailure.noNearbyEdge) {
         _diagnose(scale);
         return;
       }
-      // Re-enter once with the newly selected route, not an obsolete segment.
-      update(graph, setup, calibration, position, now);
-      return;
+      rejoinPoint = projection(segment);
     }
     projected = projection(segment);
     progressPixels = (projected! - points[segment]).distance;
@@ -368,6 +427,18 @@ class GuidanceState {
       remaining += (points[i + 1] - points[i]).distance;
     }
     remainingMeters = remaining / scale;
+    if (rejoinPoint != null) {
+      rejoinPoint = projected;
+      rejoinMeters = (position - rejoinPoint!).distance / scale;
+      remainingMeters = remainingMeters! + rejoinMeters!;
+      next = rejoinPoint;
+      maneuver = 'Return to route';
+      maneuverMeters = rejoinMeters;
+      status =
+          'Return to route - ${rejoinMeters!.toStringAsFixed(1)} m (estimated)';
+      _diagnose(scale);
+      return;
+    }
     if (segment == points.length - 2 &&
         (position - points.last).distance <=
             NavigationTuning.arrivalMeters * scale) {

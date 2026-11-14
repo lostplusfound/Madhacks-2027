@@ -27,6 +27,93 @@ void main() {
   final calibration = FloorCalibration(Offset.zero, Offset.zero, 10, 0);
   final now = DateTime(2026);
 
+  test(
+    'return guidance survives tracking loss and resumes after rejoining',
+    () {
+      final g = GuidanceState()..select('d');
+      final graph = hall();
+      g.update(graph, setup, calibration, const Offset(50, 0), now);
+      final original = g.route;
+      g.update(graph, setup, calibration, const Offset(80, -60), now);
+      g.update(
+        graph,
+        setup,
+        calibration,
+        const Offset(80, -60),
+        now.add(const Duration(seconds: 3)),
+      );
+      expect(g.route, same(original));
+      expect(g.phase, NavigationPhase.returningToRoute);
+      expect(g.next, const Offset(80, 0));
+      g.update(
+        graph,
+        setup,
+        calibration,
+        null,
+        now.add(const Duration(seconds: 4)),
+      );
+      expect(g.phase, NavigationPhase.paused);
+      expect(g.next, isNull);
+      expect(g.estimatedDuration, isNull);
+      expect(g.route, same(original));
+      g.update(
+        graph,
+        setup,
+        calibration,
+        const Offset(90, -50),
+        now.add(const Duration(seconds: 5)),
+      );
+      expect(g.next, const Offset(90, 0));
+      g.update(
+        graph,
+        setup,
+        calibration,
+        const Offset(90, -20),
+        now.add(const Duration(seconds: 6)),
+      );
+      expect(g.phase, NavigationPhase.navigating);
+      expect(g.rejoinPoint, isNull);
+      expect(g.status, contains('Turn right'));
+      g.target = null;
+      g.reset();
+      expect(g.rejoinPoint, isNull);
+      expect(g.phase, NavigationPhase.idle);
+    },
+  );
+  test(
+    'a reachable alternate corridor replaces the retained recovery route',
+    () {
+      final graph = FloorGraph(
+        {
+          'a': FloorNode('a', const Offset(0, 0), 'junction'),
+          'b': FloorNode('b', const Offset(200, 0), 'approach'),
+          'c': FloorNode('c', const Offset(0, 100), 'junction'),
+          'd': FloorNode('d', const Offset(200, 100), 'junction'),
+        },
+        [
+          FloorEdge('a', 'b', 200, true),
+          FloorEdge('a', 'c', 100, true),
+          FloorEdge('c', 'd', 200, true),
+          FloorEdge('d', 'b', 100, true),
+        ],
+        [],
+      );
+      final g = GuidanceState()..select('b');
+      g.update(graph, setup, calibration, const Offset(50, 0), now);
+      final original = g.route;
+      g.update(graph, setup, calibration, const Offset(70, 100), now);
+      g.update(
+        graph,
+        setup,
+        calibration,
+        const Offset(70, 100),
+        now.add(const Duration(seconds: 3)),
+      );
+      expect(g.route, isNot(same(original)));
+      expect(g.route!.startEdge, 'c->d');
+      expect(g.phase, NavigationPhase.navigating);
+    },
+  );
   test('University exit to Cafe works at low and high calibration scales', () {
     for (final scale in [5.0, 10.0, 20.0, 40.0]) {
       final result = findRoute(
@@ -181,10 +268,13 @@ void main() {
       const Offset(80, -50),
       now.add(const Duration(seconds: 4)),
     );
-    expect(g.route, isNull);
-    expect(g.next, isNull);
+    expect(g.route, isNotNull);
+    expect(g.next, const Offset(80, 0));
+    expect(g.rejoinMeters, 5);
+    expect(g.remainingMeters, 57);
+    expect(g.phase, NavigationPhase.returningToRoute);
     expect(g.result!.failure, RouteFailure.noNearbyEdge);
-    expect(g.status, contains('calibration'));
+    expect(g.status, contains('Return to route'));
     g.update(
       graph,
       setup,

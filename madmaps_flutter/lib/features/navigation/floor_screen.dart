@@ -15,6 +15,8 @@ class FloorCanvas extends StatelessWidget {
     this.showLabels = true,
     this.transformationController,
     this.showGraph = true,
+    this.interactive = true,
+    this.rejoinPoint,
   });
   final FloorGraph graph;
   final FloorSetup setup;
@@ -24,6 +26,8 @@ class FloorCanvas extends StatelessWidget {
   final ValueChanged<Offset>? onPoint;
   final bool showLabels;
   final bool showGraph;
+  final bool interactive;
+  final Offset? rejoinPoint;
   final TransformationController? transformationController;
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -37,10 +41,8 @@ class FloorCanvas extends StatelessWidget {
         child: SizedBox(
           width: fitted.width,
           height: fitted.height,
-          child: InteractiveViewer(
-            transformationController: transformationController,
-            maxScale: 8,
-            child: GestureDetector(
+          child: _interaction(
+            GestureDetector(
               onTapUp: onPoint == null
                   ? null
                   : (d) => onPoint!(
@@ -67,6 +69,7 @@ class FloorCanvas extends StatelessWidget {
                       fullRoute,
                       showLabels,
                       showGraph,
+                      rejoinPoint,
                     ),
                   ),
                 ],
@@ -77,6 +80,13 @@ class FloorCanvas extends StatelessWidget {
       );
     },
   );
+  Widget _interaction(Widget child) => interactive
+      ? InteractiveViewer(
+          transformationController: transformationController,
+          maxScale: 8,
+          child: child,
+        )
+      : child;
 }
 
 class _FloorPainter extends CustomPainter {
@@ -89,6 +99,7 @@ class _FloorPainter extends CustomPainter {
     this.fullRoute,
     this.labels,
     this.showGraph,
+    this.rejoinPoint,
   );
   final FloorGraph graph;
   final FloorSetup setup;
@@ -97,6 +108,7 @@ class _FloorPainter extends CustomPainter {
   final List<Offset> fullRoute;
   final bool labels;
   final bool showGraph;
+  final Offset? rejoinPoint;
   @override
   void paint(Canvas canvas, Size size) {
     Offset p(Offset q) => Offset(
@@ -168,6 +180,24 @@ class _FloorPainter extends CustomPainter {
       }
     }
     if (camera != null) {
+      if (rejoinPoint != null) {
+        final start = p(camera!), delta = p(rejoinPoint!) - start;
+        for (var d = 0.0; d < delta.distance; d += 12) {
+          final end = (d + 6).clamp(0.0, delta.distance);
+          canvas.drawLine(
+            start + delta / delta.distance * d,
+            start + delta / delta.distance * end,
+            Paint()
+              ..color = Colors.deepOrange
+              ..strokeWidth = 4,
+          );
+        }
+        canvas.drawCircle(
+          p(rejoinPoint!),
+          8,
+          Paint()..color = Colors.deepOrange,
+        );
+      }
       if (headingPoint != null) {
         final direction = p(headingPoint!) - p(camera!);
         if (direction.distance > 0) {

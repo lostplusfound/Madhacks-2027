@@ -1,26 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:vector_math/vector_math_64.dart' show Vector3;
+import '../localization/map_data.dart' show relativeBearing;
 import 'floor_data.dart';
-import 'floor_screen.dart';
+import 'interactive_floor_map.dart';
 import 'routing.dart';
-
-/// Clips the camera without resizing its native surface.
-class CameraOverlayClipper extends CustomClipper<Path> {
-  CameraOverlayClipper({required this.compact});
-  final bool compact;
-  @override
-  Path getClip(Size size) => Path()
-    ..addRRect(
-      RRect.fromRectAndRadius(
-        compact
-            ? Rect.fromLTWH(size.width - 156, 190, 140, 170)
-            : Offset.zero & size,
-        Radius.circular(compact ? 20 : 0),
-      ),
-    );
-  @override
-  bool shouldReclip(CameraOverlayClipper oldClipper) =>
-      compact != oldClipper.compact;
-}
 
 class NavigationPanel extends StatefulWidget {
   const NavigationPanel({
@@ -36,7 +19,9 @@ class NavigationPanel extends StatefulWidget {
     required this.onSearch,
     required this.onLocate,
     required this.onCancel,
+    this.onNavigate,
   });
+  final ValueChanged<FloorLocation>? onNavigate;
   final FloorGraph graph;
   final FloorSetup setup;
   final Matrix4? pose;
@@ -51,13 +36,55 @@ class NavigationPanel extends StatefulWidget {
 }
 
 class _NavigationPanelState extends State<NavigationPanel> {
-  final transform = TransformationController();
-  bool follow = true;
-  bool overview = false;
+  final viewport = FloorViewportController();
+  String? selectedLocation;
   @override
   void dispose() {
-    transform.dispose();
+    viewport.dispose();
     super.dispose();
+  }
+
+  Future<void> showLocation(FloorLocation location) async {
+    setState(() => selectedLocation = location.id);
+    final node = widget.setup.locationNodes[location.id] ?? location.node;
+    await showModalBottomSheet<void>(
+      context: context,
+      builder: (sheet) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                location.label,
+                style: Theme.of(sheet).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 8),
+              const Text('Floor 1'),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                icon: const Icon(Icons.directions_walk),
+                label: const Text('Navigate'),
+                onPressed:
+                    node == null ||
+                        widget.calibration == null ||
+                        widget.busy ||
+                        widget.onNavigate == null
+                    ? null
+                    : () {
+                        Navigator.pop(sheet);
+                        widget.onNavigate!(location);
+                      },
+              ),
+              if (widget.calibration == null)
+                const Text('Set up floor calibration first.'),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (mounted) setState(() => selectedLocation = null);
   }
 
   @override
@@ -75,6 +102,12 @@ class _NavigationPanelState extends State<NavigationPanel> {
               pose.entry(2, 3) - pose.entry(2, 2),
             ),
           );
+    final rejoin = g.rejoinPoint == null || c == null
+        ? null
+        : c.toMap(g.rejoinPoint!);
+    final returnAngle = pose == null || rejoin == null
+        ? 0.0
+        : relativeBearing(pose, Vector3(rejoin.dx, 0, rejoin.dy));
     final duration = g.estimatedDuration;
     final eta = duration == null
         ? null
@@ -88,50 +121,19 @@ class _NavigationPanelState extends State<NavigationPanel> {
       child: Stack(
         children: [
           Positioned.fill(
-            child: LayoutBuilder(
-              builder: (context, bounds) {
-                final fitted = applyBoxFit(
-                  BoxFit.contain,
-                  floorImageSize,
-                  bounds.biggest,
-                ).destination;
-                if (follow && position != null && !overview) {
-                  final px = position.dx / floorImageSize.width * fitted.width;
-                  final py =
-                      position.dy / floorImageSize.height * fitted.height;
-                  transform.value = Matrix4.identity()
-                    ..translateByDouble(
-                      fitted.width / 2 - px * 2,
-                      fitted.height / 2 - py * 2,
-                      0,
-                      1,
-                    )
-                    ..scaleByDouble(2, 2, 1, 1);
-                } else if (overview) {
-                  transform.value = Matrix4.identity();
-                }
-                return Listener(
-                  onPointerDown: (_) {
-                    follow = false;
-                    overview = false;
-                  },
-                  child: Stack(
-                    children: [
-                      FloorCanvas(
-                        graph: w.graph,
-                        setup: w.setup,
-                        camera: position,
-                        headingPoint: heading,
-                        route: remaining,
-                        fullRoute: points,
-                        showLabels: false,
-                        showGraph: false,
-                        transformationController: transform,
-                      ),
-                    ],
-                  ),
-                );
-              },
+            top: 140,
+            bottom: 205,
+            child: InteractiveFloorMap(
+              graph: w.graph,
+              setup: w.setup,
+              controller: viewport,
+              position: position,
+              heading: heading,
+              route: remaining,
+              fullRoute: points,
+              rejoinPoint: g.remainingMeters == null ? null : g.rejoinPoint,
+              selectedLocation: selectedLocation,
+              onLocation: showLocation,
             ),
           ),
           Positioned(
@@ -143,18 +145,23 @@ class _NavigationPanelState extends State<NavigationPanel> {
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    Icon(
-                      g.arrived
-                          ? Icons.check_circle
-                          : g.maneuver == 'Turn left'
-                          ? Icons.turn_left
-                          : g.maneuver == 'Turn right'
-                          ? Icons.turn_right
-                          : g.maneuver == 'Turn around'
-                          ? Icons.u_turn_left
-                          : Icons.straight,
-                      size: 36,
-                      color: Colors.blue,
+                    Transform.rotate(
+                      angle: g.phase == NavigationPhase.returningToRoute
+                          ? returnAngle
+                          : 0,
+                      child: Icon(
+                        g.arrived
+                            ? Icons.check_circle
+                            : g.maneuver == 'Turn left'
+                            ? Icons.turn_left
+                            : g.maneuver == 'Turn right'
+                            ? Icons.turn_right
+                            : g.maneuver == 'Turn around'
+                            ? Icons.u_turn_left
+                            : Icons.straight,
+                        size: 36,
+                        color: Colors.blue,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -163,6 +170,8 @@ class _NavigationPanelState extends State<NavigationPanel> {
                             ? 'Where to? — Floor 1'
                             : g.remainingMeters == null
                             ? g.status
+                            : g.phase == NavigationPhase.returningToRoute
+                            ? 'Return to route - ${g.rejoinMeters!.round()} m'
                             : g.arrived
                             ? 'Near entrance'
                             : '${g.maneuver}${g.maneuverMeters == null ? '' : ' in ${g.maneuverMeters!.round()} m'}',
@@ -188,6 +197,8 @@ class _NavigationPanelState extends State<NavigationPanel> {
                   ? 'Calibrate two anchors in Floor 1 setup'
                   : position == null
                   ? w.message
+                  : g.phase == NavigationPhase.returningToRoute
+                  ? 'Estimated return direction; check the floor plan'
                   : 'Floor 1 • Draft hallway map',
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
@@ -201,21 +212,22 @@ class _NavigationPanelState extends State<NavigationPanel> {
                 FloatingActionButton.small(
                   heroTag: 'recenter',
                   tooltip: 'Recenter',
-                  onPressed: () => setState(() {
-                    follow = true;
-                    overview = false;
-                  }),
+                  onPressed: viewport.recenter,
                   child: const Icon(Icons.my_location),
                 ),
                 const SizedBox(height: 8),
                 FloatingActionButton.small(
                   heroTag: 'overview',
                   tooltip: 'Map overview',
-                  onPressed: () => setState(() {
-                    follow = false;
-                    overview = true;
-                  }),
+                  onPressed: viewport.overview,
                   child: const Icon(Icons.zoom_out_map),
+                ),
+                const SizedBox(height: 8),
+                FloatingActionButton.small(
+                  heroTag: 'north',
+                  tooltip: 'Reset rotation',
+                  onPressed: viewport.north,
+                  child: const Icon(Icons.explore),
                 ),
               ],
             ),

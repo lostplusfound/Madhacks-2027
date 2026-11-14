@@ -202,6 +202,13 @@ class _ARViewState extends State<ARView> {
     });
   }
 
+  Widget _permissionPanel(List<Widget> children) => Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(8),
+          child: Column(mainAxisSize: MainAxisSize.min, children: children),
+        ),
+      );
+
   @override
   build(BuildContext context) {
     switch (_cameraPermission) {
@@ -220,29 +227,23 @@ class _ARViewState extends State<ARView> {
         }
       case (PermissionStatus.denied):
         {
-          return Center(
-              child: Column(
-            children: [
-              Text(permissionPromptDescription),
-              ElevatedButton(
-                  child: Text(permissionPromptButtonText),
-                  onPressed: () async => {await requestCameraPermission()})
-            ],
-          ));
+          return _permissionPanel([
+            Text(permissionPromptDescription),
+            ElevatedButton(
+                child: Text(permissionPromptButtonText),
+                onPressed: () async => {await requestCameraPermission()})
+          ]);
         }
       case (PermissionStatus
             .permanentlyDenied): //Android-specific: User needs to open Settings to give permissions
         {
-          return Center(
-              child: Column(
-            children: [
-              Text(permissionPromptDescription),
-              ElevatedButton(
-                  child: Text(permissionPromptButtonText),
-                  onPressed: () async =>
-                      {await requestCameraPermissionFromSettings()})
-            ],
-          ));
+          return _permissionPanel([
+            Text(permissionPromptDescription),
+            ElevatedButton(
+                child: Text(permissionPromptButtonText),
+                onPressed: () async =>
+                    {await requestCameraPermissionFromSettings()})
+          ]);
         }
       case (PermissionStatus.restricted):
         {

@@ -39,7 +39,7 @@ Dijkstra respects imported costs and directionality. Route starts can attach wit
 
 Guidance tracks projected distance along the route. The initial projection is not a point you must visit. While walking beside the line, the compass translates a forward vector to your actual position instead of aiming sideways or backward at the centerline. Its 2-meter lookahead stops at the next turn. Left/right instructions use bends of at least 30 degrees; turn and remaining distances come from projected progress. The actual map position stays unsnapped.
 
-Segment matching favors the current leg within 3 meters, advances through connected turns, and reassesses progress after missed samples or localization corrections. Reverse walking updates progress too. More than 4 meters from the route starts a 2-second off-route timer; returning within 3 meters cancels it. Forward guidance continues during that grace period. Afterward, navigation recalculates from nearby mapped edges or pauses with the specific failure reason. Arrival requires actual proximity within 1.5 meters of the final approach; projection alone cannot trigger it.
+Segment matching favors the current leg within 3 meters, advances through connected turns, and reassesses progress after missed samples or localization corrections. Reverse walking updates progress too. More than 4 meters from the route starts a 2-second off-route timer; returning within 3 meters cancels it. Forward guidance continues during that grace period. Afterward, navigation tries a new hallway route. If no mapped edge is close enough, it retains the previous route and guides back to its matched segment with an estimated dashed connector. Rejoining within 3 meters restores turn guidance; tracking loss pauses the arrow and ETA without clearing the destination. Invalid destinations and disconnected graphs retain explicit failure messages. Arrival requires actual proximity within 1.5 meters of the final approach; projection alone cannot trigger it.
 
 Thresholds are centralized in `NavigationTuning`. Development builds emit `[MadMaps navigation]` diagnostics for the destination, selected start edge, attachment distance, calibration scale, progress, and failure reason. Messages are throttled by state transitions and 5-meter progress intervals. These tolerances accommodate walking and localization error; the draft graph still does not encode hallway widths or wall geometry.
 
@@ -50,3 +50,27 @@ Guidance pauses when tracking/localization is unavailable. Same-map anchor hando
 Automated coverage includes CSV imports, shortest paths, directionality, start projection, invalid/unreachable destinations, calibration/inverse transforms, legacy storage, turn instructions, guidance progression and loss, rerouting, image taps under zoom/letterboxing, and setup persistence. Routing regressions include University exit to Cafe across calibration scales, every mapped approach-to-approach pair, parallel walking offsets, missed turns, reverse movement, nearby parallel legs, and off-route hysteresis.
 
 The first-floor graph has been visually overlaid on the corrected image. Verify the south lobby/stair area and destination approaches on site. Physical acceptance still requires calibrating two anchors, checking a third landmark, and walking a first-floor route with multiple turns and an anchor handoff. Serverpod/Dart MCP tools were unavailable during implementation, so app hot restart, live driver navigation, and runner/app log inspection could not be performed in this session.
+
+
+## Map interaction and compact AR
+
+Use two fingers to rotate and pinch, or one finger to pan. Place markers stay
+upright and tappable; overlapping places open a chooser. Tap a place to see its
+Floor 1 card and Navigate button. Recenter follows your location while preserving
+zoom and rotation; Reset rotation restores image-up orientation. Map overview
+fits the current route (including your position), or the mapped building area.
+No room polygons or additional building geometry are required.
+
+The compact camera uses a real 140 ? 170 viewport instead of cropping a
+full-screen native camera. Expansion preserves the keyed Android view and ARCore
+session. The vendored plugin rebinds camera textures when Android replaces its
+rendering surface. Debug logs include viewport, surface generation, session
+identity, frame timestamps/tracking, and resolve completions. This native change
+requires a full Android rebuild/relaunch; Flutter hot reload cannot apply it.
+
+On a physical Android device, start localization while compact, verify new frame
+timestamps and successful anchor resolution, expand/collapse repeatedly during
+a pending resolve, and confirm the session identity and resolved anchors survive.
+Walk off a route, follow the return indicator, and rejoin until turn instructions
+resume. Repeat after temporarily losing tracking. These physical checks remain
+necessary even when widget tests and the APK build pass.

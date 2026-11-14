@@ -1306,6 +1306,7 @@ internal class AndroidARView(
                 anchorManagerChannel.invokeMethod("onCloudAnchorError", mapOf("operation" to "resolve", "cloudanchorid" to anchorName, "state" to cloudState.name))
                 return
             }
+            Log.d(TAG, "Cloud resolve complete request=$anchorName state=$cloudState session=${System.identityHashCode(session)}")
             val anchorIdName = anchorName ?: ""
             anchorsByName[anchorIdName] = anchor!!
             anchorChildren.putIfAbsent(anchorIdName, mutableListOf())
@@ -1545,6 +1546,10 @@ internal class AndroidARView(
             private set
         private var hasSurface = false
         private var displayGeometryApplied = false
+        private var surfaceGeneration = 0
+        private var lastFrameLogMs = 0L
+        private val debugFrames: Boolean
+            get() = (activity.applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0
 
         fun onSessionReady() {
             displayGeometryApplied = false
@@ -1555,6 +1560,7 @@ internal class AndroidARView(
         }
 
         fun onLayoutChanged(width: Int, height: Int) {
+            if (debugFrames) Log.d(TAG, "AR viewport ${width}x${height}, session=${System.identityHashCode(session)}")
             viewportWidth = width
             viewportHeight = height
             displayGeometryApplied = false
@@ -1577,6 +1583,21 @@ internal class AndroidARView(
         }
 
         override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
+            // Android virtual-display resize can replace the EGL camera surface.
+            // Rebind the existing Session rather than losing its anchors/futures.
+            val resumeExisting = surfaceGeneration > 0 && isSessionResumed
+            if (resumeExisting) {
+                try {
+                    session?.pause()
+                } catch (e: Exception) {
+                    Log.w(TAG, "Could not pause AR session for surface replacement", e)
+                }
+                isSessionResumed = false
+            }
+            surfaceGeneration++
+            hasSurface = false
+            displayGeometryApplied = false
+            if (debugFrames) Log.d(TAG, "AR surface generation=$surfaceGeneration, session=${System.identityHashCode(session)}")
             GLES20.glClearColor(0f, 0f, 0f, 1f)
             backgroundRenderer.initialize()
             axisRenderer.initialize()
@@ -1584,6 +1605,10 @@ internal class AndroidARView(
             pointCloudRenderer.initialize()
             session?.setCameraTextureName(backgroundRenderer.textureId)
             isSurfaceCreated = true
+            if (resumeExisting) {
+                // onSurfaceChanged applies the new display geometry before frames.
+                resumeSessionInternal()
+            }
             if (pendingSessionResume) {
                 activity.runOnUiThread {
                     resumeSessionInternal()
@@ -1607,7 +1632,7 @@ internal class AndroidARView(
         override fun onDrawFrame(gl: GL10?) {
             GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT or GLES20.GL_DEPTH_BUFFER_BIT)
             try {
-                if (!isSessionResumed) {
+                if (!isSessionResumed || !hasSurface) {
                     return
                 }
                 if (viewportWidth <= 0 || viewportHeight <= 0) {
@@ -1622,6 +1647,11 @@ internal class AndroidARView(
                 applyDisplayGeometryIfAvailable()
                 val frame = session?.update() ?: return
                 currentFrame = frame
+                val logNow = android.os.SystemClock.elapsedRealtime()
+                if (debugFrames && logNow - lastFrameLogMs >= 5000) {
+                    lastFrameLogMs = logNow
+                    Log.d(TAG, "AR frame=${frame.timestamp} tracking=${frame.camera.trackingState} viewport=${viewportWidth}x${viewportHeight} session=${System.identityHashCode(session)}")
+                }
                 handleQueuedTap(frame)
                 onFrameUpdateListener?.invoke(frame.timestamp)
                 val camera = frame.camera
@@ -1701,7 +1731,13 @@ internal class AndroidARView(
                 modelRenderer.updateCamera(viewMatrix, projectionMatrix)
                 modelRenderer.updateLightEstimate(frame.lightEstimate)
             } catch (e: Exception) {
-                // Ignore frame update errors when session is paused
+                if (debugFrames && isSessionResumed) {
+                    val logNow = android.os.SystemClock.elapsedRealtime()
+                    if (logNow - lastFrameLogMs >= 5000) {
+                        lastFrameLogMs = logNow
+                        Log.w(TAG, "AR frame update failed at ${viewportWidth}x${viewportHeight}", e)
+                    }
+                }
             }
         }
     }

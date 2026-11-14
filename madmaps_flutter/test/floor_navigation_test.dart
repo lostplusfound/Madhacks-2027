@@ -208,7 +208,10 @@ void main() {
       const Offset(500, 500),
       now.add(const Duration(seconds: 2)),
     );
-    expect(g.route, isNull);
+    expect(g.route, isNotNull);
+    expect(g.phase, NavigationPhase.returningToRoute);
+    expect(g.next, isNotNull);
+    expect(g.rejoinMeters, greaterThan(0));
   });
   test('CSV quoting and invalid references are handled', () {
     expect(readCsv('a,b\n"one,two","a""b"\n')[1], ['one,two', 'a"b']);

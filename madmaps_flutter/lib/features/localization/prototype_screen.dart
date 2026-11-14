@@ -371,6 +371,17 @@ class _MapSessionScreenState extends State<MapSessionScreen>
     refresh();
   }
 
+  void selectLocation(FloorLocation location) {
+    final node = map.floor.locationNodes[location.id] ?? location.node;
+    if (node == null || map.floor.calibration(map) == null) return;
+    updateState(() {
+      destination = null;
+      roomName = location.label;
+      navigationMapId = map.id;
+      guidance.select(node);
+    });
+  }
+
   Future<void> showRooms() async {
     if (floorGraph == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -424,14 +435,7 @@ class _MapSessionScreenState extends State<MapSessionScreen>
                               map.floor.calibration(map) != null,
                           onTap: () {
                             Navigator.pop(sheet);
-                            updateState(() {
-                              destination = null;
-                              roomName = l.label;
-                              navigationMapId = map.id;
-                              guidance.select(
-                                map.floor.locationNodes[l.id] ?? l.node!,
-                              );
-                            });
+                            selectLocation(l);
                           },
                         ),
                     ],
@@ -924,6 +928,7 @@ class _MapSessionScreenState extends State<MapSessionScreen>
                       message: discoveryMessage ?? localization.status,
                       busy: busy,
                       onSearch: busy ? () {} : showRooms,
+                      onNavigate: selectLocation,
                       onLocate: busy ? cancelSearch : discover,
                       onCancel: () => updateState(() {
                         roomName = null;
@@ -933,38 +938,39 @@ class _MapSessionScreenState extends State<MapSessionScreen>
                       }),
                     ),
                   ),
-                Positioned.fill(
+                Positioned(
                   key: const ValueKey('native-camera'),
-                  child: ClipPath(
-                    clipper: CameraOverlayClipper(
-                      compact: mapFirst && !arExpanded,
-                    ),
-                    child: ARView(
-                      planeDetectionConfig:
-                          PlaneDetectionConfig.horizontalAndVertical,
-                      onARViewCreated: (s, o, a, l) async {
-                        try {
-                          await ar.attach(s, a);
-                          if (!mounted) return;
-                          updateState(() => ready = true);
-                          if (mounted &&
-                              active &&
-                              (widget.map == null ||
-                                  (map.floor.enabled &&
-                                      map.anchors.isNotEmpty))) {
-                            await discover();
-                          }
-                        } catch (e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('AR initialization failed: $e'),
-                              ),
-                            );
-                          }
+                  top: mapFirst && !arExpanded ? 190 : 0,
+                  right: mapFirst && !arExpanded ? 16 : 0,
+                  left: mapFirst && !arExpanded ? null : 0,
+                  bottom: mapFirst && !arExpanded ? null : 0,
+                  width: mapFirst && !arExpanded ? 140 : null,
+                  height: mapFirst && !arExpanded ? 170 : null,
+                  child: ARView(
+                    planeDetectionConfig:
+                        PlaneDetectionConfig.horizontalAndVertical,
+                    onARViewCreated: (s, o, a, l) async {
+                      try {
+                        await ar.attach(s, a);
+                        if (!mounted) return;
+                        updateState(() => ready = true);
+                        if (mounted &&
+                            active &&
+                            (widget.map == null ||
+                                (map.floor.enabled &&
+                                    map.anchors.isNotEmpty))) {
+                          await discover();
                         }
-                      },
-                    ),
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('AR initialization failed: $e'),
+                            ),
+                          );
+                        }
+                      }
+                    },
                   ),
                 ),
                 if (mapFirst)

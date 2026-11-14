@@ -7,6 +7,7 @@ import 'package:ar_flutter_plugin_plus/datatypes/config_planedetection.dart';
 import 'package:ar_flutter_plugin_plus/managers/ar_anchor_manager.dart';
 import 'package:ar_flutter_plugin_plus/managers/ar_session_manager.dart';
 import 'package:ar_flutter_plugin_plus/models/ar_anchor.dart';
+import 'package:ar_flutter_plugin_plus/ar_flutter_plugin.dart' show ARView;
 import 'package:madmaps/features/localization/ar_adapter.dart';
 import 'package:madmaps/features/localization/map_data.dart';
 import 'package:madmaps/features/localization/prototype_screen.dart';
@@ -133,6 +134,18 @@ void main() {
         ),
       );
       await tester.pump();
+      expect(anchors.requests.length, 20);
+      final cameraState = tester.state(find.byType(ARView));
+      expect(tester.getSize(find.byType(ARView)), const Size(140, 170));
+      await tester.tap(find.byTooltip('Expand AR'));
+      await tester.pump();
+      expect(tester.state(find.byType(ARView)), same(cameraState));
+      expect(tester.getSize(find.byType(ARView)).width, greaterThan(140));
+      await tester.tap(find.byTooltip('Collapse AR'));
+      await tester.pump();
+      expect(tester.state(find.byType(ARView)), same(cameraState));
+      expect(tester.getSize(find.byType(ARView)), const Size(140, 170));
+      expect(identical(ar.session, session), true);
       expect(anchors.requests.length, 20);
       for (final name in anchors.requests.keys.toList()) {
         anchors.onCloudAnchorError!(
