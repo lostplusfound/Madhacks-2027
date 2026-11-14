@@ -3,6 +3,7 @@ import 'package:madmaps_server/src/routing/heuristics.dart';
 import 'package:madmaps_server/src/routing/indoor_graph.dart';
 import 'package:madmaps_server/src/routing/ml_heuristic_trainer.dart';
 import 'package:madmaps_server/src/routing/mock_indoor_map.dart';
+import 'package:madmaps_server/src/generated/protocol.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -16,6 +17,49 @@ void main() {
       ('f3_room_4_0', 'f3_room_6_3'),
       ('f4_room_8_0', 'f2_room_0_3'),
     ];
+
+    test('builds a bidirectional pixel-cost graph from persisted models', () {
+      final persistedGraph = IndoorGraph.fromModels(
+        nodes: [
+          Nodes(
+            nodeId: 'a',
+            floor: 1,
+            x: 0,
+            y: 0,
+            kind: Kind.junction,
+            status: 'draft',
+          ),
+          Nodes(
+            nodeId: 'b',
+            floor: 1,
+            x: 3,
+            y: 4,
+            kind: Kind.approach,
+            status: 'draft',
+          ),
+        ],
+        edges: [
+          Edge(
+            fromNodeId: 'a',
+            toNodeId: 'b',
+            type: 'walk',
+            costPx: 5,
+            bidirectional: true,
+            status: 'draft',
+          ),
+        ],
+      );
+
+      expect(persistedGraph.edges, hasLength(2));
+      final reverse = router.findRoute(
+        graph: persistedGraph,
+        startNodeId: 'b',
+        goalNodeId: 'a',
+        heuristic: const ZeroHeuristic(),
+      );
+      expect(reverse.pathNodeIds, ['b', 'a']);
+      expect(reverse.totalCost, 5);
+    });
 
     test('all analytical heuristics preserve optimal route cost', () {
       final heuristics = <RoutingHeuristic>[

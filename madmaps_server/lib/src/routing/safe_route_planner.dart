@@ -163,7 +163,7 @@ String _graphSignature(IndoorGraph graph) {
       ..write('|')
       ..write(edge.to)
       ..write('|')
-      ..write(edge.travelTimeSeconds)
+      ..write(edge.effectiveCost)
       ..write(';');
   }
   var hash = 0xcbf29ce484222325;

@@ -1,0 +1,10 @@
+class: Edge
+table: edge
+
+fields:
+  fromNodeId: String, column=from_node_id, jsonKey=from_node_id
+  toNodeId: String, column=to_node_id, jsonKey=to_node_id
+  type: String
+  costPx: double, column=cost_px, jsonKey=cost_px
+  bidirectional: bool
+  status: String

@@ -12,8 +12,16 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'package:serverpod_client/serverpod_client.dart' as _isc;
+import 'edge.dart' as _ilmyslsx;
 import 'greetings/greeting.dart' as _izw8z7ou;
+import 'kind.dart' as _iokugpqm;
+import 'locations.dart' as _iy2kpyso;
+import 'node.dart' as _i9tve71o;
+export 'edge.dart';
 export 'greetings/greeting.dart';
+export 'kind.dart';
+export 'locations.dart';
+export 'node.dart';
 export 'client.dart';
 
 class Protocol extends _isc.SerializationManager
@@ -29,11 +37,25 @@ class Protocol extends _isc.SerializationManager
       _isc.ProtocolDeserialization.cached(
         this,
         types: const [
+          _isc.getType<_ilmyslsx.Edge>,
           _isc.getType<_izw8z7ou.Greeting>,
+          _isc.getType<_iokugpqm.Kind>,
+          _isc.getType<_iy2kpyso.Locations>,
+          _isc.getType<_i9tve71o.Nodes>,
+          _isc.getType<_ilmyslsx.Edge?>,
           _isc.getType<_izw8z7ou.Greeting?>,
+          _isc.getType<_iokugpqm.Kind?>,
+          _isc.getType<_iy2kpyso.Locations?>,
+          _isc.getType<_i9tve71o.Nodes?>,
         ],
         modules: const [],
-        classNames: const ['Greeting'],
+        classNames: const [
+          'Edge',
+          'Greeting',
+          'Kind',
+          'Locations',
+          'Nodes',
+        ],
       );
 
   static String? getClassNameFromObjectJson(dynamic data) =>
@@ -60,18 +82,46 @@ class Protocol extends _isc.SerializationManager
       }
     }
 
+    if (t == _ilmyslsx.Edge) {
+      return _ilmyslsx.Edge.fromJson(data) as T;
+    }
     if (t == _izw8z7ou.Greeting) {
       return _izw8z7ou.Greeting.fromJson(data) as T;
     }
+    if (t == _iokugpqm.Kind) {
+      return _iokugpqm.Kind.fromJson(data) as T;
+    }
+    if (t == _iy2kpyso.Locations) {
+      return _iy2kpyso.Locations.fromJson(data) as T;
+    }
+    if (t == _i9tve71o.Nodes) {
+      return _i9tve71o.Nodes.fromJson(data) as T;
+    }
+    if (t == _isc.getType<_ilmyslsx.Edge?>()) {
+      return (data != null ? _ilmyslsx.Edge.fromJson(data) : null) as T;
+    }
     if (t == _isc.getType<_izw8z7ou.Greeting?>()) {
       return (data != null ? _izw8z7ou.Greeting.fromJson(data) : null) as T;
+    }
+    if (t == _isc.getType<_iokugpqm.Kind?>()) {
+      return (data != null ? _iokugpqm.Kind.fromJson(data) : null) as T;
+    }
+    if (t == _isc.getType<_iy2kpyso.Locations?>()) {
+      return (data != null ? _iy2kpyso.Locations.fromJson(data) : null) as T;
+    }
+    if (t == _isc.getType<_i9tve71o.Nodes?>()) {
+      return (data != null ? _i9tve71o.Nodes.fromJson(data) : null) as T;
     }
     return super.deserialize<T>(data, t);
   }
 
   static String? getClassNameForType(Type type) {
     return switch (type) {
+      _ilmyslsx.Edge => 'Edge',
       _izw8z7ou.Greeting => 'Greeting',
+      _iokugpqm.Kind => 'Kind',
+      _iy2kpyso.Locations => 'Locations',
+      _i9tve71o.Nodes => 'Nodes',
       _ => null,
     };
   }
@@ -86,8 +136,16 @@ class Protocol extends _isc.SerializationManager
     }
 
     switch (data) {
+      case _ilmyslsx.Edge():
+        return 'Edge';
       case _izw8z7ou.Greeting():
         return 'Greeting';
+      case _iokugpqm.Kind():
+        return 'Kind';
+      case _iy2kpyso.Locations():
+        return 'Locations';
+      case _i9tve71o.Nodes():
+        return 'Nodes';
     }
     return null;
   }
@@ -98,8 +156,20 @@ class Protocol extends _isc.SerializationManager
     if (dataClassName is! String) {
       return super.deserializeByClassName(data);
     }
+    if (dataClassName == 'Edge') {
+      return deserialize<_ilmyslsx.Edge>(data['data']);
+    }
     if (dataClassName == 'Greeting') {
       return deserialize<_izw8z7ou.Greeting>(data['data']);
+    }
+    if (dataClassName == 'Kind') {
+      return deserialize<_iokugpqm.Kind>(data['data']);
+    }
+    if (dataClassName == 'Locations') {
+      return deserialize<_iy2kpyso.Locations>(data['data']);
+    }
+    if (dataClassName == 'Nodes') {
+      return deserialize<_i9tve71o.Nodes>(data['data']);
     }
     return super.deserializeByClassName(data);
   }

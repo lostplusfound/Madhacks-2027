@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 
+import '../generated/protocol.dart' as protocol;
+
 enum IndoorNodeKind {
   hallway,
   classroomDoor,
@@ -43,7 +45,16 @@ class DirectedEdge {
     required this.id,
     required this.from,
     required this.to,
-    required this.travelTimeSeconds,
+    required double travelTimeSeconds,
+    this.description,
+    this.verificationStatus = EdgeVerificationStatus.verified,
+  }) : cost = travelTimeSeconds;
+
+  const DirectedEdge.withCost({
+    required this.id,
+    required this.from,
+    required this.to,
+    required this.cost,
     this.description,
     this.verificationStatus = EdgeVerificationStatus.verified,
   });
@@ -51,7 +62,15 @@ class DirectedEdge {
   final String id;
   final String from;
   final String to;
-  final double travelTimeSeconds;
+
+  /// Generic A* edge cost. CSV-backed graphs use pixels; synthetic benchmark
+  /// graphs use seconds.
+  final double cost;
+
+  double get effectiveCost => cost;
+
+  /// Compatibility alias for the pre-persistence routing API.
+  double get travelTimeSeconds => effectiveCost;
   final String? description;
   final EdgeVerificationStatus verificationStatus;
 }
@@ -81,7 +100,7 @@ class IndoorGraph {
           !this.nodes.containsKey(edge.to)) {
         throw ArgumentError('Edge ${edge.id} references an unknown node.');
       }
-      if (!edge.travelTimeSeconds.isFinite || edge.travelTimeSeconds <= 0) {
+      if (!edge.effectiveCost.isFinite || edge.effectiveCost <= 0) {
         throw ArgumentError(
           'Edge ${edge.id} must have a positive finite weight.',
         );
@@ -97,6 +116,57 @@ class IndoorGraph {
       for (final entry in incoming.entries)
         entry.key: List<DirectedEdge>.unmodifiable(entry.value),
     });
+  }
+
+  /// Builds the routing graph used by A* from the persisted Serverpod models.
+  ///
+  /// The CSV stores a bidirectional connection as one row. Routing uses
+  /// directed adjacency lists, so those rows are expanded in both directions.
+  factory IndoorGraph.fromModels({
+    required Iterable<protocol.Nodes> nodes,
+    required Iterable<protocol.Edge> edges,
+  }) {
+    final routingNodes = nodes.map(
+      (node) => IndoorNode(
+        id: node.nodeId,
+        floor: node.floor,
+        xMeters: node.x,
+        zMeters: node.y,
+        kind: switch (node.kind) {
+          protocol.Kind.approach => IndoorNodeKind.classroomDoor,
+          protocol.Kind.junction => IndoorNodeKind.hallway,
+          protocol.Kind.landmark => IndoorNodeKind.landmark,
+        },
+        label: node.locationId,
+      ),
+    );
+    final routingEdges = <DirectedEdge>[];
+    var edgeIndex = 0;
+    for (final edge in edges) {
+      final id = '${edge.fromNodeId}->${edge.toNodeId}#$edgeIndex';
+      routingEdges.add(
+        DirectedEdge.withCost(
+          id: id,
+          from: edge.fromNodeId,
+          to: edge.toNodeId,
+          cost: edge.costPx,
+          description: edge.type,
+        ),
+      );
+      if (edge.bidirectional) {
+        routingEdges.add(
+          DirectedEdge.withCost(
+            id: '$id:reverse',
+            from: edge.toNodeId,
+            to: edge.fromNodeId,
+            cost: edge.costPx,
+            description: edge.type,
+          ),
+        );
+      }
+      edgeIndex++;
+    }
+    return IndoorGraph(nodes: routingNodes, edges: routingEdges);
   }
 
   final Map<String, IndoorNode> nodes;

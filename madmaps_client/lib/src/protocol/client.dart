@@ -17,8 +17,6 @@ import 'package:madmaps_client/src/protocol/greetings/greeting.dart'
 import 'package:serverpod_client/serverpod_client.dart' as _isc;
 import 'protocol.dart' as _il2as5qe;
 
-/// This is an example endpoint that returns a greeting message through
-/// its [hello] method.
 /// {@category Endpoint}
 class EndpointGreeting extends _isc.EndpointRef {
   EndpointGreeting(_isc.EndpointCaller caller) : super(caller);
@@ -26,7 +24,6 @@ class EndpointGreeting extends _isc.EndpointRef {
   @override
   String get name => 'greeting';
 
-  /// Returns a personalized greeting message: "Hello {name}".
   _ida.Future<_igi1f61t.Greeting> hello(String name) =>
       caller.callServerEndpoint<_igi1f61t.Greeting>(
         'greeting',

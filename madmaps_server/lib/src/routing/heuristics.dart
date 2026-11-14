@@ -249,7 +249,7 @@ Map<String, double> _shortestDistances(
         : graph.outgoing(current.nodeId);
     for (final edge in edges) {
       final next = reverse ? edge.from : edge.to;
-      final candidate = current.distance + edge.travelTimeSeconds;
+      final candidate = current.distance + edge.effectiveCost;
       if (candidate < (distances[next] ?? double.infinity)) {
         distances[next] = candidate;
         pending.add(_DistanceEntry(next, candidate));

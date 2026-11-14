@@ -2,10 +2,12 @@ class: Locations
 table: locations
 
 fields:
-	location_id: String, unique
-	floor: int
-	room_number: int
-	name: String
-	category: Category
-	alias: String
+  locationId: String, column=location_id, jsonKey=location_id, unique
+  floor: int
+  roomNumber: String?, column=room_number, jsonKey=room_number
+  name: String?
+  category: String?
+  aliases: String?
+  routeNodeId: String?, column=route_node_id, jsonKey=route_node_id
+  reviewNote: String?, column=review_note, jsonKey=review_note
 

@@ -32,6 +32,10 @@ class RouteResult {
   final int queuedNodes;
 
   bool get found => pathNodeIds.isNotEmpty;
+
+  /// Generic path cost. This is pixel cost for graphs built from the persisted
+  /// map models and seconds for the legacy synthetic benchmarks.
+  double get totalCost => travelTimeSeconds;
 }
 
 class AStarRouter {
@@ -86,7 +90,7 @@ class AStarRouter {
 
       expanded++;
       for (final edge in graph.outgoing(current.nodeId)) {
-        final candidateCost = current.cost + edge.travelTimeSeconds;
+        final candidateCost = current.cost + edge.effectiveCost;
         if (candidateCost >= (cost[edge.to] ?? double.infinity)) continue;
         cost[edge.to] = candidateCost;
         previous[edge.to] = current.nodeId;
