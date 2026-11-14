@@ -1,0 +1,11 @@
+class: Locations
+table: locations
+
+fields:
+	location_id: String, unique
+	floor: int
+	room_number: int
+	name: String
+	category: Category
+	alias: String
+

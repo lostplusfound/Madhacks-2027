@@ -73,3 +73,6 @@ Use flutter devices to select a phone. The greeting form verifies framework wiri
 | Navigation | [Flutter navigation](docs/roles/04_FLUTTER_NAVIGATION.md) | Agree shared types, then create a synthetic floor and mock walk |
 
 Read [architecture](docs/ARCHITECTURE.md), [coordinates](docs/COORDINATE_SYSTEMS.md), [24-hour plan](docs/HACKATHON_PLAN.md), [integration](docs/INTEGRATION.md), [testing](docs/TESTING.md), and [contributing](CONTRIBUTING.md). Domain contracts and domain tests are future work.
+
+Routing documentation: [A* user guide](docs/ASTAR_USER_GUIDE.md) and
+[heuristic benchmark findings](docs/ROUTING_BENCHMARK.md).

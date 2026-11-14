@@ -1,0 +1,16 @@
+enum: Category
+serialized: byName
+values:
+ - auditorium
+ - restroom
+ - cafe
+ - exit
+ - elevator
+ - stairs
+ - study_room
+ - lounge
+ - learning_center
+ - library
+ - lab
+ - office
+ - terrace
