@@ -13,9 +13,11 @@ hands-on use, following earlier confirmed hosting on Pixel 6a. All 36 Flutter
 tests pass. Measured position/heading accuracy and the full physical acceptance
 checklist remain outstanding; this is not a measured accuracy claim.
 
+First-floor graph navigation is integrated on the integration branch: place two saved anchors on the corrected floor plan, calibrate, then select a room for Dijkstra hallway routing and compass/turn guidance. See [floor navigation setup and limitations](docs/FLOOR_NAVIGATION.md). Graph geometry is draft and physical navigation acceptance is pending.
+
 Indoor navigation for MadHacks: Flutter, Serverpod/PostgreSQL, and the third-party AR package `ar_flutter_plugin_plus: 1.1.3`.
 
-The Flutter app includes an Android AR localization prototype with local map persistence. The backend remains a generated framework starter. Corridor routing, backend map persistence, AI processing, and shared domain types remain future work.
+The Flutter app includes an Android AR localization prototype and first-floor graph routing with local persistence. The backend remains a generated framework starter. Backend map persistence, AI processing, and shared domain types remain future work.
 
 **All domain contracts are proposals, not set in stone.** Revise them together as features are implemented. See [the contract discussion draft](docs/CONTRACTS.md).
 

@@ -11,6 +11,10 @@ import 'cloud_anchor_config.dart';
 import 'map_data.dart';
 import 'scan_guidance.dart';
 import 'localization_controller.dart';
+import '../navigation/floor_data.dart';
+import '../navigation/floor_screen.dart';
+import '../navigation/routing.dart';
+import 'package:vector_math/vector_math_64.dart' show Vector3;
 
 Future<String?> askName(
   BuildContext context,
@@ -151,6 +155,21 @@ class _MapsScreenState extends State<MapsScreen> {
                   },
                   trailing: PopupMenuButton<String>(
                     onSelected: (value) => guarded(() async {
+                      if (value == 'floor') {
+                        final graph = await FloorGraph.load();
+                        if (!context.mounted) return;
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute<void>(
+                            builder: (_) => FloorSetupScreen(
+                              map: map,
+                              graph: graph,
+                              save: save,
+                            ),
+                          ),
+                        );
+                        return;
+                      }
                       if (value == 'rename') {
                         final name = await askName(
                           context,
@@ -165,6 +184,10 @@ class _MapsScreenState extends State<MapsScreen> {
                       await save();
                     }),
                     itemBuilder: (_) => const [
+                      PopupMenuItem(
+                        value: 'floor',
+                        child: Text('Floor 1 setup'),
+                      ),
                       PopupMenuItem(value: 'rename', child: Text('Rename')),
                       PopupMenuItem(
                         value: 'delete',
@@ -302,6 +325,133 @@ class _MapSessionScreenState extends State<MapSessionScreen>
   Matrix4? draftPose;
   final scan = ScanGuidance();
   SavedAnchor? destination;
+  FloorGraph? floorGraph;
+  String? floorError, roomName;
+  final guidance = GuidanceState();
+  String? navigationMapId;
+
+  Future<void> loadFloor() async {
+    try {
+      final graph = await FloorGraph.load();
+      if (mounted) setState(() => floorGraph = graph);
+    } catch (e) {
+      if (mounted) setState(() => floorError = 'Map data unavailable: $e');
+    }
+  }
+
+  Future<void> openFloorSetup() async {
+    if (floorGraph == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(floorError ?? 'Loading floor data…')),
+      );
+      return;
+    }
+    await Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            FloorSetupScreen(map: map, graph: floorGraph!, save: widget.save),
+      ),
+    );
+    guidance.reset();
+    refresh();
+  }
+
+  Future<void> showRooms() async {
+    if (floorGraph == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(floorError ?? 'Loading floor data…')),
+      );
+      return;
+    }
+    var search = '';
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheet) => StatefulBuilder(
+        builder: (context, rebuild) => SafeArea(
+          child: SizedBox(
+            height: MediaQuery.sizeOf(context).height * .75,
+            child: Column(
+              children: [
+                const ListTile(
+                  title: Text('Floor 1 destinations • draft'),
+                  subtitle: Text('Other floors are not supported yet.'),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: TextField(
+                    decoration: const InputDecoration(
+                      labelText: 'Search rooms or amenities',
+                    ),
+                    onChanged: (v) => rebuild(() => search = v.toLowerCase()),
+                  ),
+                ),
+                Expanded(
+                  child: ListView(
+                    children: [
+                      for (final l in floorGraph!.locations.where(
+                        (l) => '${l.label} ${l.aliases} ${l.id}'
+                            .toLowerCase()
+                            .contains(search),
+                      ))
+                        ListTile(
+                          title: Text(l.label),
+                          subtitle: Text(
+                            (map.floor.locationNodes[l.id] ?? l.node) == null
+                                ? 'Not mapped yet'
+                                : map.floor.calibration(map) == null
+                                ? 'Set up floor calibration first'
+                                : 'Navigate to entrance',
+                          ),
+                          enabled:
+                              (map.floor.locationNodes[l.id] ?? l.node) !=
+                                  null &&
+                              map.floor.calibration(map) != null,
+                          onTap: () {
+                            Navigator.pop(sheet);
+                            updateState(() {
+                              destination = null;
+                              roomName = l.label;
+                              navigationMapId = map.id;
+                              guidance.select(
+                                map.floor.locationNodes[l.id] ?? l.node!,
+                              );
+                            });
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void updateGuidance() {
+    if (navigationMapId != null && navigationMapId != map.id) {
+      guidance.target = null;
+      guidance.reset();
+      roomName = null;
+      destination = null;
+    }
+    final graph = floorGraph;
+    if (graph == null) return;
+    final calibration = map.floor.calibration(map), pose = camera;
+    guidance.update(
+      graph,
+      map.floor,
+      calibration,
+      pose == null || calibration == null
+          ? null
+          : calibration.toImage(Offset(pose.entry(0, 3), pose.entry(2, 3))),
+      DateTime.now(),
+    );
+  }
+
   bool busy = false, placing = false, expanded = false, active = true;
   String? operation;
   int generation = 0;
@@ -354,6 +504,7 @@ class _MapSessionScreenState extends State<MapSessionScreen>
       ..start();
     ready = ar.session != null;
     map = widget.map ?? AnchorMap('discovery', 'Find my location', []);
+    loadFloor();
     identified = widget.map != null;
     WidgetsBinding.instance.addObserver(this);
     ar.addListener(refresh);
@@ -484,6 +635,7 @@ class _MapSessionScreenState extends State<MapSessionScreen>
 
   void refresh() {
     syncLocalizationMode();
+    updateGuidance();
     if (draftPose != null && active && ar.tracking && ar.camera != null) {
       scan.sample(ar.camera!.getTranslation());
     }
@@ -581,13 +733,28 @@ class _MapSessionScreenState extends State<MapSessionScreen>
                 ),
                 onTap: () {
                   Navigator.pop(sheet);
-                  updateState(() => destination = a);
+                  updateState(() {
+                    destination = a;
+                    roomName = null;
+                    navigationMapId = map.id;
+                    guidance.target = null;
+                    guidance.reset();
+                  });
                 },
                 trailing: PopupMenuButton<String>(
                   onSelected: (value) async {
                     Navigator.pop(sheet);
                     if (value == 'resolve') {
                       await resolve(a);
+                      return;
+                    }
+                    if (value == 'route') {
+                      updateState(() {
+                        destination = null;
+                        roomName = a.name;
+                        navigationMapId = map.id;
+                        guidance.select(map.floor.anchorNodes[a.id]!);
+                      });
                       return;
                     }
                     if (value == 'rename') {
@@ -601,6 +768,11 @@ class _MapSessionScreenState extends State<MapSessionScreen>
                     }
                     if (value == 'delete') {
                       map.anchors.remove(a);
+                      map.floor.anchorPoints.remove(a.id);
+                      map.floor.anchorNodes.remove(a.id);
+                      if (map.floor.calibrationIds.contains(a.id)) {
+                        map.floor.calibrationIds.clear();
+                      }
                       if (localization.reference == a) {
                         localization.invalidate();
                       }
@@ -610,6 +782,12 @@ class _MapSessionScreenState extends State<MapSessionScreen>
                     await runOperation('Saving…', widget.save);
                   },
                   itemBuilder: (_) => [
+                    if (map.floor.anchorNodes.containsKey(a.id) &&
+                        map.floor.calibration(map) != null)
+                      const PopupMenuItem(
+                        value: 'route',
+                        child: Text('Navigate via hallways'),
+                      ),
                     if (!a.expired)
                       const PopupMenuItem(
                         value: 'resolve',
@@ -646,6 +824,8 @@ class _MapSessionScreenState extends State<MapSessionScreen>
     final supported =
         !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
     final pose = camera, target = destination;
+    updateGuidance();
+    final calibration = map.floor.calibration(map);
     final distance = pose != null && target != null
         ? horizontalDistance(
             pose.getTranslation(),
@@ -666,6 +846,18 @@ class _MapSessionScreenState extends State<MapSessionScreen>
       appBar: AppBar(
         title: Text(identified ? map.name : 'Find my location'),
         actions: [
+          if (identified)
+            IconButton(
+              tooltip: 'Floor 1 setup',
+              icon: const Icon(Icons.edit_location_alt),
+              onPressed: busy || draftPose != null ? null : openFloorSetup,
+            ),
+          if (identified)
+            IconButton(
+              tooltip: 'Rooms',
+              icon: const Icon(Icons.directions),
+              onPressed: busy || draftPose != null ? null : showRooms,
+            ),
           IconButton(
             tooltip: 'Find my location again',
             icon: const Icon(Icons.my_location),
@@ -805,6 +997,57 @@ class _MapSessionScreenState extends State<MapSessionScreen>
                       ),
                     ),
                   ),
+                if (draftPose == null && roomName != null)
+                  Positioned(
+                    left: 16,
+                    top: 190,
+                    child: Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(roomName!),
+                            if (guidance.next != null &&
+                                pose != null &&
+                                calibration != null)
+                              Transform.rotate(
+                                angle: relativeBearing(
+                                  pose,
+                                  Vector3(
+                                    calibration.toMap(guidance.next!).dx,
+                                    0,
+                                    calibration.toMap(guidance.next!).dy,
+                                  ),
+                                ),
+                                child: const Icon(
+                                  Icons.arrow_upward,
+                                  size: 64,
+                                  color: Colors.blue,
+                                ),
+                              ),
+                            SizedBox(width: 220, child: Text(guidance.status)),
+                            if (guidance.remainingMeters != null)
+                              Text(
+                                '${guidance.remainingMeters!.toStringAsFixed(1)} m remaining (estimated)',
+                              ),
+                            const Text(
+                              'Draft hallway map',
+                              style: TextStyle(color: Colors.deepOrange),
+                            ),
+                            TextButton(
+                              onPressed: () => updateState(() {
+                                roomName = null;
+                                guidance.target = null;
+                                guidance.reset();
+                              }),
+                              child: const Text('Stop navigation'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 if (draftPose != null)
                   Positioned(
                     top: 125,
@@ -837,7 +1080,13 @@ class _MapSessionScreenState extends State<MapSessionScreen>
                               child: Row(
                                 children: [
                                   const SizedBox(width: 8),
-                                  const Expanded(child: Text('Map • up = −Z')),
+                                  Expanded(
+                                    child: Text(
+                                      map.floor.enabled
+                                          ? 'Floor 1 • draft'
+                                          : 'Map • up = −Z',
+                                    ),
+                                  ),
                                   IconButton(
                                     padding: EdgeInsets.zero,
                                     onPressed: () =>
@@ -855,6 +1104,36 @@ class _MapSessionScreenState extends State<MapSessionScreen>
                             Expanded(
                               child: LayoutBuilder(
                                 builder: (context, constraints) {
+                                  if (map.floor.enabled && floorGraph != null) {
+                                    final p =
+                                        pose == null || calibration == null
+                                        ? null
+                                        : calibration.toImage(
+                                            Offset(
+                                              pose.entry(0, 3),
+                                              pose.entry(2, 3),
+                                            ),
+                                          );
+                                    final h =
+                                        pose == null || calibration == null
+                                        ? null
+                                        : calibration.toImage(
+                                            Offset(
+                                              pose.entry(0, 3) -
+                                                  pose.entry(0, 2),
+                                              pose.entry(2, 3) -
+                                                  pose.entry(2, 2),
+                                            ),
+                                          );
+                                    return FloorCanvas(
+                                      graph: floorGraph!,
+                                      setup: map.floor,
+                                      camera: p,
+                                      headingPoint: h,
+                                      route: guidance.route?.points ?? [],
+                                      showLabels: expanded,
+                                    );
+                                  }
                                   final size = Size(
                                     constraints.maxWidth,
                                     constraints.maxHeight,
@@ -883,7 +1162,12 @@ class _MapSessionScreenState extends State<MapSessionScreen>
                                         }
                                         if (closest != null) {
                                           updateState(
-                                            () => destination = closest,
+                                            () {
+                                              destination = closest;
+                                              roomName = null;
+                                              guidance.target = null;
+                                              guidance.reset();
+                                            },
                                           );
                                         }
                                       },

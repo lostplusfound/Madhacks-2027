@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vector_math/vector_math_64.dart';
+import '../navigation/floor_data.dart';
 
 class SavedAnchor {
   SavedAnchor(this.id, this.name, this.cloudId, this.pose, this.expiresAt);
@@ -34,18 +35,29 @@ class AnchorMap {
   final String id;
   String name;
   final List<SavedAnchor> anchors;
+  FloorSetup floor = FloorSetup();
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
     'anchors': anchors.map((a) => a.toJson()).toList(),
+    'floor': floor.toJson(),
   };
-  factory AnchorMap.fromJson(Map<String, dynamic> j) => AnchorMap(
-    j['id'] as String,
-    j['name'] as String,
-    (j['anchors'] as List)
-        .map((a) => SavedAnchor.fromJson(Map<String, dynamic>.from(a as Map)))
-        .toList(),
-  );
+  factory AnchorMap.fromJson(Map<String, dynamic> j) =>
+      AnchorMap(
+          j['id'] as String,
+          j['name'] as String,
+          (j['anchors'] as List)
+              .map(
+                (a) =>
+                    SavedAnchor.fromJson(Map<String, dynamic>.from(a as Map)),
+              )
+              .toList(),
+        )
+        ..floor = FloorSetup.fromJson(
+          j['floor'] == null
+              ? null
+              : Map<String, dynamic>.from(j['floor'] as Map),
+        );
 }
 
 /// A local map is a floor for discovery; preserve its existing coordinate frame.
