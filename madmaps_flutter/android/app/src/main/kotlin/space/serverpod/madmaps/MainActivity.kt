@@ -10,10 +10,11 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "madmaps/ar_config")
             .setMethodCallHandler { call, result ->
-                if (call.method == "hasCloudAnchorKey") {
+                if (call.method == "hasKeylessCloudAnchorConfig") {
                     val info = packageManager.getApplicationInfo(packageName, PackageManager.GET_META_DATA)
                     val key = info.metaData?.getString("com.google.android.ar.API_KEY")
-                    result.success(!key.isNullOrBlank())
+                    // Google Cloud validates the package and signing certificate remotely.
+                    result.success(key.isNullOrBlank())
                 } else {
                     result.notImplemented()
                 }

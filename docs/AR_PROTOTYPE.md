@@ -17,15 +17,38 @@ and launches require the user's explicit request.
 
 Use an ARCore-compatible Android phone (initial test target: Pixel 6a), enable
 camera permission, and keep an internet connection. In your existing Google
-Cloud project enable the ARCore API and configure an Android-restricted API key
-for application ID `space.serverpod.madmaps` and the signing certificate used for
-the installed build. See Google's [authorization guide](https://developers.google.com/ar/develop/authorization).
+Cloud project enable the ARCore API. New anchors request a 365-day lifetime using
+Android keyless authorization (OAuth); API keys support only one day.
 
-Put `arcore.apiKey=YOUR_KEY` in the ignored
-`madmaps_flutter/android/local.properties`, or set the `ARCORE_API_KEY` environment
-variable before building. Do not commit the key. A full rebuild is required after
-changing the key; Dart hot reload cannot update Android manifest configuration.
-An empty key allows compilation, but Save/Localize immediately shows an API-key configuration error.
+1. Obtain the signing SHA-1 for the build you will install. From
+   `madmaps_flutter/android`, run `./gradlew.bat signingReport` with Java 17;
+   copy the debug variant's SHA1 for local builds.
+2. In the same Google Cloud project, open **APIs & Services > Credentials >
+   Create credentials > OAuth client ID**. Choose **Android**, use package name
+   `space.serverpod.madmaps`, and paste that SHA-1. Complete any Google Auth
+   Platform setup the console requires. Create a client for each different signing
+   certificate (teammates' debug keys, production, or Play app-signing key).
+3. No client ID or client secret needs to be pasted into Flutter. The plugin
+   already includes Google's required Play Services auth dependency. The app
+   removes `com.google.android.ar.API_KEY` from the merged manifest so ARCore uses
+   keyless authorization. Old `arcore.apiKey` / `ARCORE_API_KEY` settings are ignored
+   and can be removed locally.
+4. Fully stop and rebuild/reinstall the Android app, preserving app data; hot
+   reload/restart cannot update the native configuration. Do not uninstall if you
+   want to keep the phone's locally saved maps.
+5. Host a new anchor and confirm its displayed expiry is approximately 365 days
+   away. Close and reopen the app, then resolve it near the same location. Repeat
+   after 24 hours to validate persistence beyond the old limit. If hosting reports
+   NOT_AUTHORIZED, check API enablement, package name, and the installed build's
+   signing SHA-1 in that same Cloud project.
+
+Existing saved anchors retain their original expiry; this change does not renew
+previously hosted anchors. Add new anchors while their map is still localizable,
+or create a new map if all old anchors have expired. The shared lifetime setting
+is `lib/features/localization/cloud_anchor_config.dart` (maximum 365 days).
+Remote OAuth registration and physical long-term persistence still require
+verification; a successful build alone does not validate authorization.
+See Google's [Android authorization guide](https://developers.google.com/ar/develop/authorization?platform=android).
 
 The pinned AR plugin requires a Java 17 toolchain. Use a Windows ARM64/AArch64
 JDK on an ARM64 computer. This workspace has a portable Microsoft JDK 17 under
@@ -99,7 +122,7 @@ There is no continuous floor detection or cross-floor route guidance. **Cancel
 search** stops pending native resolves; retry starts a fresh attempt. Discovery
 ends after 90 seconds. Expired records are skipped, and a catalog above 20 live IDs
 must be narrowed by opening a map. Map metadata and IDs are local to this phone;
-ARCore does not discover unknown IDs nearby. Internet and an API key are required.
+ARCore does not discover unknown IDs nearby. Internet and configured keyless authorization are required.
 Similar-looking floors still require physical testing for incorrect matches.
 
 Placement accepts detected horizontal and vertical planes, preserving their full
@@ -108,7 +131,7 @@ ARCore's plane detection. The map axes stay gravity aligned even when the first
 anchor is on a wall. Distances and arrival checks continue to use horizontal X/Z
 only; mounting height does not add to walking distance.
 
-Cloud Anchors use a one-day TTL, with expiry estimated locally from hosting
+New Cloud Anchors use a 365-day TTL, with expiry estimated locally from hosting
 completion. Hosting/resolution have a 90-second timeout; native ARCore errors
 also appear as snackbars. Retry with a better scan, working internet, and correct
 credentials. No cloud ID is saved for a failed operation.

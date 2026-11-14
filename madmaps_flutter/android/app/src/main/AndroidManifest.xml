@@ -8,7 +8,7 @@
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <meta-data android:name="com.google.ar.core" android:value="required" tools:replace="android:value" />
-        <meta-data android:name="com.google.android.ar.API_KEY" android:value="${ARCORE_API_KEY}" />
+        <meta-data android:name="com.google.android.ar.API_KEY" tools:node="remove" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -161,7 +161,7 @@ void main() {
       messenger.setMockMethodCallHandler(channel, null);
     },
   );
-  testWidgets('missing API key fails before any native placement', (
+  testWidgets('API-key configuration is rejected before native placement', (
     tester,
   ) async {
     await tester.pumpWidget(const MaterialApp(home: Text('AR')));
@@ -174,7 +174,7 @@ void main() {
         isA<StateError>().having(
           (e) => e.message,
           'message',
-          contains('API key not configured'),
+          contains('keyless authorization'),
         ),
       ),
     );
@@ -202,7 +202,12 @@ void main() {
     final anchors = FakeAnchors();
     final ar = ArAdapter(cloudConfigured: () async => true);
     await ar.attach(FakeSession(tester.element(find.text('AR'))), anchors);
-    expect((await ar.host(Matrix4.identity())).cloudanchorid, 'hosted');
+    final hosted = await ar.host(Matrix4.identity());
+    expect(hosted.cloudanchorid, 'hosted');
+    expect(hosted.ttl, 365);
+    // A previously created draft must also get the current hosting lifetime.
+    final draft = ARPlaneAnchor(transformation: Matrix4.identity(), ttl: 1);
+    expect((await ar.host(Matrix4.identity(), existing: draft)).ttl, 365);
     anchors.accept = false;
     await expectLater(ar.host(Matrix4.identity()), throwsStateError);
     expect(anchors.removed, isTrue);

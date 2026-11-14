@@ -7,6 +7,7 @@ import 'package:ar_flutter_plugin_plus/models/ar_anchor.dart';
 import 'package:ar_flutter_plugin_plus/datatypes/config_planedetection.dart';
 import 'package:ar_flutter_plugin_plus/datatypes/hittest_result_types.dart';
 import 'ar_adapter.dart';
+import 'cloud_anchor_config.dart';
 import 'map_data.dart';
 import 'scan_guidance.dart';
 import 'localization_controller.dart';
@@ -118,7 +119,7 @@ class _MapsScreenState extends State<MapsScreen> {
               const Padding(
                 padding: EdgeInsets.all(16),
                 child: Text(
-                  'Cloud Anchors last 24 hours. Internet is required.\nMap records stay on this phone.',
+                  'New Cloud Anchors last $cloudAnchorTtlDays days. Internet is required.\nMap records stay on this phone.',
                 ),
               ),
               Padding(
@@ -454,7 +455,7 @@ class _MapSessionScreenState extends State<MapSessionScreen>
           name,
           hosted.cloudanchorid!,
           frame * hostedPose,
-          DateTime.now().add(const Duration(hours: 24)),
+          DateTime.now().add(cloudAnchorLifetime),
         );
         map.anchors.add(anchor);
         try {

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'cloud_anchor_config.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show MethodChannel;
 import 'package:ar_flutter_plugin_plus/managers/ar_session_manager.dart';
@@ -26,17 +27,17 @@ class ArAdapter extends ChangeNotifier {
   ArAdapter({
     this.cloudTimeout = const Duration(seconds: 90),
     Future<bool> Function()? cloudConfigured,
-  }) : _cloudConfigured = cloudConfigured ?? _hasCloudKey;
+  }) : _cloudConfigured = cloudConfigured ?? _hasKeylessCloudConfig;
   final Future<bool> Function() _cloudConfigured;
-  static Future<bool> _hasCloudKey() async =>
+  static Future<bool> _hasKeylessCloudConfig() async =>
       await const MethodChannel(
         'madmaps/ar_config',
-      ).invokeMethod<bool>('hasCloudAnchorKey') ==
+      ).invokeMethod<bool>('hasKeylessCloudAnchorConfig') ==
       true;
-  Future<void> _checkCloudKey() async {
+  Future<void> _checkCloudConfig() async {
     if (!await _cloudConfigured()) {
       throw StateError(
-        'ARCore API key not configured. Add arcore.apiKey to android/local.properties, then rebuild the app.',
+        'ARCore keyless authorization requires an app rebuild without an API key. Follow docs/AR_PROTOTYPE.md and register the signing SHA-1 in Google Cloud.',
       );
     }
   }
@@ -127,7 +128,7 @@ class ArAdapter extends ChangeNotifier {
   }) async {
     _checkReady();
     final epoch = _discoveryEpoch;
-    await _checkCloudKey().timeout(const Duration(seconds: 5));
+    await _checkCloudConfig().timeout(const Duration(seconds: 5));
     if (epoch != _discoveryEpoch || _closed) {
       throw StateError('Localization cancelled');
     }
@@ -312,7 +313,7 @@ class ArAdapter extends ChangeNotifier {
     final anchor = ARPlaneAnchor(
       transformation: pose,
       name: 'draft_${DateTime.now().microsecondsSinceEpoch}',
-      ttl: 1,
+      ttl: cloudAnchorTtlDays,
     );
     if (await anchors!.addAnchor(anchor) != true) {
       throw StateError('Could not place anchor');
@@ -325,7 +326,7 @@ class ArAdapter extends ChangeNotifier {
     final epoch = _discoveryEpoch;
     await _step(
       'Checking cloud configuration',
-      _checkCloudKey,
+      _checkCloudConfig,
       const Duration(seconds: 5),
     );
     _checkReady();
@@ -335,8 +336,9 @@ class ArAdapter extends ChangeNotifier {
         ARPlaneAnchor(
           transformation: pose,
           name: 'a${DateTime.now().microsecondsSinceEpoch}',
-          ttl: 1,
+          ttl: cloudAnchorTtlDays,
         );
+    anchor.ttl = cloudAnchorTtlDays;
     _hostName = anchor.name;
     _host = Completer<ARAnchor>();
     // A native failure may arrive before uploadAnchor's acknowledgement.

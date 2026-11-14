@@ -74,7 +74,7 @@ flutter run --dart-define=SERVER_URL=http://192.168.1.100:8080/
 flutter build apk --debug
 ```
 
-Use flutter devices to select a phone. Add your Cloud Anchor API key as described in the AR prototype guide before hosting or resolving anchors. Anchor saving is confirmed on Pixel 6a; the remaining physical acceptance checks are pending. No Python tooling or map validator exists yet.
+Use flutter devices to select a phone. Configure keyless Cloud Anchor authorization as described in the AR prototype guide before hosting or resolving anchors. Anchor saving is confirmed on Pixel 6a; the remaining physical acceptance checks are pending. No Python tooling or map validator exists yet.
 
 ## Team handoffs
 

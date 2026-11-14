@@ -1,5 +1,3 @@
-import java.util.Properties
-
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
@@ -8,10 +6,6 @@ plugins {
 
 // SERVERPOD_APP_BUILD is set when building on Serverpod Cloud.
 val isServerpodCloudBuild = System.getenv("SERVERPOD_APP_BUILD") != null
-val arcoreProperties = Properties().apply {
-    val localFile = rootProject.file("local.properties")
-    if (localFile.exists()) localFile.inputStream().use { load(it) }
-}
 
 android {
     signingConfigs {
@@ -39,8 +33,6 @@ android {
     }
 
     defaultConfig {
-        manifestPlaceholders["ARCORE_API_KEY"] =
-            System.getenv("ARCORE_API_KEY") ?: arcoreProperties.getProperty("arcore.apiKey", "")
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "space.serverpod.madmaps"
         // You can update the following values to match your application needs.
