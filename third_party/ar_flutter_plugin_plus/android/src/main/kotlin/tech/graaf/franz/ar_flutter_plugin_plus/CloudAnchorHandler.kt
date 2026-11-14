@@ -11,10 +11,11 @@ internal class CloudAnchorHandler(private val session: Session) {
     interface CloudAnchorListener {
         fun onCloudTaskComplete(anchorName: String?, anchor: Anchor?)
     }
-    private data class Task(val name: String?, val listener: CloudAnchorListener?)
+    private data class Task(val name: String?, val listener: CloudAnchorListener?, var cancelled: Boolean = false)
     private val delivery = Handler(Looper.getMainLooper())
     private val tasks = mutableMapOf<Anchor, Task>()
     private var epoch = 0
+    private val queued = mutableMapOf<Anchor, Task>()
 
     @Synchronized
     fun hostCloudAnchor(name: String, anchor: Anchor?, listener: CloudAnchorListener?) {
@@ -29,8 +30,8 @@ internal class CloudAnchorHandler(private val session: Session) {
     }
 
     @Synchronized
-    fun resolveCloudAnchor(id: String?, listener: CloudAnchorListener?) {
-        tasks[session.resolveCloudAnchor(id)] = Task(null, listener)
+    fun resolveCloudAnchor(id: String?, name: String, listener: CloudAnchorListener?) {
+        tasks[session.resolveCloudAnchor(id)] = Task(name, listener)
         Log.i("MadMapsCloud", "Resolution started")
     }
 
@@ -43,20 +44,42 @@ internal class CloudAnchorHandler(private val session: Session) {
             val state = anchor.cloudAnchorState
             if (state == Anchor.CloudAnchorState.NONE || state == Anchor.CloudAnchorState.TASK_IN_PROGRESS) continue
             iterator.remove()
+            queued[anchor] = task
             val taskEpoch = epoch
             Log.i("MadMapsCloud", "Cloud operation completed: $state")
             delivery.post {
                 synchronized(this) {
-                    if (taskEpoch == epoch) task.listener?.onCloudTaskComplete(task.name, anchor)
+                    queued.remove(anchor)
+                    if (taskEpoch == epoch && !task.cancelled) {
+                        task.listener?.onCloudTaskComplete(task.name, anchor)
+                    } else {
+                        anchor.detach()
+                    }
                 }
             }
         }
     }
 
     @Synchronized
+    fun cancelResolve(name: String) {
+        val iterator = tasks.iterator()
+        while (iterator.hasNext()) {
+            val (anchor, task) = iterator.next()
+            if (task.name == name) {
+                anchor.detach()
+                iterator.remove()
+            }
+        }
+        queued.values.filter { it.name == name }.forEach { it.cancelled = true }
+    }
+
+    @Synchronized
     fun clearListeners() {
         epoch++
+        tasks.keys.forEach { it.detach() }
         tasks.clear()
+        queued.keys.forEach { it.detach() }
+        queued.clear()
         delivery.removeCallbacksAndMessages(null)
     }
 }

@@ -5,12 +5,18 @@ An initial Android anchor-map prototype is implemented under
 acceptance steps](../AR_PROTOTYPE.md). Image calibration and shared/backend domain
 integration below remain future work.
 
-Anchor saving was confirmed by the user on a Pixel 6a on November 14, 2026,
-after fixing the published plugin's Android Cloud Anchor callback threading.
-The local override remains version 1.1.3 and comes from the published package,
-with fresh patches; no InsideOut source was copied. Restart-and-resolve and
-measured navigation acceptance are still pending. See the prototype guide for
-setup, patch provenance, and the manual Save workflow.
+The prototype now includes automatic discovery across local maps, wall/floor
+placement, live reference tracking, and continuous current-map handoffs. Regular
+use and navigation refresh after 20m/20s from attempt completion, including after
+failures; mapping pauses refreshes only while adding an anchor. Stable matches
+are accepted and blended automatically, and mapping warnings never force a refresh.
+
+On November 14, 2026, the user reported that the updated flow works well in
+hands-on use after earlier hosting confirmation on Pixel 6a. All 36 Flutter tests
+pass. Formal restart-and-resolve acceptance and measured navigation accuracy
+remain to be recorded. The local plugin override remains pinned at 1.1.3, sourced
+from the published package; no InsideOut source was copied. See the prototype
+guide for current behavior, setup, patch provenance, and physical acceptance.
 
 ## Mission and current state
 

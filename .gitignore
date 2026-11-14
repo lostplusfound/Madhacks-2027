@@ -31,3 +31,6 @@ pubspec_overrides.yaml
 
 # Serverpod Cloud CLI
 .scloud/
+
+# Standalone dependency resolution in the vendored library; workspace lock is tracked.
+/third_party/ar_flutter_plugin_plus/pubspec.lock

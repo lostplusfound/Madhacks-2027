@@ -62,6 +62,13 @@ class ARSessionManager {
   }
 
   /// Returns the given anchor pose in Matrix4 format with respect to the world coordinate system of the [ARView]
+  /// Camera and requested anchor poses sampled together on the render thread.
+  Future<Map<String, dynamic>?> getLocalizationFrame(List<String> names) async {
+    final value = await _channel.invokeMapMethod<String, dynamic>(
+        'getLocalizationFrame', {'names': names});
+    return value;
+  }
+
   Future<Matrix4?> getPose(ARAnchor anchor) async {
     try {
       if (anchor.name.isEmpty) {

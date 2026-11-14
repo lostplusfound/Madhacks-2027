@@ -1,10 +1,17 @@
 # MadMaps
 
-The Android localization prototype supports local named maps, Cloud Anchors,
-relocalization, camera arrow guidance, and a bird's-eye mini-map. See
-[AR prototype setup and usage](docs/AR_PROTOTYPE.md). Anchor saving is confirmed
-on a Pixel 6a with the local 1.1.3 Cloud Anchor callback patch; fresh-session
-resolution and navigation accuracy still need device validation.
+The Android localization prototype supports local named maps, automatic Cloud
+Anchor discovery across saved maps/floors, horizontal and vertical placement,
+nearby-anchor handoffs, camera arrow guidance, and a bird's-eye mini-map.
+Regular use and navigation refresh after 20 meters traveled or 20 seconds from
+the previous attempt's completion. Failed refreshes retain the old fix and retry;
+adding an anchor pauses refreshes, and mapping quality warnings are advisory.
+See [AR prototype setup and usage](docs/AR_PROTOTYPE.md).
+
+On November 14, 2026, the user reported that the updated flow works well in
+hands-on use, following earlier confirmed hosting on Pixel 6a. All 36 Flutter
+tests pass. Measured position/heading accuracy and the full physical acceptance
+checklist remain outstanding; this is not a measured accuracy claim.
 
 Indoor navigation for MadHacks: Flutter, Serverpod/PostgreSQL, and the third-party AR package `ar_flutter_plugin_plus: 1.1.3`.
 

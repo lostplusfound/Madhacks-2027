@@ -17,6 +17,44 @@ void main() {
       expect(result.storage[i], closeTo(camera.storage[i], 1e-9));
     }
   });
+
+  test(
+    'discovery catalogs live anchors across floors and preserves matched frame',
+    () {
+      final wallPose = Matrix4.translationValues(3, 2, 8)..rotateZ(math.pi / 2);
+      final anchor = SavedAnchor(
+        'wall',
+        'Wall',
+        'wall-cloud',
+        wallPose,
+        DateTime.utc(2030),
+      );
+      final first = AnchorMap('floor1', 'First floor', [
+        SavedAnchor(
+          'expired',
+          'Old',
+          'expired-cloud',
+          Matrix4.identity(),
+          DateTime.utc(2000),
+        ),
+      ]);
+      final second = AnchorMap('floor2', 'Second floor', [anchor, anchor]);
+      final catalog = liveAnchorCandidates([first, second]);
+      expect(catalog.keys, ['wall-cloud']);
+      final match = catalog['wall-cloud']!;
+      expect(match.map.id, 'floor2');
+      expect(match.anchor.id, 'wall');
+      final sessionFromMap = Matrix4.translationValues(-5, 4, 7)..rotateY(.7);
+      final camera = Matrix4.translationValues(4, 1.6, 2);
+      final localized =
+          match.alignment(sessionFromMap * wallPose) * sessionFromMap * camera;
+      for (var i = 0; i < 16; i++) {
+        expect(localized.storage[i], closeTo(camera.storage[i], 1e-9));
+      }
+      expect(liveAnchorCandidates([first]), isEmpty);
+      expect(liveAnchorCandidates([]), isEmpty);
+    },
+  );
   test('horizontal distance ignores camera and anchor height', () {
     expect(horizontalDistance(Vector3(0, 100, 0), Vector3(3, -100, 4)), 5);
     expect(horizontalDistance(Vector3(3, 9, 4), Vector3(3, 1, 4)), 0);

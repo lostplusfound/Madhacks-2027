@@ -200,6 +200,28 @@ internal class AndroidARView(
                                 }
                             }
                         }
+                        "getLocalizationFrame" -> {
+                            val names = call.argument<List<String>>("names") ?: emptyList()
+                            glSurfaceView.queueEvent {
+                                try {
+                                    val frame = currentFrame
+                                    val data = if (frame == null) null else mapOf(
+                                        "timestamp" to frame.timestamp,
+                                        "tracking" to frame.camera.trackingState.name,
+                                        "camera" to serializePose(frame.camera.displayOrientedPose),
+                                        "anchors" to names.associateWith { name ->
+                                            anchorsByName[name]?.let { anchor -> mapOf(
+                                                "tracking" to anchor.trackingState.name,
+                                                "pose" to serializePose(anchor.pose)
+                                            ) }
+                                        }
+                                    )
+                                    activity.runOnUiThread { result.success(data) }
+                                } catch (error: Exception) {
+                                    activity.runOnUiThread { result.error("FRAME_UNAVAILABLE", error.message, null) }
+                                }
+                            }
+                        }
                         "getAnchorPose" -> {
                             val anchorName = call.argument<String>("anchorId")
                             val anchor = if (anchorName != null) anchorsByName[anchorName] else null
@@ -384,11 +406,29 @@ internal class AndroidARView(
                             }
 
                         }
+                        "cancelCloudTask" -> {
+                            cloudAnchorHandler.cancelResolve(call.argument<String>("name")!!)
+                            result.success(true)
+                        }
+                        "cancelResolve" -> {
+                            val name = call.argument<String>("requestId")!!
+                            cloudAnchorHandler.cancelResolve(name)
+                            anchorsByName.remove(name)?.detach()
+                            anchorChildren.remove(name)
+                            anchorTransformsByName.remove(name)
+                            result.success(true)
+                        }
                         "downloadAnchor" -> {
                             val anchorId: String? = call.argument<String>("cloudanchorid")
-                            anchorId?.let {
-                                cloudAnchorHandler.resolveCloudAnchor(anchorId, cloudAnchorDownloadedListener())
-                                result.success(true)
+                            if (anchorId == null) {
+                                result.error("INVALID_ARGUMENT", "Missing cloud anchor ID", null)
+                            } else {
+                                try {
+                                    cloudAnchorHandler.resolveCloudAnchor(anchorId, call.argument<String>("requestId") ?: anchorId, cloudAnchorDownloadedListener())
+                                    result.success(true)
+                                } catch (error: Exception) {
+                                    result.error(error.javaClass.simpleName, error.message, null)
+                                }
                             }
                         }
                         else -> {}
@@ -1239,6 +1279,7 @@ internal class AndroidARView(
             val cloudState = anchor!!.cloudAnchorState
             if (cloudState.isError) {
                 Log.e(TAG, "Error uploading anchor, state $cloudState")
+                anchor.detach()
                 anchorManagerChannel.invokeMethod("onCloudAnchorError", mapOf("operation" to "host", "name" to anchorName, "state" to cloudState.name))
                 return
             }
@@ -1261,7 +1302,8 @@ internal class AndroidARView(
             val cloudState = anchor!!.cloudAnchorState
             if (cloudState.isError) {
                 Log.e(TAG, "Error downloading anchor, state $cloudState")
-                anchorManagerChannel.invokeMethod("onCloudAnchorError", mapOf("operation" to "resolve", "cloudanchorid" to anchor.cloudAnchorId, "state" to cloudState.name))
+                anchor.detach()
+                anchorManagerChannel.invokeMethod("onCloudAnchorError", mapOf("operation" to "resolve", "cloudanchorid" to anchorName, "state" to cloudState.name))
                 return
             }
             val anchorIdName = anchorName ?: ""

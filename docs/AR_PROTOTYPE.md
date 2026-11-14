@@ -65,7 +65,8 @@ flutter build apk --debug
 ## Use
 
 1. Create and open a named map. Move slowly until ARCore detects a horizontal
-   surface. Choose **Add anchor**, then tap where you want to place it.
+   or vertical surface (such as a wall). Choose **Add anchor**, then tap where
+   you want to place it.
 2. Scan around the point. The movement-coverage bar is advisory and does not
    represent ARCore feature-map quality, which the pinned plugin does not expose.
    Keep the surrounding surfaces in view and move sideways around the point.
@@ -79,13 +80,33 @@ flutter build apk --debug
 4. Expand the mini-map with its upper-right button; pinch to zoom and pan. The
    blue dot is your current position and its line shows camera heading. Orange
    marks the selected destination, teal marks anchors, and gray marks expired ones.
-5. Close and reopen the map. At a known saved anchor, choose its menu →
-   **Localize here** and scan the original surroundings. After resolution, choose
-   a destination or add more anchors.
+5. From home, choose **Find my location** and scan near any saved anchor.
+   Discovery searches up to 20 distinct, unexpired Cloud Anchor IDs across this
+   phone's saved maps. The first successful match opens its map in the same AR
+   session, with the position dot and existing navigation. Treat each saved map
+   as one floor and name it accordingly. Alternatively, open a map and use the
+   location icon to search only that map, or choose an anchor's **Localize here**
+   menu item for manual localization. Then select a destination or add anchors.
 6. Menus support renaming and deleting local records. Deletion does not revoke
    hosted Cloud Anchors. Records remain after cloud expiry; expired anchors cannot
    be used to localize, but remain usable as destination coordinates after
    localization using another live anchor. If all anchors expire, create a new map.
+
+Use the app bar's **Find my location again** icon after changing floors. A session
+opened through home-screen discovery searches all saved maps again; one opened
+by selecting a map searches that map only. To broaden that search, return home.
+There is no continuous floor detection or cross-floor route guidance. **Cancel
+search** stops pending native resolves; retry starts a fresh attempt. Discovery
+ends after 90 seconds. Expired records are skipped, and a catalog above 20 live IDs
+must be narrowed by opening a map. Map metadata and IDs are local to this phone;
+ARCore does not discover unknown IDs nearby. Internet and an API key are required.
+Similar-looking floors still require physical testing for incorrect matches.
+
+Placement accepts detected horizontal and vertical planes, preserving their full
+orientation and height. Curved or arbitrary sloped surfaces are not guaranteed by
+ARCore's plane detection. The map axes stay gravity aligned even when the first
+anchor is on a wall. Distances and arrival checks continue to use horizontal X/Z
+only; mounting height does not add to walking distance.
 
 Cloud Anchors use a one-day TTL, with expiry estimated locally from hosting
 completion. Hosting/resolution have a 90-second timeout; native ARCore errors
@@ -130,16 +151,17 @@ cannot establish real-device AR accuracy.
   saving after rebuilding with the Android Cloud Anchor callback patch.
 - The configured API key matched the installed APK. Key values remain only in
   ignored local configuration; no credential is needed in tracked source.
-- All 13 Flutter tests pass, including native failure propagation and an upload
+- All 36 Flutter tests pass, including native failure propagation and an upload
   completion arriving before the native acknowledgement. Analysis reports no
   errors or warnings, only Material import deprecation notices.
 - Earlier debug builds succeeded using ARM64 Java 17. The user performed the
   native-patch rebuild and device run; no agent rebuild/launch was performed for
   that patch.
 
-Successful hosting is now confirmed. Fresh-session resolution, navigating between
-multiple anchors, adding anchors after relocalization, and measured position/
-heading accuracy still need physical acceptance testing.
+The user subsequently reported that the updated discovery/refresh flow works well
+in hands-on use. This is qualitative functional feedback, not a measured accuracy
+result. Record the full restart-and-resolve, multi-anchor navigation, extension,
+and position/heading acceptance checklist separately.
 
 ### Hosting timeout diagnosis
 
@@ -167,3 +189,106 @@ The Serverpod runner could not start with the installed SDK because its expected
 `dart_runtime_service_vm.dart.snapshot` was missing. Serverpod MCP restart/log
 inspection was unavailable in this session. This local-only AR prototype does
 not require a backend round trip; backend map persistence remains future work.
+
+### Automatic discovery implementation validation
+
+On November 14, 2026, all 19 Flutter tests passed. `dart analyze` reported no
+errors or warnings (existing deprecation notices remain), formatting completed,
+and the Android debug APK built successfully with the local ARM64 Java 17.
+The APK has not been installed or physically validated for this change.
+
+Automated coverage includes candidate selection across maps, expired and duplicate
+IDs, rotated wall-anchor alignment, first success after an individual failure,
+all failures, timeout, cancellation/retry with stale callbacks, catalog limits,
+background cancellation, and map selection retaining the same AR session.
+The Android plugin supports per-attempt request names and detaches pending and
+unsuccessful search anchors during cleanup. Navigation now retains its active
+reference as described below.
+
+Physical acceptance is still pending for this change. Fully rebuild/reinstall the
+Android app because the plugin's native code changed; hot restart is insufficient.
+On Pixel 6a, verify fresh-session manual resolution first, then host floor and wall
+anchors in two named maps, relaunch, discover each map from its surroundings,
+navigate between anchors at different heights, and repeat cancel/retry and
+background/resume. Record position/heading error and any incorrect floor match.
+
+### Drift reduction and reference handoffs
+
+Navigation now retains the active native anchor and recomputes alignment from its
+live pose. Camera and reference/candidate poses are sampled together on Android's
+render thread. Walking triggers a background refresh after **20 horizontal meters
+of travel or 20 seconds** after the previous refresh attempt completes, whether
+it succeeded or failed. Initial localization/hosting starts the first interval.
+These are tuning defaults, not an accuracy guarantee or anchor visibility radius.
+
+Background searches resolve three nearby, unexpired anchors on the current map,
+then broaden through the remaining candidates after failures (20 total maximum).
+Each cloud batch and subsequent stability validation has a 10-second timeout;
+only one refresh attempt runs at a time. Every completed attempt resets the
+travel/time scheduling baseline without changing fix freshness on failure. Explicit **Refresh location** searches
+up to 20 anchors on the current map. Floor changes still require **Find my location**.
+
+A candidate must produce at least five tracking-valid alignment samples over
+0.5 seconds, agreeing within 15 cm horizontally and 3 degrees of heading. Every
+stable, gravity-consistent match is accepted automatically, including large
+position or heading corrections. Corrections blend over 0.5 seconds; there is no
+stop-and-rescan or manual acceptance requirement. The old reference is released
+after acceptance.
+
+Failed refreshes report failure while keeping the accepted alignment and estimated
+guidance. All errors, including authorization and quota failures, remain eligible
+for the next 20m/20s interval. Detailed error reasons appear in diagnostic logs.
+After a failed refresh, after 30 seconds without a confirmation, or beyond 24
+horizontal meters of the reference, proximity is labeled estimated. Tracking loss
+hides live guidance without discarding alignment; background/resume still requires
+initial localization again. Regular use refreshes even with no destination selected.
+
+Map extension recommends a reference confirmed within 30 seconds, currently
+tracking, with camera and new placement within 20 horizontal meters of it. These
+are advisory warnings: placement proceeds without a forced refresh. A temporary
+native anchor is created on tap and hosted after scanning. Saving uses the live
+reference alignment when available, otherwise the retained map alignment; the
+latter may retain drift. A session still needs initial localization to extend an
+existing map, and actual AR tracking is required for placement/hosting. Refreshes
+and alignment blending pause from entering placement through scanning, naming,
+hosting, and saving. Entering placement cancels pending candidates, including ones
+already being validated. Cancel or successful save resumes regular mode with a new
+20m/20s interval, without treating the mode change as a fresh fix.
+First-anchor hosting establishes a new map and reference without this extension gate.
+
+Existing records are not rewritten or deleted. Recreate maps to avoid retaining
+coordinates measured before this change. Keep distances in X/Z regardless of wall
+anchor height. Test distinctive, overlapping visual areas; 20-meter refresh travel
+does not imply that every anchor can resolve from 20 meters away.
+
+Validation includes scheduling at twenty meters, repeated time-based retries,
+single-attempt execution, candidate broadening/expiry, large stable corrections
+and blending, tracking loss, mapping advisories, late candidate disposal, retained-anchor cleanup,
+and hosting an existing draft with retry. Physical accuracy remains unverified:
+rebuild/reinstall the app, create a measured hallway map, compare outbound/return
+walks with repeated handoffs, and record position/heading error and correction jumps.
+
+On November 14, 2026, all 30 Flutter tests passed for the handoff implementation;
+analysis reported no errors or warnings, and the Android debug build succeeded.
+No installation or physical drift measurements were performed. Serverpod MCP
+restart/log tools were unavailable in this session. Native changes require a
+full reinstall/relaunch, rather than Flutter hot restart alone.
+
+### Continuous refresh verification
+
+On November 14, 2026, all 36 Flutter tests passed after separating attempt timing
+from fix freshness and removing large-correction blocking. Analysis reports no
+errors or warnings (existing deprecation notices remain). Coverage includes
+repeated authorization/quota/network failures, distance and time interval resets,
+long-running attempts, mapping cancellation during resolution and validation,
+and automatic blending of large position and heading corrections. These changes
+are Dart-only; restart the running app to recreate the controller. Live Serverpod
+restart/log tools were unavailable, so device behavior has not been revalidated.
+
+### User feedback after continuous refresh changes
+
+On November 14, 2026, the user reported that the updated app works well in
+hands-on use and requested that the implementation and documentation be committed.
+The current intended behavior is the continuous 20m/20s refresh flow above, including
+automatic retries after failure, automatic acceptance of stable corrections, and
+advisory mapping warnings. Formal accuracy measurements remain outstanding.

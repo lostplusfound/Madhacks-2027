@@ -118,10 +118,21 @@ class ARAnchorManager {
     }
   }
 
+  /// Cancels cloud work without removing an existing local placement.
+  Future<void> cancelCloudTask(String name) async {
+    await _channel.invokeMethod<bool>('cancelCloudTask', {'name': name});
+  }
+
+  Future<void> cancelResolve(String requestId) async {
+    await _channel
+        .invokeMethod<bool>('cancelResolve', {'requestId': requestId});
+  }
+
   /// Try to download anchor with the given ID from the Google Cloud Anchor API and add it to the scene
-  Future<bool?> downloadAnchor(String cloudanchorid) async {
+  Future<bool?> downloadAnchor(String cloudanchorid,
+      {String? requestId}) async {
     print("TRYING TO DOWNLOAD ANCHOR WITH ID " + cloudanchorid);
-    return await _channel
-        .invokeMethod<bool>('downloadAnchor', {"cloudanchorid": cloudanchorid});
+    return await _channel.invokeMethod<bool>('downloadAnchor',
+        {"cloudanchorid": cloudanchorid, "requestId": requestId});
   }
 }

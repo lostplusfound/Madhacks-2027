@@ -6,16 +6,25 @@ Run package dependency installation, analysis, generated Flutter tests, Serverpo
 
 ## AR prototype checks
 
-The localization prototype has 13 passing Flutter tests covering transform
-alignment, horizontal distances, arrow directions, local persistence, map UI,
-scan guidance, tracking loss, failure/timeout handling, and Cloud Anchor callback
-races. Run `flutter test --no-pub` in `madmaps_flutter`. See
-[AR prototype verification](AR_PROTOTYPE.md#verification) for current results.
+The localization prototype has 36 passing Flutter tests covering transforms,
+horizontal distances, persistence, map UI, callback races, concurrent discovery,
+cancellation, reference handoffs, and tracking/lifecycle recovery. Scheduling tests
+verify repeated 20m/20s retries after attempt completion, including authorization,
+quota, timeout, and network failures. Mapping tests cover advisory quality checks
+and rejecting late handoffs during placement or candidate validation. Large stable
+position/heading corrections are accepted and blended automatically.
 
-On November 14, 2026, the user confirmed anchor saving on a Pixel 6a after the
-native callback fix. Fresh-session resolution and navigation accuracy remain
-unverified. Do not rebuild, install, or launch the app without an explicit user
-request; analysis, formatting, and automated tests can run independently.
+Run `flutter test --no-pub` in `madmaps_flutter`; run `dart analyze` and format
+changed Dart sources from the repository root. See
+[AR prototype verification](AR_PROTOTYPE.md#verification) for setup and results.
+
+On November 14, 2026, the user reported that the updated flow works well in
+hands-on use, following confirmed anchor saving on Pixel 6a. This qualitative
+report does not replace measured position/heading errors or the physical checklist
+below. Native plugin changes were compiled successfully in an Android debug build;
+subsequent scheduling/UI changes are Dart-only. Restart the app to recreate the
+controller after these changes. Do not rebuild, install, or launch the app without
+an explicit user request.
 
 ## Future automated acceptance tests
 

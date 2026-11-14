@@ -48,6 +48,30 @@ class AnchorMap {
   );
 }
 
+/// A local map is a floor for discovery; preserve its existing coordinate frame.
+class LocalizationCandidate {
+  LocalizationCandidate(this.map, this.anchor);
+  final AnchorMap map;
+  final SavedAnchor anchor;
+  Matrix4 alignment(Matrix4 sessionAnchor) =>
+      alignMap(anchor.pose, sessionAnchor);
+}
+
+Map<String, LocalizationCandidate> liveAnchorCandidates(List<AnchorMap> maps) {
+  final candidates = <String, LocalizationCandidate>{};
+  for (final map in maps) {
+    for (final anchor in map.anchors) {
+      if (!anchor.expired) {
+        candidates.putIfAbsent(
+          anchor.cloudId,
+          () => LocalizationCandidate(map, anchor),
+        );
+      }
+    }
+  }
+  return candidates;
+}
+
 class MapStore {
   static const key = 'madmaps.anchorMaps.v1';
   Future<List<AnchorMap>> load() async {

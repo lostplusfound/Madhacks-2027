@@ -8,10 +8,12 @@ import 'package:ar_flutter_plugin_plus/managers/ar_anchor_manager.dart';
 import 'package:ar_flutter_plugin_plus/managers/ar_session_manager.dart';
 import 'package:ar_flutter_plugin_plus/models/ar_anchor.dart';
 import 'package:madmaps/features/localization/ar_adapter.dart';
+import 'package:madmaps/features/localization/map_data.dart';
+import 'package:madmaps/features/localization/prototype_screen.dart';
 
 class FakeSession extends ARSessionManager {
   FakeSession(BuildContext context)
-    : super(700, context, PlaneDetectionConfig.horizontal);
+    : super(700, context, PlaneDetectionConfig.horizontalAndVertical);
   bool closed = false;
   @override
   Future<void> onInitialize({
@@ -39,6 +41,9 @@ class FakeSession extends ARSessionManager {
 
 class FakeAnchors extends ARAnchorManager {
   FakeAnchors() : super(700);
+  final requests = <String, String>{};
+  final cancelled = <String>[];
+  int placements = 0;
   bool accept = true;
   bool completeHosting = true;
   bool removed = false;
@@ -46,7 +51,11 @@ class FakeAnchors extends ARAnchorManager {
   @override
   Future<void> initGoogleCloudAnchorMode() async {}
   @override
-  Future<bool?> addAnchor(ARAnchor anchor) async => accept;
+  Future<bool?> addAnchor(ARAnchor anchor) async {
+    placements++;
+    return accept;
+  }
+
   @override
   Future<bool?> uploadAnchor(ARAnchor anchor) async {
     if (failure != null) {
@@ -68,7 +77,29 @@ class FakeAnchors extends ARAnchorManager {
   }
 
   @override
-  Future<bool?> downloadAnchor(String cloudanchorid) async => null;
+  Future<void> cancelCloudTask(String name) async {}
+
+  @override
+  Future<void> cancelResolve(String requestId) async {
+    cancelled.add(requestId);
+  }
+
+  @override
+  Future<bool?> downloadAnchor(
+    String cloudanchorid, {
+    String? requestId,
+  }) async {
+    requests[requestId!] = cloudanchorid;
+    return true;
+  }
+
+  void resolveRequest(String name) => onAnchorDownloaded!(
+    ARPlaneAnchor(
+      name: name,
+      transformation: Matrix4.identity(),
+      cloudanchorid: requests[name],
+    ).toJson(),
+  );
 }
 
 void main() {
@@ -193,6 +224,7 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 30));
     await first;
+    ar.tracking = true;
     final next = ar.resolve('new');
     var completed = false;
     unawaited(next.then((_) => completed = true));
@@ -204,8 +236,10 @@ void main() {
     );
     await tester.pump();
     expect(completed, isFalse);
+    await tester.pump();
     anchors.onAnchorDownloaded!(
       ARPlaneAnchor(
+        name: anchors.requests.keys.last,
         transformation: Matrix4.identity(),
         cloudanchorid: 'new',
       ).toJson(),
@@ -213,4 +247,195 @@ void main() {
     expect((await next as ARPlaneAnchor).cloudanchorid, 'new');
     ar.dispose();
   });
+  testWidgets(
+    'discovery accepts first success, deduplicates and cancels all tasks',
+    (tester) async {
+      await tester.pumpWidget(const MaterialApp(home: Text('AR')));
+      final anchors = FakeAnchors();
+      final ar = ArAdapter(cloudConfigured: () async => true);
+      await ar.attach(FakeSession(tester.element(find.text('AR'))), anchors);
+      ar.tracking = true;
+      final result = ar.resolveAny(['a', 'b', 'a']);
+      await tester.pump();
+      expect(anchors.requests.length, 2);
+      anchors.onCloudAnchorError!(
+        'resolve',
+        anchors.requests.keys.first,
+        'ERROR_CLOUD_ID_NOT_FOUND',
+      );
+      anchors.resolveRequest(anchors.requests.keys.last);
+      expect((await result as ARPlaneAnchor).cloudanchorid, 'b');
+      expect(anchors.cancelled.toSet(), anchors.requests.keys.toSet());
+      ar.dispose();
+    },
+  );
+
+  testWidgets('cancel and retry ignore previous attempt callbacks', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: Text('AR')));
+    final anchors = FakeAnchors();
+    final ar = ArAdapter(cloudConfigured: () async => true);
+    await ar.attach(FakeSession(tester.element(find.text('AR'))), anchors);
+    ar.tracking = true;
+    final cancelled = expectLater(ar.resolveAny(['same']), throwsStateError);
+    await tester.pump();
+    final old = anchors.requests.keys.single;
+    await ar.cancelDiscovery();
+    await cancelled;
+    final retry = ar.resolveAny(['same']);
+    var completed = false;
+    unawaited(retry.then((_) => completed = true));
+    await tester.pump();
+    anchors.resolveRequest(old);
+    await tester.pump();
+    expect(completed, false);
+    anchors.resolveRequest(anchors.requests.keys.last);
+    await retry;
+    ar.dispose();
+  });
+
+  testWidgets('all failures and oversized catalogs terminate discovery', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: Text('AR')));
+    final anchors = FakeAnchors();
+    final ar = ArAdapter(cloudConfigured: () async => true);
+    await ar.attach(FakeSession(tester.element(find.text('AR'))), anchors);
+    await expectLater(
+      ar.resolveAny(List.generate(21, (i) => '$i')),
+      throwsStateError,
+    );
+    final failed = expectLater(ar.resolveAny(['a', 'b']), throwsStateError);
+    await tester.pump();
+    for (final name in anchors.requests.keys) {
+      anchors.onCloudAnchorError!('resolve', name, 'ERROR_CLOUD_ID_NOT_FOUND');
+    }
+    await failed;
+    expect(ar.searching, false);
+    ar.dispose();
+  });
+  testWidgets(
+    'discovery selects the matching floor without replacing AR session',
+    (tester) async {
+      await tester.pumpWidget(const MaterialApp(home: Text('AR')));
+      final anchors = FakeAnchors();
+      final session = FakeSession(tester.element(find.text('AR')));
+      final ar = ArAdapter(cloudConfigured: () async => true);
+      await ar.attach(session, anchors);
+      ar.tracking = true;
+      final maps = List.generate(
+        2,
+        (i) => AnchorMap('floor$i', 'Floor $i', [
+          SavedAnchor(
+            'a$i',
+            'Anchor $i',
+            'cloud$i',
+            Matrix4.translationValues(i * 5, 2, 3),
+            DateTime.utc(2030),
+          ),
+        ]),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MapSessionScreen(
+            maps: maps,
+            adapter: ar,
+            save: () async {},
+          ),
+        ),
+      );
+      await tester.tap(find.byTooltip('Find my location again'));
+      await tester.pump();
+      expect(anchors.requests.length, 2);
+      anchors.resolveRequest(anchors.requests.keys.last);
+      await tester.pump();
+      expect(find.text('Floor 1'), findsOneWidget);
+      expect(identical(ar.session, session), true);
+      expect(session.closed, false);
+      await tester.pumpWidget(const SizedBox());
+      expect(session.closed, true);
+    },
+  );
+
+  testWidgets('backgrounding cancels discovery and ignores late matches', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: Text('AR')));
+    final anchors = FakeAnchors();
+    final ar = ArAdapter(cloudConfigured: () async => true);
+    await ar.attach(FakeSession(tester.element(find.text('AR'))), anchors);
+    ar.tracking = true;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MapSessionScreen(
+          maps: [
+            AnchorMap('f', 'Matched floor', [
+              SavedAnchor(
+                'a',
+                'A',
+                'cloud',
+                Matrix4.identity(),
+                DateTime.utc(2030),
+              ),
+            ]),
+          ],
+          adapter: ar,
+          save: () async {},
+        ),
+      ),
+    );
+    await tester.tap(find.byTooltip('Find my location again'));
+    await tester.pump();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+    await tester.pump();
+    expect(anchors.cancelled, isNotEmpty);
+    anchors.resolveRequest(anchors.requests.keys.single);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+    expect(find.text('Matched floor'), findsNothing);
+    expect(find.text('Find my location'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+  testWidgets('retained resolve keeps the winner until explicitly released', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: Text('AR')));
+    final anchors = FakeAnchors();
+    final ar = ArAdapter(cloudConfigured: () async => true);
+    await ar.attach(FakeSession(tester.element(find.text('AR'))), anchors);
+    ar.tracking = true;
+    final result = ar.resolveAny(['a', 'b'], retain: true);
+    await tester.pump();
+    final winner = anchors.requests.keys.first;
+    anchors.resolveRequest(winner);
+    final retained = await result;
+    expect(anchors.cancelled, isNot(contains(winner)));
+    expect(anchors.cancelled, contains(anchors.requests.keys.last));
+    await ar.release(retained);
+    expect(anchors.cancelled, contains(winner));
+    ar.dispose();
+  });
+
+  testWidgets(
+    'hosting reuses a live draft and retains it after cloud failure',
+    (tester) async {
+      await tester.pumpWidget(const MaterialApp(home: Text('AR')));
+      final anchors = FakeAnchors();
+      final ar = ArAdapter(cloudConfigured: () async => true);
+      await ar.attach(FakeSession(tester.element(find.text('AR'))), anchors);
+      final draft = await ar.createDraft(Matrix4.identity());
+      anchors.failure = 'ERROR_INTERNAL';
+      await expectLater(
+        ar.host(Matrix4.identity(), existing: draft),
+        throwsStateError,
+      );
+      expect(anchors.placements, 1);
+      expect(anchors.removed, false);
+      anchors.failure = null;
+      expect(await ar.host(Matrix4.identity(), existing: draft), same(draft));
+      expect(anchors.placements, 1);
+      ar.dispose();
+    },
+  );
 }
