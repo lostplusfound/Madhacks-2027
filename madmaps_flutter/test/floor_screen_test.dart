@@ -72,6 +72,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(map.floor.enabled, true);
     expect(saves, 1);
+    await tester.tap(find.byType(SwitchListTile));
+    await tester.pumpAndSettle();
+    expect(map.floor.enabled, false);
+    expect(saves, 2);
     expect(tester.takeException(), isNull);
   });
 }

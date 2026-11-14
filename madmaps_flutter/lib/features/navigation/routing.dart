@@ -167,6 +167,15 @@ String turnInstruction(Offset incoming, Offset outgoing) {
   return angle > 0 ? 'Turn right' : 'Turn left';
 }
 
+enum NavigationPhase {
+  idle,
+  paused,
+  unavailable,
+  navigating,
+  rerouting,
+  arrived,
+}
+
 class GuidanceState {
   GuidanceState({this.onDiagnostic});
   final void Function(String)? onDiagnostic;
@@ -182,6 +191,23 @@ class GuidanceState {
   /// Virtual compass aim point; not a vertex that the pedestrian must visit.
   Offset? next;
   double? remainingMeters;
+  String maneuver = 'Continue';
+  double? maneuverMeters;
+  bool arrived = false;
+  NavigationPhase get phase => target == null
+      ? NavigationPhase.idle
+      : arrived
+      ? NavigationPhase.arrived
+      : remainingMeters == null
+      ? (result?.failure == null
+            ? NavigationPhase.paused
+            : NavigationPhase.unavailable)
+      : offRouteSince != null
+      ? NavigationPhase.rerouting
+      : NavigationPhase.navigating;
+  Duration? get estimatedDuration => remainingMeters == null
+      ? null
+      : Duration(seconds: (remainingMeters! / 1.2).ceil());
   String? _diagnosticKey;
   void select(String id) {
     target = id;
@@ -197,6 +223,8 @@ class GuidanceState {
     offRouteSince = null;
     next = null;
     remainingMeters = null;
+    maneuverMeters = null;
+    arrived = false;
     _diagnosticKey = null;
   }
 
@@ -240,6 +268,9 @@ class GuidanceState {
   }) {
     next = null;
     remainingMeters = null;
+    maneuver = 'Continue';
+    maneuverMeters = null;
+    arrived = false;
     if (target == null) return;
     if (calibration == null || position == null) {
       offRouteSince = null;
@@ -257,6 +288,7 @@ class GuidanceState {
       if (remainingMeters! <= NavigationTuning.arrivalMeters) {
         projected = points.single;
         status = 'Near entrance (estimated)';
+        arrived = true;
         _diagnose(scale);
         return;
       }
@@ -340,6 +372,7 @@ class GuidanceState {
         (position - points.last).distance <=
             NavigationTuning.arrivalMeters * scale) {
       status = 'Near entrance (estimated)';
+      arrived = true;
       _diagnose(scale);
       return;
     }
@@ -371,6 +404,8 @@ class GuidanceState {
           points[i + 1] - points[i],
         );
         if (turn != 'Continue') {
+          maneuver = turn;
+          maneuverMeters = until / scale;
           status = '$turn in ${(until / scale).toStringAsFixed(1)} m';
           break;
         }

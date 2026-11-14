@@ -104,6 +104,57 @@ class FakeAnchors extends ARAnchorManager {
 
 void main() {
   testWidgets(
+    'associated map automatically searches every batch in its own catalog',
+    (tester) async {
+      await tester.pumpWidget(const MaterialApp(home: Text('AR')));
+      final anchors = FakeAnchors();
+      final ar = ArAdapter(cloudConfigured: () async => true);
+      final session = FakeSession(tester.element(find.text('AR')));
+      await ar.attach(session, anchors);
+      ar.tracking = true;
+      final map = AnchorMap(
+        'f1',
+        'Selected map',
+        List.generate(
+          21,
+          (i) => SavedAnchor(
+            'a$i',
+            'Anchor $i',
+            'cloud$i',
+            Matrix4.identity(),
+            DateTime.utc(2030),
+          ),
+        ),
+      );
+      map.floor.enabled = true;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MapSessionScreen(map: map, adapter: ar, save: () async {}),
+        ),
+      );
+      await tester.pump();
+      expect(anchors.requests.length, 20);
+      for (final name in anchors.requests.keys.toList()) {
+        anchors.onCloudAnchorError!(
+          'resolve',
+          name,
+          'ERROR_CLOUD_ID_NOT_FOUND',
+        );
+      }
+      await tester.pump();
+      expect(anchors.requests.length, 21);
+      expect(anchors.requests.values.toSet(), {
+        for (var i = 0; i < 21; i++) 'cloud$i',
+      });
+      anchors.resolveRequest(anchors.requests.keys.last);
+      await tester.pump();
+      expect(find.text('Selected map'), findsOneWidget);
+      expect(identical(ar.session, session), true);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets(
     'native cloud failure completes immediately with the ARCore state',
     (tester) async {
       await tester.pumpWidget(const MaterialApp(home: Text('AR')));

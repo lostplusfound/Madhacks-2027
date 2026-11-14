@@ -14,6 +14,7 @@ import 'localization_controller.dart';
 import '../navigation/floor_data.dart';
 import '../navigation/floor_screen.dart';
 import '../navigation/routing.dart';
+import '../navigation/navigation_panel.dart';
 import 'package:vector_math/vector_math_64.dart' show Vector3;
 
 Future<String?> askName(
@@ -251,11 +252,10 @@ class _MapSessionScreenState extends State<MapSessionScreen>
   Future<void> discover() async {
     if (busy || !active || !ready) return;
     final candidates = liveAnchorCandidates(catalog);
-    if (candidates.isEmpty || candidates.length > 20) {
+    if (candidates.isEmpty) {
       updateState(
-        () => discoveryMessage = candidates.isEmpty
-            ? 'No live anchors saved. Create a map and save an anchor, or use a map with unexpired anchors.'
-            : 'Discovery supports up to 20 live anchors. Go back and open a map to narrow the search.',
+        () => discoveryMessage =
+            'No live anchors saved. Create a map and save an anchor, or use a map with unexpired anchors.',
       );
       return;
     }
@@ -272,10 +272,21 @@ class _MapSessionScreenState extends State<MapSessionScreen>
           'Scan your surroundings slowly. Searching ${candidates.length} saved anchors...';
     });
     try {
-      final resolved = await ar.resolveAny(
-        candidates.keys.toList(),
-        retain: true,
-      );
+      ARAnchor? found;
+      final ids = candidates.keys.toList();
+      for (var start = 0; start < ids.length; start += 20) {
+        if (!mounted || !active || current != generation) return;
+        try {
+          found = await ar.resolveAny(
+            ids.skip(start).take(20).toList(),
+            retain: true,
+          );
+          break;
+        } catch (_) {
+          if (current != generation || start + 20 >= ids.length) rethrow;
+        }
+      }
+      final resolved = found!;
       if (!mounted || !active || current != generation) {
         await ar.release(resolved);
         return;
@@ -459,6 +470,7 @@ class _MapSessionScreenState extends State<MapSessionScreen>
   }
 
   bool busy = false, placing = false, expanded = false, active = true;
+  bool arExpanded = false;
   String? operation;
   int generation = 0;
   Matrix4? get camera => active && ar.tracking ? localization.camera : null;
@@ -512,6 +524,11 @@ class _MapSessionScreenState extends State<MapSessionScreen>
     map = widget.map ?? AnchorMap('discovery', 'Find my location', []);
     loadFloor();
     identified = widget.map != null;
+    if (ready && map.floor.enabled && map.anchors.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && active) unawaited(discover());
+      });
+    }
     WidgetsBinding.instance.addObserver(this);
     ar.addListener(refresh);
     ar.onTap = (hits) async {
@@ -838,6 +855,7 @@ class _MapSessionScreenState extends State<MapSessionScreen>
             target.pose.getTranslation(),
           )
         : null;
+    final mapFirst = map.floor.enabled && !placing && draftPose == null;
     final canPlace =
         supported &&
         identified &&
@@ -852,7 +870,27 @@ class _MapSessionScreenState extends State<MapSessionScreen>
       appBar: AppBar(
         title: Text(identified ? map.name : 'Find my location'),
         actions: [
-          if (identified)
+          if (mapFirst)
+            PopupMenuButton<String>(
+              tooltip: 'Mapping tools',
+              onSelected: (value) {
+                if (value == 'anchors') showAnchors();
+                if (value == 'add') beginPlacement();
+              },
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                  value: 'anchors',
+                  enabled: !busy,
+                  child: const Text('Anchors'),
+                ),
+                PopupMenuItem(
+                  value: 'add',
+                  enabled: canPlace,
+                  child: const Text('Add anchor'),
+                ),
+              ],
+            ),
+          if (identified || map.floor.enabled)
             IconButton(
               tooltip: 'Floor 1 setup',
               icon: const Icon(Icons.edit_location_alt),
@@ -874,61 +912,109 @@ class _MapSessionScreenState extends State<MapSessionScreen>
       body: supported
           ? Stack(
               children: [
-                Positioned.fill(
-                  child: ARView(
-                    planeDetectionConfig:
-                        PlaneDetectionConfig.horizontalAndVertical,
-                    onARViewCreated: (s, o, a, l) async {
-                      try {
-                        await ar.attach(s, a);
-                        if (!mounted) return;
-                        updateState(() => ready = true);
-                        if (mounted && widget.map == null && active) {
-                          await discover();
-                        }
-                      } catch (e) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('AR initialization failed: $e'),
-                            ),
-                          );
-                        }
-                      }
-                    },
+                if (mapFirst && floorGraph != null)
+                  Positioned.fill(
+                    child: NavigationPanel(
+                      graph: floorGraph!,
+                      setup: map.floor,
+                      pose: pose,
+                      calibration: calibration,
+                      guidance: guidance,
+                      destination: roomName,
+                      message: discoveryMessage ?? localization.status,
+                      busy: busy,
+                      onSearch: busy ? () {} : showRooms,
+                      onLocate: busy ? cancelSearch : discover,
+                      onCancel: () => updateState(() {
+                        roomName = null;
+                        destination = null;
+                        guidance.target = null;
+                        guidance.reset();
+                      }),
+                    ),
                   ),
-                ),
-                Positioned(
-                  top: 12,
-                  left: 12,
-                  right: 12,
-                  child: Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Text(
-                        discoveryMessage ??
-                            (identified &&
-                                    localization.nativeReference != null &&
-                                    draftPose == null &&
-                                    !placing &&
-                                    operation == null
-                                ? '${ar.status}\n${localization.status}'
-                                : null) ??
-                            (operation == null
-                                ? null
-                                : '$operation\n${ar.cloudStage ?? ""}') ??
-                            (draftPose != null
-                                ? 'Anchor placed — scan, then press Save anchor.'
-                                : placing
-                                ? 'Tap a detected horizontal or vertical surface'
-                                : '${ar.status}\n${mapFromSession == null ? (map.anchors.isEmpty ? 'Place the first anchor to establish this map.' : 'Select Anchors → Localize here to align this map.') : 'Localized • Direct guidance ignores walls and obstacles.'}'),
-                        maxLines: 4,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                Positioned.fill(
+                  key: const ValueKey('native-camera'),
+                  child: ClipPath(
+                    clipper: CameraOverlayClipper(
+                      compact: mapFirst && !arExpanded,
+                    ),
+                    child: ARView(
+                      planeDetectionConfig:
+                          PlaneDetectionConfig.horizontalAndVertical,
+                      onARViewCreated: (s, o, a, l) async {
+                        try {
+                          await ar.attach(s, a);
+                          if (!mounted) return;
+                          updateState(() => ready = true);
+                          if (mounted &&
+                              active &&
+                              (widget.map == null ||
+                                  (map.floor.enabled &&
+                                      map.anchors.isNotEmpty))) {
+                            await discover();
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('AR initialization failed: $e'),
+                              ),
+                            );
+                          }
+                        }
+                      },
                     ),
                   ),
                 ),
-                if (identified &&
+                if (mapFirst)
+                  Positioned(
+                    right: 16,
+                    top: 132,
+                    child: IconButton.filled(
+                      tooltip: arExpanded ? 'Collapse AR' : 'Expand AR',
+                      onPressed: () =>
+                          updateState(() => arExpanded = !arExpanded),
+                      icon: Icon(
+                        arExpanded
+                            ? Icons.close_fullscreen
+                            : Icons.open_in_full,
+                      ),
+                    ),
+                  ),
+                if (!mapFirst)
+                  Positioned(
+                    top: 12,
+                    left: 12,
+                    right: 12,
+                    child: Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Text(
+                          discoveryMessage ??
+                              (identified &&
+                                      localization.nativeReference != null &&
+                                      draftPose == null &&
+                                      !placing &&
+                                      operation == null
+                                  ? '${ar.status}\n${localization.status}'
+                                  : null) ??
+                              (operation == null
+                                  ? null
+                                  : '$operation\n${ar.cloudStage ?? ""}') ??
+                              (draftPose != null
+                                  ? 'Anchor placed — scan, then press Save anchor.'
+                                  : placing
+                                  ? 'Tap a detected horizontal or vertical surface'
+                                  : '${ar.status}\n${mapFromSession == null ? (map.anchors.isEmpty ? 'Place the first anchor to establish this map.' : 'Select Anchors → Localize here to align this map.') : 'Localized • Direct guidance ignores walls and obstacles.'}'),
+                          maxLines: 4,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ),
+                if (!mapFirst &&
+                    identified &&
                     !busy &&
                     draftPose == null &&
                     !placing &&
@@ -1003,7 +1089,9 @@ class _MapSessionScreenState extends State<MapSessionScreen>
                       ),
                     ),
                   ),
-                if (draftPose == null && roomName != null)
+                if ((!mapFirst || arExpanded) &&
+                    draftPose == null &&
+                    roomName != null)
                   Positioned(
                     left: 16,
                     top: 190,
@@ -1067,7 +1155,7 @@ class _MapSessionScreenState extends State<MapSessionScreen>
                       onCancel: busy ? null : () => updateState(discardDraft),
                     ),
                   ),
-                if (identified)
+                if (identified && !mapFirst)
                   Positioned(
                     right: 12,
                     bottom: 90,
@@ -1194,7 +1282,7 @@ class _MapSessionScreenState extends State<MapSessionScreen>
                       ),
                     ),
                   ),
-                if (identified)
+                if (identified && !mapFirst)
                   Positioned(
                     bottom: 16,
                     left: 12,

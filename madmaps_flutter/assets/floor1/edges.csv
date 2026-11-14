@@ -86,3 +86,9 @@ f3-west-south-open,f3-west-corridor-south,walk,33.2415,true,draft
 f3-south-diagonal-bend,f3-west-south-open,walk,30.0,true,draft
 f3-room-3517,f3-south-diagonal-bend,walk,26.1725,true,draft
 f3-room-3521,f3-south-diagonal-bend,walk,28.4429,true,draft
+f1-demo-lobby,f1-auditorium-restroom-1-approach,walk,111.7318,true,draft
+f1-demo-lobby,f1-auditorium-restroom-2-approach,walk,118.3385,true,draft
+f1-university-bend-2,f1-cafe-restroom-1-approach,walk,70.2353,true,draft
+f1-university-bend-2,f1-cafe-restroom-2-approach,walk,107.2007,true,draft
+f1-demo-lobby,f1-elevator-bank-approach,walk,116.2497,true,draft
+f1-demo-cafe-turn,f1-main-stairs-approach,walk,71.1969,true,draft

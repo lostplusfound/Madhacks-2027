@@ -9,7 +9,7 @@ The integration combines the existing AR prototype with the first-floor graph fr
 3. Enable **Associate this AR map with floor 1**. Select each anchor and tap its physical location on the plan. Pinch and pan to place points precisely.
 4. Select exactly two **Calibrate** chips. The transform is derived from their saved horizontal AR positions and image points; height is ignored. No compass north setting is required.
 5. Place a third anchor as a check without selecting its calibration chip. Its check error compares its measured AR position against the independently placed image point. Recheck placement if the error is excessive for the hallway being used.
-6. Return to the AR session, localize near a saved anchor, and open **Rooms** using the directions icon. Search by name, room number, or alias and select a mapped destination.
+6. Return to the session, use Locate to search saved anchors, and open **Rooms** using the directions icon. Search by name, room number, or alias and select a mapped destination.
 
 Existing maps and direct anchor guidance continue to work without calibration. In the Anchors menu, **Navigate via hallways** is available after explicitly linking that anchor to an approach node in setup. Tapping the anchor itself retains direct, straight-line guidance.
 
@@ -20,6 +20,20 @@ Setup can move an existing graph node or associate a room/anchor with an approac
 The bundled CSVs are snapshots of the root `nodes.csv`, `edges.csv`, and `locations.csv`. After teammate updates, refresh their copies in `madmaps_flutter/assets/floor1/` together and rerun the asset/import tests. The loader validates references and imports floor 1 only. Other-floor rooms are omitted from the current destination picker.
 
 ## Guidance behavior
+
+Associated maps open with a full floor map, an expandable AR camera overlay,
+location heading, remaining route, turn banner, estimated walking duration and
+arrival time, and Cancel. Walking estimates use 1.2 m/s. Pan to stop following;
+Recenter resumes following and Map overview shows the entire plan. Mapping
+actions are in the toolbar menu. Disable **Associate this AR map with floor 1**
+to restore the legacy AR layout; saved calibration and overrides are retained.
+
+Opening an associated map automatically searches its unexpired anchors, in
+batches of at most 20. Locate retries the search and Cancel search stops it.
+The six restroom, elevator and main-stair destinations now have draft entrance
+approaches derived from the plan. Their earlier unmapped state was caused by
+empty route-node assignments, independent of Cloud Anchor proximity. These new
+approaches still require physical entrance and walkability checks.
 
 Dijkstra respects imported costs and directionality. Route starts can attach within 3 meters of any mapped walk edge, including room and exit approaches. Nearby attachments are checked for a directed path; the nearest valid attachment wins, with route cost breaking distance ties. This fixes starts near the University exit, whose approach was previously excluded. Rooms without an assigned route node show **Not mapped yet**. Invalid destinations, missing nearby walkways, and disconnected routes have distinct messages.
 

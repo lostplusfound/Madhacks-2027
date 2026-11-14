@@ -258,7 +258,6 @@ class LocalizationController extends ChangeNotifier {
           a.pose.getTranslation(),
         ).compareTo(horizontalDistance(position, b.pose.getTranslation()));
       });
-      _cycle = _cycle.take(20).toList();
       _batchOffset = 0;
     }
     final batch = _cycle.skip(_batchOffset).take(3).toList();

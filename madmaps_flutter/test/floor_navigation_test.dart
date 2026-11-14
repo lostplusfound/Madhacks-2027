@@ -27,8 +27,8 @@ void main() {
     'bundled data has connected floor-one routes and room mappings',
     () async {
       final graph = await FloorGraph.load();
-      expect(graph.nodes.length, 14);
-      expect(graph.edges.length, 13);
+      expect(graph.nodes.length, 20);
+      expect(graph.edges.length, 19);
       expect(graph.locations.length, 13);
       final route = findRoute(
         graph,

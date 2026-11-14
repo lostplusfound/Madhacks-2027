@@ -10,16 +10,20 @@ class FloorCanvas extends StatelessWidget {
     this.camera,
     this.headingPoint,
     this.route = const [],
+    this.fullRoute = const [],
     this.onPoint,
     this.showLabels = true,
     this.transformationController,
+    this.showGraph = true,
   });
   final FloorGraph graph;
   final FloorSetup setup;
   final Offset? camera, headingPoint;
   final List<Offset> route;
+  final List<Offset> fullRoute;
   final ValueChanged<Offset>? onPoint;
   final bool showLabels;
+  final bool showGraph;
   final TransformationController? transformationController;
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -60,7 +64,9 @@ class FloorCanvas extends StatelessWidget {
                       camera,
                       headingPoint,
                       route,
+                      fullRoute,
                       showLabels,
+                      showGraph,
                     ),
                   ),
                 ],
@@ -80,13 +86,17 @@ class _FloorPainter extends CustomPainter {
     this.camera,
     this.headingPoint,
     this.route,
+    this.fullRoute,
     this.labels,
+    this.showGraph,
   );
   final FloorGraph graph;
   final FloorSetup setup;
   final Offset? camera, headingPoint;
   final List<Offset> route;
+  final List<Offset> fullRoute;
   final bool labels;
+  final bool showGraph;
   @override
   void paint(Canvas canvas, Size size) {
     Offset p(Offset q) => Offset(
@@ -96,18 +106,28 @@ class _FloorPainter extends CustomPainter {
     final edgePaint = Paint()
       ..color = Colors.orange.withValues(alpha: .8)
       ..strokeWidth = 2;
-    for (final e in graph.edges) {
+    for (final e in showGraph ? graph.edges : <FloorEdge>[]) {
       canvas.drawLine(
         p(graph.point(e.from, setup)),
         p(graph.point(e.to, setup)),
         edgePaint,
       );
     }
-    for (final n in graph.nodes.values) {
+    for (final n in showGraph ? graph.nodes.values : <FloorNode>[]) {
       canvas.drawCircle(
         p(graph.point(n.id, setup)),
         3,
         Paint()..color = Colors.deepOrange,
+      );
+    }
+    for (var i = 1; i < fullRoute.length; i++) {
+      canvas.drawLine(
+        p(fullRoute[i - 1]),
+        p(fullRoute[i]),
+        Paint()
+          ..color = Colors.blueGrey.shade300
+          ..strokeWidth = 7
+          ..strokeCap = StrokeCap.round,
       );
     }
     for (var i = 1; i < route.length; i++) {
@@ -116,10 +136,17 @@ class _FloorPainter extends CustomPainter {
         p(route[i]),
         Paint()
           ..color = Colors.blue
-          ..strokeWidth = 4,
+          ..strokeWidth = 7
+          ..strokeCap = StrokeCap.round,
       );
     }
-    for (final entry in setup.anchorPoints.entries) {
+    if (route.isNotEmpty) {
+      canvas.drawCircle(p(route.last), 9, Paint()..color = Colors.red);
+    }
+    for (final entry
+        in showGraph
+            ? setup.anchorPoints.entries
+            : <MapEntry<String, Offset>>[]) {
       canvas.drawCircle(p(entry.value), 6, Paint()..color = Colors.teal);
     }
     if (labels) {

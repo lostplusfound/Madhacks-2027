@@ -89,3 +89,9 @@ f3-west-south-open,3,429,840,,junction,draft
 f3-south-diagonal-bend,3,453,822,,junction,draft
 f3-room-3517,3,471,803,f3-3517,approach,draft
 f3-room-3521,3,448,794,f3-3521,approach,draft
+f1-auditorium-restroom-1-approach,1,490,442,f1-auditorium-restroom-1,approach,draft
+f1-auditorium-restroom-2-approach,1,510,418,f1-auditorium-restroom-2,approach,draft
+f1-cafe-restroom-1-approach,1,976,249,f1-cafe-restroom-1,approach,draft
+f1-cafe-restroom-2-approach,1,1000,280,f1-cafe-restroom-2,approach,draft
+f1-elevator-bank-approach,1,685,503,f1-elevator-bank,approach,draft
+f1-main-stairs-approach,1,776,300,f1-main-stairs,approach,draft
