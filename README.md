@@ -1,8 +1,14 @@
 # MadMaps
 
+The Android localization prototype supports local named maps, Cloud Anchors,
+relocalization, camera arrow guidance, and a bird's-eye mini-map. See
+[AR prototype setup and usage](docs/AR_PROTOTYPE.md). Anchor saving is confirmed
+on a Pixel 6a with the local 1.1.3 Cloud Anchor callback patch; fresh-session
+resolution and navigation accuracy still need device validation.
+
 Indoor navigation for MadHacks: Flutter, Serverpod/PostgreSQL, and the third-party AR package `ar_flutter_plugin_plus: 1.1.3`.
 
-Fresh setup containing generated framework starters and team documentation. Write application features during the hackathon. Localization, routing, map persistence, AI processing, shared domain types, mocks, and fixtures are not implemented.
+The Flutter app includes an Android AR localization prototype with local map persistence. The backend remains a generated framework starter. Corridor routing, backend map persistence, AI processing, and shared domain types remain future work.
 
 **All domain contracts are proposals, not set in stone.** Revise them together as features are implemented. See [the contract discussion draft](docs/CONTRACTS.md).
 
@@ -61,7 +67,7 @@ flutter run --dart-define=SERVER_URL=http://192.168.1.100:8080/
 flutter build apk --debug
 ```
 
-Use flutter devices to select a phone. The greeting form verifies framework wiring only. Cloud Anchor credentials and physical AR tests remain future work. No Python tooling or map validator exists yet.
+Use flutter devices to select a phone. Add your Cloud Anchor API key as described in the AR prototype guide before hosting or resolving anchors. Anchor saving is confirmed on Pixel 6a; the remaining physical acceptance checks are pending. No Python tooling or map validator exists yet.
 
 ## Team handoffs
 

@@ -1,5 +1,17 @@
 # Role 1: AR localization and calibration
 
+An initial Android anchor-map prototype is implemented under
+`madmaps_flutter/lib/features/localization/`. See [setup, behavior, and physical
+acceptance steps](../AR_PROTOTYPE.md). Image calibration and shared/backend domain
+integration below remain future work.
+
+Anchor saving was confirmed by the user on a Pixel 6a on November 14, 2026,
+after fixing the published plugin's Android Cloud Anchor callback threading.
+The local override remains version 1.1.3 and comes from the published package,
+with fresh patches; no InsideOut source was copied. Restart-and-resolve and
+measured navigation acceptance are still pending. See the prototype guide for
+setup, patch provenance, and the manual Save workflow.
+
 ## Mission and current state
 
 Deliver trustworthy floor-local poses on Android. Use the third-party package ar_flutter_plugin_plus 1.1.3 and write application AR functionality during the hackathon. Read ../CONTRACTS.md and ../COORDINATE_SYSTEMS.md: both are proposals, not frozen APIs. Confirm physical phone access immediately.
