@@ -138,62 +138,60 @@ List<RouteOption> buildMockRoutes({
   required Offset destinationPoint,
 }) {
   final crossesFloor = originFloor != destinationFloor;
-  final elevator = const Offset(.55, .53);
-  final startSegment = crossesFloor
-      ? [originPoint, const Offset(.48, .63), elevator]
-      : [
-          originPoint,
-          const Offset(.43, .53),
-          const Offset(.55, .43),
-          destinationPoint,
-        ];
-  final endSegment = crossesFloor
-      ? [elevator, const Offset(.55, .43), destinationPoint]
-      : <Offset>[];
-  final segments = crossesFloor
-      ? <int, List<Offset>>{
-          originFloor: startSegment,
-          destinationFloor: endSegment,
-        }
-      : <int, List<Offset>>{originFloor: startSegment};
-  final steps = crossesFloor
-      ? <NavigationStep>[
-          NavigationStep(
-            'Follow the corridor to the elevator',
-            floor: originFloor,
-          ),
-          NavigationStep(
-            'Take the elevator to floor $destinationFloor',
-            floor: originFloor,
-            transitionToFloor: destinationFloor,
-          ),
-          const NavigationStep('Follow the corridor to your destination'),
-          const NavigationStep('You have arrived'),
-        ]
-      : const <NavigationStep>[
-          NavigationStep('Head along the main corridor'),
-          NavigationStep('Turn at the open study area'),
-          NavigationStep('Continue to your destination'),
-          NavigationStep('You have arrived'),
-        ];
-  final quickest = RouteOption(
-    name: 'Quickest',
-    minutes: destinationFloor == 2 ? 2 : 3,
-    distanceFeet: destinationFloor == 2 ? 256 : 344,
-    stepFree: false,
-    points: startSegment,
-    floorSegments: segments,
-    steps: steps,
-  );
-  final stepFreeRoute = RouteOption(
-    name: 'Step-free',
-    minutes: destinationFloor == 2 ? 3 : 4,
-    distanceFeet: destinationFloor == 2 ? 315 : 413,
-    stepFree: true,
-    points: startSegment,
-    floorSegments: segments,
-    steps: steps,
-  );
-  if (stepFree) return [stepFreeRoute];
-  return [quickest, stepFreeRoute];
+  // These frontend connector points match the visible stair/elevator hubs on
+  // the two plans. Physical calibration can replace them later without
+  // changing the navigation UI.
+  RouteOption makeRoute(bool useElevator) {
+    final sourceConnector = useElevator
+        ? const Offset(.55, .53)
+        : const Offset(.48, .63);
+    final destinationConnector = sourceConnector;
+    final transferName = useElevator ? 'elevator' : 'main stairs';
+    final startSegment = crossesFloor
+        ? [originPoint, sourceConnector]
+        : [
+            originPoint,
+            const Offset(.43, .53),
+            const Offset(.55, .43),
+            destinationPoint,
+          ];
+    final endSegment = crossesFloor
+        ? [destinationConnector, const Offset(.55, .43), destinationPoint]
+        : <Offset>[];
+    final steps = crossesFloor
+        ? <NavigationStep>[
+            NavigationStep(
+              'Follow the corridor to the $transferName',
+              floor: originFloor,
+            ),
+            NavigationStep(
+              'Take the $transferName to floor $destinationFloor',
+              floor: originFloor,
+              transitionToFloor: destinationFloor,
+            ),
+            const NavigationStep('Follow the corridor to your destination'),
+            const NavigationStep('You have arrived'),
+          ]
+        : const <NavigationStep>[
+            NavigationStep('Head along the main corridor'),
+            NavigationStep('Turn at the open study area'),
+            NavigationStep('Continue to your destination'),
+            NavigationStep('You have arrived'),
+          ];
+    return RouteOption(
+      name: useElevator ? 'Step-free' : 'Quickest',
+      minutes: (destinationFloor == 2 ? 2 : 3) + (useElevator ? 1 : 0),
+      distanceFeet: (destinationFloor == 2 ? 256 : 344) + (useElevator ? 59 : 0),
+      stepFree: useElevator,
+      points: startSegment,
+      floorSegments: crossesFloor
+          ? {originFloor: startSegment, destinationFloor: endSegment}
+          : {originFloor: startSegment},
+      steps: steps,
+    );
+  }
+
+  final stairs = makeRoute(false);
+  final elevator = makeRoute(true);
+  return stepFree ? [elevator] : [stairs, elevator];
 }

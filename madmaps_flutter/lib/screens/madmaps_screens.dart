@@ -106,9 +106,11 @@ class _MadMapsShellState extends State<MadMapsShell> {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        const Text(
-                          'Check in with a photo or describe your location to recalibrate.',
-                          style: TextStyle(fontSize: 12),
+                        Text(
+                          state.nextInstruction?.contains('elevator') == true
+                              ? 'Elevator transfer complete. Continue on this floor.'
+                              : 'Stair transfer complete. Continue on this floor.',
+                          style: const TextStyle(fontSize: 12),
                         ),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
@@ -647,7 +649,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class MapScreen extends StatelessWidget {
+class MapScreen extends StatefulWidget {
   const MapScreen({
     super.key,
     required this.state,
@@ -665,7 +667,30 @@ class MapScreen extends StatelessWidget {
   final VoidCallback onReport;
 
   @override
+  State<MapScreen> createState() => _MapScreenState();
+}
+
+class _MapScreenState extends State<MapScreen> {
+  final TransformationController _mapController = TransformationController();
+
+  @override
+  void dispose() {
+    _mapController.dispose();
+    super.dispose();
+  }
+
+  void _resetMap() {
+    _mapController.value = Matrix4.identity();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final state = widget.state;
+    final onPlaceTap = widget.onPlaceTap;
+    final onCheckIn = widget.onCheckIn;
+    final onScan = widget.onScan;
+    final onDescribe = widget.onDescribe;
+    final onReport = widget.onReport;
     final route = state.isNavigating ? state.activeRoute : null;
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -755,6 +780,7 @@ class MapScreen extends StatelessWidget {
                     children: [
                       Positioned.fill(
                         child: InteractiveViewer(
+                          transformationController: _mapController,
                           minScale: .75,
                           maxScale: 3,
                           boundaryMargin: const EdgeInsets.all(80),
@@ -783,8 +809,7 @@ class MapScreen extends StatelessWidget {
                             color: Colors.white,
                             shape: const CircleBorder(),
                             child: IconButton(
-                              onPressed: () =>
-                                  state.setFloor(state.destination?.floor ?? 2),
+                              onPressed: _resetMap,
                               icon: const Icon(
                                 Icons.center_focus_strong_rounded,
                               ),
@@ -840,6 +865,7 @@ class MapScreen extends StatelessWidget {
                           onScan: onScan,
                           onDescribe: onDescribe,
                           onReport: onReport,
+                          onResetMap: _resetMap,
                         ),
                 ),
               ),
@@ -1671,11 +1697,13 @@ class _NavigationPanel extends StatelessWidget {
     required this.onScan,
     required this.onDescribe,
     required this.onReport,
+    required this.onResetMap,
   });
   final MadMapsState state;
   final VoidCallback onScan;
   final VoidCallback onDescribe;
   final VoidCallback onReport;
+  final VoidCallback onResetMap;
 
   @override
   Widget build(BuildContext context) {
@@ -1852,12 +1880,11 @@ class _NavigationPanel extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            if (!state.walkStarted)
-              IconButton.filledTonal(
-                onPressed: onScan,
-                tooltip: 'Camera check-in',
-                icon: const Icon(Icons.camera_alt_outlined),
-              ),
+            IconButton.filledTonal(
+              onPressed: onScan,
+              tooltip: 'Camera check-in',
+              icon: const Icon(Icons.camera_alt_outlined),
+            ),
           ],
         ),
         if (!state.walkStarted)
@@ -1883,12 +1910,15 @@ class _NavigationPanel extends StatelessWidget {
             spacing: 4,
             children: [
               TextButton(
-                onPressed: state.clearDestination,
-                child: const Text('Clear choice'),
-              ),
-              TextButton(
-                onPressed: state.endNavigation,
-                child: const Text('End route'),
+                onPressed: () {
+                  if (state.walkStarted) {
+                    state.endNavigation();
+                  } else {
+                    state.clearDestination();
+                  }
+                  onResetMap();
+                },
+                child: Text(state.walkStarted ? 'End route' : 'Clear choice'),
               ),
             ],
           ),
@@ -2019,33 +2049,33 @@ class _MapLegend extends StatelessWidget {
   final bool highContrast;
   final VoidCallback onTap;
   @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
+  Widget build(BuildContext context) => Material(
+    color: Colors.white.withValues(alpha: .94),
     borderRadius: BorderRadius.circular(12),
-    child: Container(
-    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
-    decoration: BoxDecoration(
-      color: Colors.white.withValues(alpha: .94),
+    child: InkWell(
+      onTap: onTap,
       borderRadius: BorderRadius.circular(12),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: const BoxDecoration(
-            color: routeCobalt,
-            shape: BoxShape.circle,
-          ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(
+                color: routeCobalt,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 5),
+            Text(
+              highContrast ? 'High contrast' : 'Tap a room',
+              style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700),
+            ),
+          ],
         ),
-        const SizedBox(width: 5),
-        Text(
-          highContrast ? 'High contrast' : 'Tap a room',
-          style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700),
-        ),
-      ],
-    ),
+      ),
     ),
   );
 }

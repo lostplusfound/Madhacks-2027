@@ -352,7 +352,11 @@ class MadMapsState extends ChangeNotifier {
       }
       final segment = route.floorSegments[floor];
       if (segment != null && segment.isNotEmpty) {
-        final point = segment[(stepIndex).clamp(0, segment.length - 1)];
+        // A floor transfer starts exactly at the matching stair/elevator
+        // connector on the destination level.
+        final point = transition != null
+            ? segment.first
+            : segment[(stepIndex).clamp(0, segment.length - 1)];
         currentLocation = LocationFix(
           label: 'Following route · Floor $floor',
           floor: floor,

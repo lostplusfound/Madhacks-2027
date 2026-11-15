@@ -482,30 +482,30 @@ class _FloorPlanPainter extends CustomPainter {
   void _marker(Canvas canvas, Offset center, Color color, String label) {
     canvas.drawCircle(
       center,
-      12,
-      Paint()..color = color.withValues(alpha: .18),
+      15,
+      Paint()..color = color.withValues(alpha: .16),
     );
-    canvas.drawCircle(
-      center,
-      6,
-      Paint()
-        ..color = color
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2,
-    );
-    canvas.drawCircle(center, 3, Paint()..color = color);
+    canvas.drawCircle(center, 11, Paint()..color = Colors.white);
     final painter = TextPainter(
       text: TextSpan(
-        text: label,
+        text: String.fromCharCode(
+          label == 'YOU'
+              ? Icons.directions_walk_rounded.codePoint
+              : Icons.flag_rounded.codePoint,
+        ),
         style: TextStyle(
           color: color,
-          fontSize: 8,
-          fontWeight: FontWeight.w900,
+          fontSize: 18,
+          fontFamily: Icons.directions_walk_rounded.fontFamily,
+          package: Icons.directions_walk_rounded.fontPackage,
         ),
       ),
       textDirection: TextDirection.ltr,
     )..layout();
-    painter.paint(canvas, Offset(center.dx - painter.width / 2, center.dy + 9));
+    painter.paint(
+      canvas,
+      Offset(center.dx - painter.width / 2, center.dy - painter.height / 2),
+    );
   }
 
   @override
