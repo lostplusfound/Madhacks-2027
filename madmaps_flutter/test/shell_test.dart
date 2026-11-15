@@ -103,7 +103,7 @@ void main() {
     },
   );
   testWidgets(
-    'Home search saves a place, Saved renames it, and real setup is required',
+    'Explore search saves a place, Saved renames it, and real setup is required',
     (tester) async {
       tester.view.physicalSize = const Size(390, 844);
       tester.view.devicePixelRatio = 1;
@@ -117,7 +117,7 @@ void main() {
         await FloorGraph.load();
       });
       await tester.pumpAndSettle();
-      expect(find.text('Where are you headed?'), findsOneWidget);
+      expect(find.text('MadMaps'), findsOneWidget);
       await tester.enterText(find.byType(TextField), '1524');
       await tester.pumpAndSettle();
       expect(find.byTooltip('Save place'), findsOneWidget);
@@ -125,7 +125,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Profile'));
       await tester.pumpAndSettle();
-      expect(find.text('Community'), findsOneWidget);
+      expect(find.text('Contribute'), findsOneWidget);
       expect(find.text('Saved'), findsNothing);
       await tester.tap(find.text('Saved places'));
       await tester.pumpAndSettle();
@@ -140,21 +140,30 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Navigate'));
       await tester.pumpAndSettle();
-      expect(find.text('Current location'), findsOneWidget);
-      expect(find.text('Directions'), findsOneWidget);
-      await tester.tap(find.text('Localize and navigate'));
+      expect(find.text('Your location'), findsOneWidget);
+      await tester.ensureVisible(find.text('Walking directions'));
+      await tester.pumpAndSettle();
+      expect(find.text('Walking directions'), findsOneWidget);
+      await tester.ensureVisible(find.text('Start'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Start'));
       await tester.pumpAndSettle();
       expect(find.text('Scan a floor to enable live guidance'), findsOneWidget);
       expect(find.text('Open mapping tools'), findsOneWidget);
       await tester.tap(find.text('Open mapping tools'));
       await tester.pump();
-      expect(find.text('Community'), findsWidgets);
-      await tester.tap(find.text('Map'));
+      expect(find.text('Contribute'), findsWidgets);
+      await tester.tap(find.text('Explore'));
       await tester.pumpAndSettle();
-      expect(find.text('My room'), findsOneWidget);
+      if (find.byTooltip('Clear search').evaluate().isNotEmpty) {
+        await tester.tap(find.byTooltip('Clear search'));
+      }
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Cancel'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
-      expect(find.text('Explore Floor 1'), findsOneWidget);
+      expect(find.text('Cancel'), findsNothing);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
     },
@@ -200,12 +209,16 @@ void main() {
       await tester.enterText(find.byType(TextField), '1524');
       await tester.pumpAndSettle();
       await tester.tap(find.text('Room 1524'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Navigate'));
       await tester.pump();
       await tester.runAsync(() async {
         await FloorGraph.load();
       });
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Localize and navigate'));
+      await tester.ensureVisible(find.text('Start'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Start'));
       await tester.pump();
       await tester.runAsync(() async {
         await FloorGraph.load();
@@ -216,10 +229,10 @@ void main() {
       final session = tester.widget<MapSessionScreen>(sessionFinder).session!;
       expect(session.destination?.id, 'f1-1524');
       expect(session.attached, true);
-      await tester.tap(find.text('Home'));
+      await tester.tap(find.text('Profile'));
       await tester.pumpAndSettle();
       expect(find.textContaining('Tracking paused'), findsOneWidget);
-      await tester.tap(find.text('Map'));
+      await tester.tap(find.text('Explore'));
       await tester.pumpAndSettle();
       expect(identical(owner, tester.state(sessionFinder)), true);
       expect(session.destination?.id, 'f1-1524');

@@ -3,7 +3,7 @@ import 'package:madmaps_client/madmaps_client.dart' as api;
 import '../navigation/building_routing.dart';
 import '../navigation/floor_data.dart';
 import '../navigation/floor_screen.dart';
-import '../navigation/routing.dart';
+import 'manual_route_steps.dart';
 import 'app_state.dart';
 
 Future<FloorLocation?> pickRoutePlace(
@@ -124,46 +124,15 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
     stepLegs.clear();
     stepPoints.clear();
     if (route == null) return [];
-    final steps = <String>[];
-    for (var legNumber = 0; legNumber < route!.legs.length; legNumber++) {
-      final leg = route!.legs[legNumber];
-      final label = widget.floors[leg.floor]!.floorLabel;
-      final scale = widget.floors[leg.floor]!.metersPerPixel;
-      if (leg.points.length > 1) {
-        var distance = 0.0;
-        var action = 'Follow the highlighted path';
-        var segmentStart = 0;
-        for (var i = 1; i < leg.points.length; i++) {
-          distance += (leg.points[i] - leg.points[i - 1]).distance * scale;
-          final turn = i + 1 < leg.points.length
-              ? turnInstruction(
-                  leg.points[i] - leg.points[i - 1],
-                  leg.points[i + 1] - leg.points[i],
-                )
-              : null;
-          if (turn != 'Continue') {
-            stepLegs.add(legNumber);
-            stepPoints.add(segmentStart);
-            segmentStart = i;
-            steps.add(
-              '$label: $action for about ${widget.state.distance(distance)}.',
-            );
-            action = turn ?? 'Continue';
-            distance = 0;
-          }
-        }
-      }
-      if (leg.exit case final exit?) {
-        stepLegs.add(legNumber);
-        stepPoints.add(leg.points.length - 1);
-        steps.add(
-          '${floorTransitionInstruction(exit)}.',
-        );
-      }
-    }
-    stepLegs.add(route!.legs.length - 1);
-    stepPoints.add(route!.legs.last.points.length - 1);
-    steps.add('Reach the entrance to ${widget.state.label(end!)}.');
+    final generated = manualRouteSteps(
+      route!,
+      widget.floors,
+      widget.state.label(end!),
+      widget.state.distance,
+    );
+    stepLegs.addAll(generated.map((step) => step.legIndex));
+    stepPoints.addAll(generated.map((step) => step.pointIndex));
+    final steps = generated.map((step) => step.instruction).toList();
     return steps;
   }
 

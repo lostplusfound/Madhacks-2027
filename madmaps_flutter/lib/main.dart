@@ -31,18 +31,7 @@ class _MyAppState extends State<MyApp> {
     builder: (context, _) => MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'MadMaps',
-      theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: alabaster,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: widget.state.contrast
-              ? const Color(0xff005f73)
-              : brandCrimson,
-          contrastLevel: widget.state.contrast ? 1 : 0,
-          surface: Colors.white,
-        ),
-        cardTheme: const CardThemeData(elevation: 0, color: Colors.white),
-      ),
+      theme: madMapsTheme(highContrast: widget.state.contrast),
       home: MadMapsShell(state: widget.state, repository: widget.repository),
     ),
   );

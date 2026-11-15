@@ -16,6 +16,7 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.all(24),
     children: [
+      Text('Your MadMaps', style: Theme.of(context).textTheme.headlineMedium),
       const SectionHeading('Your preferences'),
       const Text('Preferences and saved places stay on this phone.'),
       const SizedBox(height: 20),

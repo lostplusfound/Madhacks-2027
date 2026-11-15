@@ -8,7 +8,7 @@ import 'shared_captures.dart';
 /// One snapshot per phone/backend. Retry the same payloads after interruption;
 /// never rescan, reset local data, or import another floor.
 class LocalFloor1Import {
-  static String get key => 'madmaps.localFloor1CommunityImport.v1:$serverUrl';
+  static String get key => 'madmaps.localFloor1ContributeImport.v1:$serverUrl';
 
   Future<String?> run(
     List<AnchorMap> local,
@@ -130,7 +130,7 @@ class LocalFloor1Import {
     }
     final warnings = List<String>.from(state['warnings'] as List);
     final message =
-        'Floor 1 local points imported into Community once.${warnings.isEmpty ? '' : ' ${warnings.join('. ')}'}';
+        'Floor 1 local points imported into Contribute once.${warnings.isEmpty ? '' : ' ${warnings.join('. ')}'}';
     await preferences.setString(
       key,
       jsonEncode({'done': true, 'message': message}),

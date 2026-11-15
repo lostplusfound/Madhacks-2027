@@ -202,7 +202,7 @@ void main() {
         MyApp(state: state, repository: AllFloorsRepository(floors)),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Map').last);
+      await tester.tap(find.text('Explore').last);
       await tester.pumpAndSettle();
       final dynamic shell = tester.state(find.byType(MadMapsShell));
       final session = shell.session as NavigationSession;
@@ -231,6 +231,7 @@ void main() {
         expect(map.position, isNull);
         expect(map.route, isEmpty);
       }
+      await tester.ensureVisible(find.text('Return to navigation'));
       await tester.tap(find.text('Return to navigation'));
       await tester.pumpAndSettle();
       expect(find.text('Find my location'), findsOneWidget);
