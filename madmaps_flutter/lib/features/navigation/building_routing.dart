@@ -3,6 +3,14 @@ import 'package:madmaps_client/madmaps_client.dart' as api;
 import 'floor_data.dart';
 import 'routing.dart';
 
+enum FloorTravelMode { fastest, elevator, stairs }
+
+String floorTransitionInstruction(api.FloorConnector connector) {
+  String floor(int number) => number == 0 ? 'Basement' : 'Floor $number';
+  final mode = connector.type == api.EdgeType.elevator ? 'elevator' : 'stairs';
+  return 'Take the $mode from ${floor(connector.fromFloor)} to ${floor(connector.toFloor)}';
+}
+
 class BuildingLeg {
   BuildingLeg(this.floor, this.points, this.targetNode, this.meters, this.exit);
   final int floor;
@@ -36,6 +44,7 @@ BuildingRoute? planBuildingRoute({
   Map<int, FloorSetup> setups = const {},
   Map<int, double> measuredScales = const {},
   bool avoidStairs = false,
+  FloorTravelMode travelMode = FloorTravelMode.fastest,
   String? startNode,
 }) {
   final source = floors[startFloor], target = floors[destination.floor];
@@ -76,6 +85,12 @@ BuildingRoute? planBuildingRoute({
         (avoidStairs &&
             c.type != api.EdgeType.elevator &&
             c.type != api.EdgeType.ramp))
+      continue;
+    if (!avoidStairs &&
+        ((travelMode == FloorTravelMode.elevator &&
+                c.type != api.EdgeType.elevator) ||
+            (travelMode == FloorTravelMode.stairs &&
+                c.type != api.EdgeType.stairs)))
       continue;
     if (floors[c.fromFloor]?.graphId != c.fromGraphId ||
         floors[c.toFloor]?.graphId != c.toGraphId)

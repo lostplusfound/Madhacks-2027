@@ -361,11 +361,15 @@ class _NavigationPanelState extends State<NavigationPanel> {
                                 icon: Icon(
                                   w.destination == null
                                       ? Icons.search
+                                      : g.arrived
+                                      ? Icons.check
                                       : Icons.close,
                                 ),
                                 label: Text(
                                   w.destination == null
                                       ? 'Choose destination'
+                                      : g.arrived
+                                      ? 'Finish'
                                       : 'Cancel',
                                 ),
                               ),

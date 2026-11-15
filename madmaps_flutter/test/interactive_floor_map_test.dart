@@ -17,6 +17,42 @@ void main() {
     [location],
   );
 
+  testWidgets('position overlay is above markers without blocking taps', (
+    tester,
+  ) async {
+    FloorLocation? selected;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 400,
+            height: 400,
+            child: InteractiveFloorMap(
+              graph: graph,
+              setup: FloorSetup(),
+              controller: FloorViewportController(),
+              position: const Offset(700, 400),
+              heading: const Offset(710, 400),
+              route: const [],
+              fullRoute: const [],
+              onLocation: (value) => selected = value,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final overlay = find.byKey(const ValueKey('user-location-overlay'));
+    expect(overlay, findsOneWidget);
+    expect(tester.widget<IgnorePointer>(overlay).ignoring, isTrue);
+    final stack = tester.widget<Stack>(
+      find.ancestor(of: overlay, matching: find.byType(Stack)).first,
+    );
+    expect((stack.children.last as Positioned).child, tester.widget(overlay));
+    await tester.tap(find.byKey(const ValueKey('place-cafe')));
+    expect(selected, location);
+  });
+
   testWidgets(
     'heading follow centers pose, wraps smoothly, and retains zoom while pinching',
     (tester) async {

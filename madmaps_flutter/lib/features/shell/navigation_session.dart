@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:madmaps_client/madmaps_client.dart' as api;
 import '../navigation/floor_data.dart';
+import '../navigation/building_routing.dart';
 import '../navigation/routing.dart';
 
 /// Presentation bridge. The native session remains owned by MapSessionScreen.
@@ -18,6 +19,14 @@ class NavigationSession extends ChangeNotifier {
 
   bool attached = false;
   bool avoidStairs = false;
+  FloorTravelMode travelMode = FloorTravelMode.elevator;
+  void setTravelMode(FloorTravelMode value) {
+    if (travelMode == value) return;
+    travelMode = value;
+    revision++;
+    notifyListeners();
+  }
+
   int? currentFloor;
   void setAvoidStairs(bool value) {
     if (avoidStairs == value) return;
@@ -29,6 +38,7 @@ class NavigationSession extends ChangeNotifier {
   String instruction = 'Find your location to start navigation';
   double? remainingMeters;
   bool _arrivalRecorded = false;
+  bool get arrived => _arrivalRecorded;
   bool _closed = false;
   int revision = 0;
   VoidCallback? onCancel;

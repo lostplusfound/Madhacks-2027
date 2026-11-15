@@ -8,6 +8,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 import '../localization/map_data.dart';
 import '../localization/prototype_screen.dart';
 import '../navigation/floor_data.dart';
+import '../navigation/building_routing.dart';
 import '../navigation/map_repository.dart';
 import '../navigation/interactive_floor_map.dart';
 import 'app_state.dart';
@@ -185,6 +186,8 @@ class _MadMapsShellState extends State<MadMapsShell>
           state: widget.state,
           destination: place,
           initialAvoidStairs: session.avoidStairs,
+          initialTravelMode: session.travelMode,
+          onTravelModeChanged: session.setTravelMode,
           onLocalize: (destination, avoidStairs) {
             Navigator.pop(plannerContext);
             session.setAvoidStairs(avoidStairs);
@@ -380,6 +383,28 @@ class _MadMapsShellState extends State<MadMapsShell>
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
                       title: const Text('Avoid stairs'),
+                      secondary: PopupMenuButton<FloorTravelMode>(
+                        tooltip: 'Between floors',
+                        enabled: !session.avoidStairs,
+                        initialValue: session.travelMode,
+                        icon: Icon(
+                          session.avoidStairs ||
+                                  session.travelMode == FloorTravelMode.elevator
+                              ? Icons.elevator
+                              : Icons.stairs,
+                        ),
+                        onSelected: session.setTravelMode,
+                        itemBuilder: (_) => const [
+                          PopupMenuItem(
+                            value: FloorTravelMode.elevator,
+                            child: Text('Elevator'),
+                          ),
+                          PopupMenuItem(
+                            value: FloorTravelMode.stairs,
+                            child: Text('Stairs'),
+                          ),
+                        ],
+                      ),
                       value: session.avoidStairs,
                       onChanged: session.setAvoidStairs,
                     ),
@@ -398,7 +423,7 @@ class _MadMapsShellState extends State<MadMapsShell>
                     if (session.destination != null)
                       TextButton(
                         onPressed: session.cancel,
-                        child: const Text('Cancel'),
+                        child: Text(session.arrived ? 'Finish' : 'Cancel'),
                       ),
                   ],
                 ),

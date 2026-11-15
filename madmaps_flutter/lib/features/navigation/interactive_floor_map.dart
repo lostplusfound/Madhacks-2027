@@ -275,6 +275,7 @@ class _InteractiveFloorMapState extends State<InteractiveFloorMap>
                       highContrast: widget.highContrast,
                       setup: widget.setup,
                       camera: widget.position,
+                      showPosition: false,
                       headingPoint: widget.heading,
                       route: widget.route,
                       fullRoute: widget.fullRoute,
@@ -287,6 +288,23 @@ class _InteractiveFloorMapState extends State<InteractiveFloorMap>
                 ),
               ),
               for (final group in markerGroups()) marker(group),
+              if (widget.position != null)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    key: const ValueKey('user-location-overlay'),
+                    child: CustomPaint(
+                      painter: _UserLocationPainter(
+                        MatrixUtils.transformPoint(matrix, widget.position!),
+                        widget.heading == null
+                            ? null
+                            : MatrixUtils.transformPoint(
+                                matrix,
+                                widget.heading!,
+                              ),
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -416,4 +434,32 @@ class _InteractiveFloorMapState extends State<InteractiveFloorMap>
       ),
     );
   }
+}
+
+/// Screen-space overlay stays above place labels and keeps a readable size.
+class _UserLocationPainter extends CustomPainter {
+  _UserLocationPainter(this.position, this.heading);
+  final Offset position;
+  final Offset? heading;
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (heading != null) {
+      final direction = heading! - position;
+      if (direction.distance > 0) {
+        canvas.drawLine(
+          position,
+          position + direction / direction.distance * 22,
+          Paint()
+            ..color = Colors.blue
+            ..strokeWidth = 3,
+        );
+      }
+    }
+    canvas.drawCircle(position, 8, Paint()..color = Colors.white);
+    canvas.drawCircle(position, 6, Paint()..color = Colors.blue);
+  }
+
+  @override
+  bool shouldRepaint(covariant _UserLocationPainter oldDelegate) =>
+      position != oldDelegate.position || heading != oldDelegate.heading;
 }

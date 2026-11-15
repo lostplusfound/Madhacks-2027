@@ -91,6 +91,41 @@ void main() {
       }
     },
   );
+  test('explicit floor travel choices constrain every transition', () {
+    final destination = floors[3]!.locations.firstWhere((l) => l.node != null);
+    for (final mode in [FloorTravelMode.stairs, FloorTravelMode.elevator]) {
+      BuildingRoute? plan(
+        List<api.FloorConnector> links, {
+        bool avoid = false,
+      }) => planBuildingRoute(
+        floors: floors,
+        connectors: links,
+        startFloor: 0,
+        start: floors[0]!.nodes['f0-south-hall']!.point,
+        destination: destination,
+        travelMode: mode,
+        avoidStairs: avoid,
+      );
+      final expected = mode == FloorTravelMode.stairs
+          ? api.EdgeType.stairs
+          : api.EdgeType.elevator;
+      final route = plan(connectors);
+      expect(route, isNotNull);
+      final exits = route!.legs.where((l) => l.exit != null);
+      expect(exits, isNotEmpty);
+      expect(exits.every((l) => l.exit!.type == expected), isTrue);
+      expect(
+        plan(connectors.where((c) => c.type != expected).toList()),
+        isNull,
+      );
+      expect(
+        plan(connectors, avoid: true)!.legs
+            .where((l) => l.exit != null)
+            .every((l) => l.exit!.type == api.EdgeType.elevator),
+        isTrue,
+      );
+    }
+  });
   test('avoid stairs uses the elevator and respects disabled connections', () {
     final destination = floors[3]!.locations.firstWhere((l) => l.node != null);
     BuildingRoute? route(List<api.FloorConnector> links) => planBuildingRoute(

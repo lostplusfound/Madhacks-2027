@@ -67,12 +67,16 @@ class RoutePlannerScreen extends StatefulWidget {
     required this.onLocalize,
     this.destination,
     this.initialAvoidStairs = false,
+    this.initialTravelMode = FloorTravelMode.elevator,
+    this.onTravelModeChanged,
   });
   final Map<int, FloorGraph> floors;
   final List<api.FloorConnector> connectors;
   final AppState state;
   final FloorLocation? destination;
   final bool initialAvoidStairs;
+  final FloorTravelMode initialTravelMode;
+  final ValueChanged<FloorTravelMode>? onTravelModeChanged;
   final void Function(FloorLocation, bool) onLocalize;
   @override
   State<RoutePlannerScreen> createState() => _RoutePlannerScreenState();
@@ -82,6 +86,7 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
   FloorLocation? start;
   late FloorLocation? end = widget.destination;
   late bool avoidStairs = widget.initialAvoidStairs;
+  late FloorTravelMode travelMode = widget.initialTravelMode;
   BuildingRoute? route;
   String? error;
   int legIndex = 0;
@@ -107,6 +112,7 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
       startNode: start!.node,
       destination: end!,
       avoidStairs: avoidStairs,
+      travelMode: travelMode,
     );
     if (route == null)
       error = 'No connected route is available with these preferences.';
@@ -140,7 +146,7 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
       }
       if (leg.exit case final exit?) {
         steps.add(
-          'Take ${exit.label} to ${widget.floors[exit.toFloor]!.floorLabel}.',
+          '${floorTransitionInstruction(exit)}.',
         );
       }
     }
@@ -218,6 +224,15 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
               calculate();
             }),
           ),
+          FloorTravelPicker(
+            value: travelMode,
+            avoidStairs: avoidStairs,
+            onChanged: (value) => setState(() {
+              travelMode = value;
+              widget.onTravelModeChanged?.call(value);
+              calculate();
+            }),
+          ),
           if (start == null)
             const Padding(
               padding: EdgeInsets.all(12),
@@ -288,4 +303,38 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
       ),
     );
   }
+}
+
+/// Shared preference for manual planning and live cross-floor rerouting.
+class FloorTravelPicker extends StatelessWidget {
+  const FloorTravelPicker({
+    super.key,
+    required this.value,
+    required this.avoidStairs,
+    required this.onChanged,
+  });
+  final FloorTravelMode value;
+  final bool avoidStairs;
+  final ValueChanged<FloorTravelMode> onChanged;
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    child: DropdownButtonFormField<FloorTravelMode>(
+      key: ValueKey((value, avoidStairs)),
+      initialValue: avoidStairs ? FloorTravelMode.elevator : value,
+      decoration: const InputDecoration(labelText: 'Between floors'),
+      items: const [
+        DropdownMenuItem(
+          value: FloorTravelMode.elevator,
+          child: Text('Elevator'),
+        ),
+        DropdownMenuItem(value: FloorTravelMode.stairs, child: Text('Stairs')),
+      ],
+      onChanged: avoidStairs
+          ? null
+          : (v) {
+              if (v != null) onChanged(v);
+            },
+    ),
+  );
 }

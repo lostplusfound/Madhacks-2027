@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:madmaps_client/madmaps_client.dart' as api;
 import 'package:madmaps/features/navigation/map_repository.dart';
+import 'package:madmaps/features/navigation/building_routing.dart';
 import 'package:madmaps/features/shell/navigation_session.dart';
 import 'map_repository_test.dart' show fixture;
 import 'package:flutter/material.dart';
@@ -172,13 +173,13 @@ void main() {
           capture(
             1,
             mode == api.EdgeType.stairs
-                ? 'f1-south-stairs'
+                ? 'f1-main-stairs-approach'
                 : 'f1-elevator-bank-approach',
           ),
           capture(
             2,
             mode == api.EdgeType.stairs
-                ? 'f2-main-stairs-landing'
+                ? 'f2-atrium-stairs'
                 : 'f2-elevator-landing',
           ),
         ];
@@ -194,9 +195,12 @@ void main() {
                 )
                 .toList();
         final target = mode == api.EdgeType.stairs
-            ? 'f2-south-stairs'
+            ? 'f2-atrium-stairs'
             : 'f2-elevator-bank';
         final session = NavigationSession()
+          ..travelMode = mode == api.EdgeType.stairs
+              ? FloorTravelMode.stairs
+              : FloorTravelMode.elevator
           ..avoidStairs = mode == api.EdgeType.elevator
           ..choose(floors[2]!.locations.firstWhere((l) => l.id == target));
         await tester.pumpWidget(
@@ -225,7 +229,9 @@ void main() {
         expect(
           session.instruction,
           contains(
-            mode == api.EdgeType.stairs ? 'South stairs' : 'Elevator bank',
+            mode == api.EdgeType.stairs
+                ? 'Take the stairs from Floor 1 to Floor 2'
+                : 'Take the elevator from Floor 1 to Floor 2',
           ),
         );
         expect(session.instruction, isNot(contains('arrived')));
@@ -240,6 +246,8 @@ void main() {
         expect(session.currentFloor, 2);
         expect(session.destination!.id, target);
         expect(session.instruction, contains('arrived'));
+        expect(find.text('Finish'), findsOneWidget);
+        expect(find.text('Cancel'), findsNothing);
         expect(ar.session, same(native));
         expect(native.closed, isFalse);
         await tester.pumpWidget(const SizedBox());

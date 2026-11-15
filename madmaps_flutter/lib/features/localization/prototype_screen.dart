@@ -19,6 +19,7 @@ import '../navigation/map_repository.dart';
 import '../navigation/floor_screen.dart';
 import '../navigation/routing.dart';
 import '../navigation/building_routing.dart';
+import '../navigation/floor_transition.dart';
 import 'package:madmaps_client/madmaps_client.dart' as api;
 import '../navigation/navigation_panel.dart';
 import 'package:vector_math/vector_math_64.dart' show Vector3;
@@ -255,18 +256,18 @@ class _MapSessionScreenState extends State<MapSessionScreen>
   api.FloorConnector? transition;
   BuildingRoute? buildingRoute;
   bool transitionScheduled = false;
+  final transitionTrigger = FloorTransitionTrigger();
+  String floorName(int floor) => floor == 0 ? 'Basement' : 'Floor $floor';
+  String get transitionMessage =>
+      '${floorTransitionInstruction(transition!)}. Scan surroundings after exiting.';
   List<AnchorMap> get catalog {
     final maps = widget.maps.isEmpty ? [_recoveryMap ?? map] : widget.maps;
     if (discoveryFloor != null)
       return maps.where((m) => m.floor.floorNumber == discoveryFloor).toList();
     if (transition == null) return maps;
     return maps
-        .where((m) => m.floor.floorNumber != transition!.fromFloor)
-        .toList()
-      ..sort(
-        (a, b) => (a.floor.floorNumber == transition!.toFloor ? 0 : 1)
-            .compareTo(b.floor.floorNumber == transition!.toFloor ? 0 : 1),
-      );
+        .where((m) => m.floor.floorNumber == transition!.toFloor)
+        .toList();
   }
 
   Future<void> discoverOnFloor(int floor) async {
@@ -277,6 +278,9 @@ class _MapSessionScreenState extends State<MapSessionScreen>
   Future<void> beginTransition(api.FloorConnector connector) async {
     if (!mounted || transition != null || widget.session?.destination == null)
       return;
+    generation++;
+    busy = false;
+    transitionTrigger.reset();
     transition = connector;
     discoveryFloor = null;
     localization.invalidate();
@@ -288,8 +292,7 @@ class _MapSessionScreenState extends State<MapSessionScreen>
     navigationMapId = null;
     identified = false;
     updateState(
-      () => discoveryMessage =
-          'Take ${connector.label} to ${connector.toFloor == 0 ? 'Basement' : 'Floor ${connector.toFloor}'}. Scan after exiting; guidance resumes when the floor is identified.',
+      () => discoveryMessage = transitionMessage,
     );
     queueDiscovery(Duration.zero);
   }
@@ -332,8 +335,9 @@ class _MapSessionScreenState extends State<MapSessionScreen>
     final candidates = liveAnchorCandidates(catalog);
     if (candidates.isEmpty) {
       updateState(
-        () => discoveryMessage =
-            'No live anchors saved. Create a map and save an anchor, or use a map with unexpired anchors.',
+        () => discoveryMessage = transition == null
+            ? 'No live anchors saved. Create a map and save an anchor, or use a map with unexpired anchors.'
+            : 'No usable saved anchors on ${floorName(transition!.toFloor)}. Add or restore points on that floor to resume live guidance.',
       );
       return;
     }
@@ -345,8 +349,9 @@ class _MapSessionScreenState extends State<MapSessionScreen>
       draftPose = null;
       mapFromSession = null;
       identified = false;
-      discoveryMessage =
-          'Scan your surroundings slowly. Searching ${candidates.length} saved anchors...';
+      discoveryMessage = transition == null
+          ? 'Scan your surroundings slowly. Searching ${candidates.length} saved anchors...'
+          : transitionMessage;
     });
     try {
       ARAnchor? found;
@@ -420,7 +425,10 @@ class _MapSessionScreenState extends State<MapSessionScreen>
         );
       }
     } finally {
-      if (mounted && current == generation) updateState(() => busy = false);
+      if (mounted && current == generation) {
+        updateState(() => busy = false);
+        if (transition != null) queueDiscovery(const Duration(seconds: 2));
+      }
     }
   }
 
@@ -494,6 +502,12 @@ class _MapSessionScreenState extends State<MapSessionScreen>
       roomName = null;
       destination = null;
       transition = null;
+      transitionTrigger.reset();
+      generation++;
+      busy = false;
+      _autoDiscovery = false;
+      _discoveryRetry?.cancel();
+      unawaited(ar.cancelDiscovery());
       buildingRoute = null;
       transitionScheduled = false;
       guidance.target = null;
@@ -592,8 +606,7 @@ class _MapSessionScreenState extends State<MapSessionScreen>
     if (transition != null) {
       guidance.arrived = false;
       guidance.remainingMeters = null;
-      guidance.status =
-          'Take ${transition!.label} to ${transition!.toFloor == 0 ? 'Basement' : 'Floor ${transition!.toFloor}'}. Scan surroundings after exiting.';
+      guidance.status = transitionMessage;
       if (session != null) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted && transition != null)
@@ -638,6 +651,7 @@ class _MapSessionScreenState extends State<MapSessionScreen>
           setups: setups,
           measuredScales: scales,
           avoidStairs: session.avoidStairs,
+          travelMode: session.travelMode,
         );
         final leg = buildingRoute?.legs.first;
         guidance.select(leg?.targetNode ?? '');
@@ -695,10 +709,22 @@ class _MapSessionScreenState extends State<MapSessionScreen>
           : 'No connected route is available to this floor or entrance.';
     }
     final exit = buildingRoute?.legs.first.exit;
-    if (exit != null && guidance.arrived) {
+    final stairPoint = exit == null
+        ? null
+        : graph.nodes[exit.fromNodeId]?.point;
+    final position = pose == null || calibration == null
+        ? null
+        : calibration.toImage(Offset(pose.entry(0, 3), pose.entry(2, 3)));
+    final nearConnector = transitionTrigger.update(
+      exit?.connectorId,
+      position == null || stairPoint == null || calibration == null
+          ? null
+          : (position - stairPoint).distance / calibration.scale,
+      DateTime.now(),
+    );
+    if (exit != null && (guidance.arrived || nearConnector)) {
       guidance.arrived = false;
-      guidance.status =
-          'Take ${exit.label} to ${exit.toFloor == 0 ? 'Basement' : 'Floor ${exit.toFloor}'}';
+      guidance.status = floorTransitionInstruction(exit);
       guidance.maneuver = guidance.status;
       if (!transitionScheduled) {
         transitionScheduled = true;
@@ -714,6 +740,7 @@ class _MapSessionScreenState extends State<MapSessionScreen>
       }
     }
     if (requested != null &&
+        requested.floor == map.floor.floorNumber &&
         (map.floor.locationNodes[requested.id] ?? requested.node) == null) {
       guidance.status =
           'This destination has no mapped entrance yet. Choose another destination.';
@@ -1179,7 +1206,9 @@ class _MapSessionScreenState extends State<MapSessionScreen>
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: Text(
-          identified
+          transition != null
+              ? 'Changing floors'
+              : identified
               ? map.name
               : mapFirst
               ? 'Locate'
@@ -1199,6 +1228,23 @@ class _MapSessionScreenState extends State<MapSessionScreen>
               ),
               onPressed: () =>
                   widget.session!.setAvoidStairs(!widget.session!.avoidStairs),
+            ),
+          if (widget.session != null && !widget.session!.avoidStairs)
+            PopupMenuButton<FloorTravelMode>(
+              tooltip: 'Between floors',
+              icon: const Icon(Icons.alt_route),
+              initialValue: widget.session!.travelMode,
+              onSelected: widget.session!.setTravelMode,
+              itemBuilder: (_) => const [
+                PopupMenuItem(
+                  value: FloorTravelMode.elevator,
+                  child: Text('Elevator'),
+                ),
+                PopupMenuItem(
+                  value: FloorTravelMode.stairs,
+                  child: Text('Stairs'),
+                ),
+              ],
             ),
           if (availableFloors.isNotEmpty)
             PopupMenuButton<int>(
@@ -1281,6 +1327,19 @@ class _MapSessionScreenState extends State<MapSessionScreen>
           ),
         ],
       ),
+      bottomNavigationBar:
+          transition == null && buildingRoute?.legs.first.exit != null
+          ? SafeArea(
+              child: TextButton.icon(
+                key: const ValueKey('scan-next-floor'),
+                onPressed: active && ready && !busy
+                    ? () => beginTransition(buildingRoute!.legs.first.exit!)
+                    : null,
+                icon: const Icon(Icons.stairs),
+                label: const Text('I’m at the stairs—scan next floor'),
+              ),
+            )
+          : null,
       body: supported
           ? Stack(
               children: [
@@ -1526,7 +1585,9 @@ class _MapSessionScreenState extends State<MapSessionScreen>
                             ),
                             TextButton(
                               onPressed: widget.session?.cancel ?? cancelTrip,
-                              child: const Text('Stop navigation'),
+                              child: Text(
+                                guidance.arrived ? 'Finish' : 'Stop navigation',
+                              ),
                             ),
                           ],
                         ),

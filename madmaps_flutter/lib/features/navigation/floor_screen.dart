@@ -20,9 +20,11 @@ class FloorCanvas extends StatelessWidget {
     this.rejoinPoint,
     this.selectedLocation,
     this.highContrast = false,
+    this.showPosition = true,
   });
   final String? selectedLocation;
   final bool highContrast;
+  final bool showPosition;
   final FloorGraph graph;
   final FloorSetup setup;
   final Offset? camera, headingPoint;
@@ -79,6 +81,7 @@ class FloorCanvas extends StatelessWidget {
                       selectedLocation,
                       highContrast,
                       pin,
+                      showPosition,
                     ),
                   ),
                 ],
@@ -112,9 +115,11 @@ class _FloorPainter extends CustomPainter {
     this.selectedLocation,
     this.highContrast,
     this.pin,
+    this.showPosition,
   );
   final String? selectedLocation;
   final bool highContrast;
+  final bool showPosition;
   final FloorGraph graph;
   final FloorSetup setup;
   final Offset? camera, headingPoint;
@@ -262,6 +267,7 @@ class _FloorPainter extends CustomPainter {
           Paint()..color = Colors.deepOrange,
         );
       }
+      if (!showPosition) return;
       if (headingPoint != null) {
         final direction = p(headingPoint!) - p(camera!);
         if (direction.distance > 0) {
