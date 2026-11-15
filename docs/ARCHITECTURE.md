@@ -8,6 +8,24 @@ AR/map flow. The published AR dependency stays pinned at
 `ar_flutter_plugin_plus: 1.1.3`, with a documented local override under
 `third_party/`. No shared/backend domain package or map API has been introduced.
 
+## Visitor UI and state ownership
+
+`main.dart` composes the Swara-style visitor shell under
+`madmaps_flutter/lib/features/shell/`. Home, Map, Saved, and Profile reuse place
+rows, cards, sheets, search data, theme tokens, and distance formatting.
+
+- `AppState` owns bookmarks/aliases by stable location ID, real-arrival visit
+  history, units, contrast, and voice preferences. These use `madmaps.ui.v1`;
+  map/anchor persistence keeps its existing key and format. Failed preference
+  storage leaves the UI usable in memory and surfaces a status message.
+- `NavigationSession` is the ChangeNotifier bridge for destination requests,
+  cancellation, current guidance, and once-per-trip arrival. It is not a second
+  routing or localization engine.
+- `MadMapsShell` retains a nested Map navigator in an IndexedStack. The existing
+  `MapSessionScreen` continues to own the native AR adapter, localization lifecycle,
+  and guidance. Switching tabs retains this owner; closing the session disposes
+  it. Speech consumes actual guidance/status changes rather than simulated steps.
+
 Current data flow:
 
 1. `MapStore` loads/saves `AnchorMap` records, saved poses/expiry, floor setup, and
@@ -30,6 +48,11 @@ Tracking loss hides the dot and pauses directions; background/resume clears the
 old pose and starts automatic map-scoped discovery. Route connectors outside the
 graph remain estimated because no wall geometry is encoded. All floor-1 edges
 and added amenity approaches remain draft.
+
+Swara's mock catalogue, graph parser, walking timer, and schematic map are not
+used. The visitor shell consumes the existing floor catalogue and navigation
+implementation. Unsupported source-branch features and merge resolutions are
+listed in [UI integration notes](SWARA_UI_INTEGRATION.md).
 
 See [floor navigation](FLOOR_NAVIGATION.md), [AR behavior](AR_PROTOTYPE.md), and
 [verification](TESTING.md). The current implementation uses Flutter SDK state

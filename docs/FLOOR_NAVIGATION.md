@@ -10,17 +10,19 @@ the graph does not describe walls, hallway widths, accessibility, or opening hou
 
 ## Setup and legacy toggle
 
-1. Open/create an AR map and save two identifiable anchors at least 2 meters
-   apart. Wider separation generally reduces sensitivity to placement error.
-2. Open **Floor 1 setup** from the home-screen map menu or the session's
+1. Open **Profile > Manage AR maps and calibration**. Open/create an AR map
+   and save two identifiable anchors at least 2 meters apart. Wider separation generally reduces sensitivity to placement error.
+2. Open **Floor 1 setup** from the map list's overflow menu or the session's
    edit-location icon. Enable **Associate this AR map with floor 1**.
 3. Select each anchor and tap its physical position on the plan. Pinch/pan to
    place precisely, then select exactly two **Calibrate** chips.
 4. The calibration transforms saved horizontal AR X/Z meters into image pixels;
    anchor height is ignored and no compass-north setting is required. Place a
    third anchor without selecting its calibration chip to inspect check error.
-5. Opening an associated map automatically searches its live anchors. Use
-   **Locate** or the location icon to retry immediately. Pick a destination through
+5. Return to Map and select **Find my location**, or select a destination in
+   Home/Saved. A single calibrated map is searched directly; multiple calibrated
+   maps use catalogue discovery. Opening an associated map from Mapping tools
+   also searches its live anchors. Use **Locate** or the location icon to retry immediately. Pick a destination through
    **Rooms**, **Choose destination**, or a map marker's **Navigate** card.
 
 Disable **Associate this AR map with floor 1** to restore the legacy AR-first
@@ -29,13 +31,27 @@ anchor placements, and overrides. Re-enabling association restores the floor UI.
 Direct anchor guidance is straight-line and ignores walls. **Navigate via hallways**
 in the Anchors menu requires an explicit anchor-to-approach-node link in setup.
 
+## Visitor tabs and saved places
+
+Home provides search and bathroom/exit shortcuts. Saved bookmarks and aliases
+stay on this phone; hold a saved row to rename it. Recent/frequent places reflect
+actual arrivals, with no seeded visit history. Profile offers units, high contrast,
+spoken directions, and map management. Missing calibration opens a setup sheet
+without discarding the requested destination.
+
+Changing tabs retains the navigation session; the trip summary returns to Map.
+Cancel clears the trip and keeps localization active. Back from the active session
+closes it and clears the trip. Mapping tools remain available in the session toolbar.
+Only Floor 1 is routable; step-free alternatives and opening hours are not supplied.
+See [UI integration decisions](SWARA_UI_INTEGRATION.md).
+
 ## Navigation screen and map controls
 
 The floor plan is the main view. A blue dot/heading shows the unsnapped live
 position; the remaining route is blue, traveled route is muted, and the destination
 has a red marker. The turn banner shows the next maneuver and distance. The bottom
-card shows destination, remaining meters, estimated duration and arrival clock
-time, and **Cancel**. Estimates use a fixed walking speed of **1.2 m/s**; short
+card shows destination, remaining distance (meters by default; feet via Profile),
+estimated duration and arrival clock time, and **Cancel**. Estimates use a fixed walking speed of **1.2 m/s**; short
 routes display **Less than 1 min**. Cancel clears the trip while localization
 continues. Arrival means proximity to the approach/entrance, not the room interior.
 
@@ -111,8 +127,10 @@ When no reference remains, discovery automatically searches the selected map's
 unexpired anchors in batches of up to 20; automatic batches have 10-second
 timeouts. Failed discovery retries after 20 seconds. Background/resume clears the
 old pose and restarts discovery; same-map destinations survive. A different map
-clears the trip. **Cancel search** stops automatic discovery until Locate or
-reopening the map. Global home-screen **Find my location** searches saved maps;
+clears session-local guidance. In the visitor shell, the selected floor-1
+destination is reapplied using the matched map's calibration and overrides.
+**Cancel search** stops automatic discovery until Locate or reopening the map.
+The Mapping tools map-list **Find my location** searches saved maps;
 there is no continuous floor detection or cross-floor route guidance.
 
 ## Amenities, local editing, and source data
@@ -146,7 +164,7 @@ surface generation, session identity, frame timestamps/tracking, and resolve
 completion. Camera permission prompts scroll within the compact viewport.
 Native changes require a full Android rebuild/relaunch; hot reload is insufficient.
 
-Latest recorded checks on November 14, 2026: **80 Flutter tests passed**, analysis
+Latest recorded checks on November 14, 2026: **88 Flutter tests passed**, analysis
 reported no errors/warnings, formatting completed, and the Android debug APK
 built. This verifies automated behavior and compilation, not physical AR accuracy.
 Earlier hosting was confirmed on Pixel 6a; later UI feedback is qualitative.

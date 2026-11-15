@@ -8,7 +8,7 @@ It includes two-anchor image calibration, CSV graph loading, local overrides,
 directed Dijkstra routing, progress/turns/ETA, off-route and distant-start recovery,
 and a map-first UI with interactive markers and heading-follow. Disabling floor
 association restores the legacy AR layout. The latest recorded combined suite
-has 80 passing Flutter tests, clean analysis apart from informational notices,
+has 88 passing Flutter tests, clean analysis apart from informational notices,
 and a successful Android debug APK build.
 
 Read [current navigation behavior](../FLOOR_NAVIGATION.md), [architecture](../ARCHITECTURE.md),
@@ -18,6 +18,12 @@ routes and amenity approaches are draft. Shared domain types, repository/service
 adapters, backend persistence, revision enforcement, and multi-floor transitions
 remain future work. The proposed ownership/interface/task checklist below is a
 future integration handoff, not a claim that current local features are absent.
+
+The visitor shell under `features/shell/` now provides Home search and amenity
+shortcuts, Map, Saved and Profile. `NavigationSession` bridges requests/status to
+the existing native session owner; `AppState` stores UI preferences and stable-ID
+bookmarks separately from map records. Preserve session identity across tab changes
+and real-arrival history. See [UI integration decisions](../SWARA_UI_INTEGRATION.md).
 
 ## Ownership and proposed interface
 

@@ -5,9 +5,10 @@
 This file preserves the **initial scaffold setup history** below. It is not the
 current feature or Android-build status. Later implementation added local AR map
 storage, Cloud Anchor discovery/handoffs, floor calibration, graph routing,
-interactive map-first navigation, compact AR, automatic recovery, and heading-follow.
+interactive map-first navigation, compact AR, automatic recovery, heading-follow,
+and the Swara visitor shell with local bookmarks and preferences.
 
-Latest recorded checks on November 14, 2026: **80 Flutter tests passed**, analysis
+Latest recorded checks on November 14, 2026: **88 Flutter tests passed**, analysis
 reported no errors/warnings (informational notices remain), and the Android debug
 APK built with the configured Java 17 toolchain. The local-only AR/map flow needs
 no Serverpod backend or database. Earlier hosting was confirmed on Pixel 6a;
@@ -16,7 +17,8 @@ checks remain outstanding. Backend/runner blockers below were recorded at initia
 setup and were not revalidated by these Flutter checks.
 
 See [README](../README.md), [AR setup](AR_PROTOTYPE.md),
-[floor navigation](FLOOR_NAVIGATION.md), and [testing](TESTING.md).
+[floor navigation](FLOOR_NAVIGATION.md), [UI integration](SWARA_UI_INTEGRATION.md),
+and [testing](TESTING.md).
 
 ## Original scaffold implementation
 

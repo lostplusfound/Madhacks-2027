@@ -1,12 +1,12 @@
 # Swara UI integration
 
 Integrated on `integration/swara-ui` from `integration/floorplan-navigation`
-(`832cb46`) and `origin/ui_swara` (`dc92422`).
+(`832cb46`) and `origin/ui_swara` (`dc92422`), recorded in merge commit `6b06f84`.
 
 ## Visitor flow
 
-Home provides destination search, bathroom/exit shortcuts, bookmarks, recently visited places, and frequent
-places. Selecting a destination opens Map and starts the real AR session when a
+Home provides destination search, bathroom/exit shortcuts, bookmarks, recently
+visited places, and frequent places. Selecting a destination opens Map and starts the real AR session when a
 calibrated floor-associated map exists. Otherwise a setup sheet links to existing
 map creation and Floor 1 calibration, retaining the selected destination. After
 setup, return to Map and select Find my location. Multiple calibrated maps are

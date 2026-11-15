@@ -1,6 +1,8 @@
 # Android AR localization prototype
 
-The app home is now a list of named maps. Map and anchor metadata are saved in
+The app opens a visitor Home screen with Map, Saved, and Profile tabs. Named
+AR maps are managed through **Profile > Manage AR maps and calibration**.
+Map and anchor metadata are saved in
 SharedPreferences on this phone. Cloud Anchor hosting and resolution use Google
 Cloud directly; no Serverpod domain endpoints or migrations are required.
 
@@ -23,10 +25,14 @@ compact/expanded AR. See [floor setup and controls](FLOOR_NAVIGATION.md) and the
 [testing guide](TESTING.md) for the complete behavior and physical checklist.
 The legacy AR-first layout remains available by disabling floor association.
 
-Latest recorded checks on November 14, 2026: **80 Flutter tests passed**, analysis
+Latest recorded checks on November 14, 2026: **88 Flutter tests passed**, analysis
 had no errors/warnings (informational notices remain), and the Android debug APK
 built. Historical 19/30/36-test snapshots below describe earlier stages. Current
 compact-device localization and measured navigation accuracy remain unverified.
+
+The visitor Map flow uses calibrated floor-associated maps and keeps the native
+session mounted across tabs. Destination selection, setup prompts, saved places,
+and preferences are described in [UI integration notes](SWARA_UI_INTEGRATION.md).
 
 ## Configure and run
 
@@ -120,7 +126,7 @@ flutter build apk --debug
    pinch to zoom and pan. The
    blue dot is your current position and its line shows camera heading. Orange
    marks the selected destination, teal marks anchors, and gray marks expired ones.
-5. From home, choose **Find my location** and scan near any saved anchor.
+5. From the Mapping tools map list, choose **Find my location** and scan near any saved anchor.
    Initial discovery searches distinct, unexpired Cloud Anchor IDs across this
    phone's saved maps in batches of at most 20. The first successful match opens its map in the same AR
    session, with the position dot and existing navigation. Treat each saved map
@@ -135,7 +141,7 @@ flutter build apk --debug
 Opening a floor-associated map automatically searches that map's live anchors.
 Once a map is established, **Locate** / **Find my location again** refreshes its
 alignment while retaining the old fix on failure. Global discovery across saved
-maps is available by returning home and using **Find my location**. No unknown
+maps is available by returning to the Mapping tools map list and using **Find my location**. No unknown
 nearby IDs are discovered, and there is no continuous floor detection or
 cross-floor route guidance.
 
@@ -276,7 +282,7 @@ then broaden through the remaining candidates after failures.
 Each cloud batch and subsequent stability validation has a 10-second timeout;
 only one refresh attempt runs at a time. Every completed attempt resets the
 travel/time scheduling baseline without changing fix freshness on failure. Explicit **Refresh location** searches
-up to 20 anchors on the current map. To search other saved maps, return home and open the global **Find my location** flow.
+up to 20 anchors on the current map. To search other saved maps, return to the Mapping tools map list and open its global **Find my location** flow.
 
 A candidate must produce at least five tracking-valid alignment samples over
 0.5 seconds, agreeing within 15 cm horizontally and 3 degrees of heading. Every
@@ -346,9 +352,9 @@ automatic retries after failure, automatic acceptance of stable corrections, and
 advisory mapping warnings. Formal accuracy measurements remain outstanding.
 
 
-### Latest navigation and recovery integration (November 14, 2026)
+### Earlier navigation and recovery integration (November 14, 2026)
 
-The combined Flutter suite now has **80 passing tests**; analysis reports no
+Before the Swara UI merge, the combined Flutter suite had **80 passing tests**; analysis reports no
 errors/warnings, formatting completed, and the Android debug APK built. This
 includes automatic discovery retry/cancellation, background reacquisition, camera
 widget retention across expansion, estimated AR movement after cloud failures,

@@ -13,7 +13,7 @@ are accepted and blended automatically, and mapping warnings never force a refre
 
 On November 14, 2026, the user reported that the updated flow works well in
 hands-on use after earlier hosting confirmation on Pixel 6a. The latest recorded
-combined suite has 80 passing Flutter tests and a successful Android debug build. Formal restart-and-resolve acceptance and measured navigation accuracy
+combined suite has 88 passing Flutter tests and a successful Android debug build. Formal restart-and-resolve acceptance and measured navigation accuracy
 remain to be recorded. The local plugin override remains pinned at 1.1.3, sourced
 from the published package; no InsideOut source was copied. See the prototype
 guide for current behavior, setup, patch provenance, and physical acceptance.
@@ -26,6 +26,13 @@ surface replacement rebinds the existing session's camera texture. These behavio
 need physical verification, especially while compact. See [navigation integration](../FLOOR_NAVIGATION.md)
 and [latest test coverage](../TESTING.md). The proposed service/interface checklist
 below has not been implemented as a shared backend contract.
+
+The Swara visitor shell retains `MapSessionScreen` as the native session owner.
+Its optional `NavigationSession` bridge accepts destination/cancel requests and
+publishes real guidance. Tab changes must preserve the same AR owner; Back closes
+the session, while Cancel only clears the trip. Native continuity across tabs is
+still a physical acceptance check. Map management is now reached from Profile or
+the Map toolbar. See [UI integration notes](../SWARA_UI_INTEGRATION.md).
 
 ## Mission and current state
 

@@ -7,7 +7,13 @@ do not require the Serverpod backend, PostgreSQL, or a backend round trip.
 
 The visitor UI now provides Home search, Map, Saved and Profile tabs, using real
 floor-1 navigation. See [Swara UI integration and feature differences](docs/SWARA_UI_INTEGRATION.md).
-Mapping tools retain local AR map creation and calibration.
+Home includes bathroom/exit shortcuts; Saved supports bookmarks and aliases;
+Profile offers units, high contrast, spoken directions, and **Manage AR maps and
+calibration**. Set up two anchors and Floor 1 calibration there, return to Map,
+then select **Find my location**. A missing-setup prompt retains the destination.
+Tab changes retain the active session; Cancel clears the trip, and Back closes it.
+Only Floor 1 is routable. Multi-floor/step-free routes, text-based localization,
+opening hours, and report submission remain unsupported.
 
 Floor-associated maps provide a full-screen floor plan, live position/heading,
 highlighted remaining route, turn instructions, distance, estimated walking time

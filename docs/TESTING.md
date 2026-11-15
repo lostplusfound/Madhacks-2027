@@ -2,9 +2,10 @@
 
 ## Latest recorded verification
 
-On November 14, 2026, after map-first navigation, interactive map controls,
-compact AR rendering, route recovery, and automatic localization/heading-follow
-changes: **80 Flutter tests passed**. `dart analyze` reported no errors or warnings
+On November 14, 2026, after the Swara visitor UI integration on
+`integration/swara-ui` (merge `6b06f84`), including the existing map controls,
+compact AR, route recovery, and automatic localization/heading-follow:
+**88 Flutter tests passed**. `dart analyze` reported no errors or warnings
 (informational notices remain), changed Dart sources were formatted, and
 `flutter build apk --debug` succeeded. The APK is
 `madmaps_flutter/build/app/outputs/flutter-apk/app-debug.apk`.
@@ -46,6 +47,7 @@ no live driver run, install, or physical verification is implied.
 | Graph and guidance | CSV references, shortest paths/costs, directionality, all mapped approach pairs, University exit, distant reachable starts, disconnected alternatives, invalid/unreachable targets |
 | Progress and recovery | Turn cues, parallel offsets/legs, missed samples, reverse walking, off-route hysteresis, retained routes/rejoin distance, alternate routes, tracking pause/recovery, actual-proximity arrival |
 | Map and UI | Pixel transforms under zoom/letterboxing, rotation/pan/zoom marker alignment, clustered place selection, Navigate cards, heading wraparound/centering, pinch preserving follow, browsing/recenter/reset controls, large text, Cancel, setup toggle persistence |
+| Visitor shell and preferences | Home search, save/rename, pending destination through setup, tab changes retaining the same session owner, once-only arrival history, tracking pause, units, large-text Profile, corrupt/unavailable preference storage, map-storage isolation |
 | Compact camera | Camera-widget/session identity and pending search retained across compact/expanded layout, scrollable permission prompts; actual native frame continuity still needs device verification |
 
 The synthetic fixtures and fake anchors used in tests do not resolve physically.
@@ -88,7 +90,20 @@ anchor expiry, network/lighting conditions, and measured position/heading error.
 10. Verify both Cafe restrooms, both auditorium restrooms, the elevator bank, and
     Main Stairs approaches. Check the south lobby/stair graph on site; none of
     these draft connections establishes accessibility or another-floor routing.
-11. Disable/re-enable floor association and confirm legacy AR layout and saved
+11. From Home, test bathroom/exit shortcuts, search and clear, bookmarks, and
+    navigation from Saved. Rename a saved place by holding its row; restart the
+    app and check aliases/preferences persist. Recent/frequent history must begin
+    empty and update once after an actual arrival.
+12. During navigation, switch among Home, Saved, and Profile, then return through
+    the trip summary. Check native camera/session continuity. Cancel must retain
+    localization; Back must close the session and clear the trip.
+13. Test missing calibration: select a destination, follow the setup sheet to
+    Mapping tools, calibrate, return to Map, and select Find my location. Check
+    that the destination was retained. Test discovery with multiple calibrated maps.
+14. In Profile, verify meters/feet, high contrast, system large text, and spoken
+    directions. Check speech on maneuver changes, cancellation, voice-off and
+    background/resume; confirm repeated frame updates do not repeat announcements.
+15. Disable/re-enable floor association and confirm legacy AR layout and saved
     calibration/overrides survive. Check anchor handoffs and adding an anchor
     after relocalization, including expired IDs and interrupted network service.
 
