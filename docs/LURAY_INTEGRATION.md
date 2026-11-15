@@ -61,22 +61,17 @@ Use the actual address reported by the runner. `MAP_GRAPH_ID` optionally overrid
 the graph ID; any replacement must match the bundled 1632×1056 Floor 1 image and
 retain compatible IDs/coordinates for existing local calibration and overrides.
 
-## Validation and local blockers
+## Validation and local runtime
 
-Serverpod generation, static analysis, Flutter tests, server unit tests and an
-Android debug APK build were exercised during integration. Runtime backend
-acceptance remains pending on this machine: the runner compiles but fails to
-launch its VM service because `dart_runtime_service_vm.dart.snapshot` is missing
-from the installed Dart SDK. Database integration tests also fail during setup
-because embedded PostgreSQL is unavailable on this platform. Migrations and the
-seed have therefore not been applied to a live database here.
+Serverpod generation, static analysis, 94 Flutter tests, the Android debug APK
+build, and 24 backend tests including database integration tests have passed.
+The Windows ARM64 embedded-database limitation is handled with project-local
+PostgreSQL; a project-local CLI workaround handles the SDK VM-service issue.
+See [Windows startup instructions](LOCAL_WINDOWS_RUNTIME.md) for the one-command
+launcher and the phone's default backend address.
 
-Serverpod/Dart MCP tools were unavailable in this session, preventing connected
-driver checks, hot restart and runtime server/Flutter log inspection. Once the
-runtime is available, verify anonymous map/search requests, seed twice, navigate
-with existing calibration, disconnect the backend, confirm the loaded route stays
-usable and an uncached search reports connection loss, then restore connectivity
-and Retry. Physical AR walking and calibration acceptance remain required.
+Serverpod/Dart MCP tools were unavailable in this session. Physical AR walking,
+calibration and phone-to-laptop network acceptance remain required.
 
 Reporting/sign-in UI, shared anchors, graph editing, server routing and multi-floor
 guidance are outside this integration.

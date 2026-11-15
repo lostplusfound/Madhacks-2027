@@ -1,7 +1,8 @@
 # MadMaps
 
 MadMaps is an **Android indoor-navigation prototype with Serverpod map and search reads**.
-See [backend integration and setup](docs/LURAY_INTEGRATION.md).
+See [backend integration and setup](docs/LURAY_INTEGRATION.md) and
+[one-command Windows startup](docs/LOCAL_WINDOWS_RUNTIME.md).
 Named AR maps, saved anchor metadata, floor calibration, and map overrides stay
 on the phone. Cloud Anchor hosting/resolution uses Google directly. The visitor shell requires
 a successful Serverpod map load; already-loaded maps remain usable in memory.
@@ -101,7 +102,10 @@ dart test
 dart pub global run serverpod_cli:serverpod_cli --no-analytics runner start
 ```
 
-The runner normally manages PostgreSQL through database.dataPath. Embedded PostgreSQL is unavailable on this Windows ARM64 machine. For external PostgreSQL, remove dataPath from development.yaml and test.yaml, configure database host/port/name/user, and match passwords.yaml to those databases. For Docker use development port 8090 and test port 9090:
+Development and test configs use external PostgreSQL at ports 8090 and 9090.
+On this Windows ARM64 laptop, `scripts/start-local-backend.ps1` starts portable
+PostgreSQL and the runner without Docker; see the Windows startup guide above.
+Docker Compose remains an alternative with the same database ports:
 
 ```powershell
 # In madmaps_server; match your ignored passwords.yaml values.
@@ -112,7 +116,7 @@ dart test
 dart pub global run serverpod_cli:serverpod_cli --no-analytics runner start
 ```
 
-Initial setup recorded Docker unavailable; this alternative was not verified. Start the database before attempting a backend round trip. In another terminal:
+Docker is not installed on this laptop; portable PostgreSQL is verified. Start the database before attempting a backend round trip. In another terminal:
 
 ```powershell
 cd madmaps_flutter
