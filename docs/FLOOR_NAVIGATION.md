@@ -24,7 +24,7 @@ The bundled CSVs are snapshots of the root `nodes.csv`, `edges.csv`, and `locati
 Associated maps open with a full floor map, an expandable AR camera overlay,
 location heading, remaining route, turn banner, estimated walking duration and
 arrival time, and Cancel. Walking estimates use 1.2 m/s. Pan to stop following;
-Recenter resumes following and Map overview shows the entire plan. Mapping
+Recenter resumes following and Map overview fits the route or mapped building area. Mapping
 actions are in the toolbar menu. Disable **Associate this AR map with floor 1**
 to restore the legacy AR layout; saved calibration and overrides are retained.
 
@@ -37,7 +37,7 @@ approaches still require physical entrance and walkability checks.
 
 Dijkstra respects imported costs and directionality. Route starts can attach within 3 meters of any mapped walk edge, including room and exit approaches. Nearby attachments are checked for a directed path; the nearest valid attachment wins, with route cost breaking distance ties. This fixes starts near the University exit, whose approach was previously excluded. Rooms without an assigned route node show **Not mapped yet**. Invalid destinations, missing nearby walkways, and disconnected routes have distinct messages.
 
-Guidance tracks projected distance along the route. The initial projection is not a point you must visit. While walking beside the line, the compass translates a forward vector to your actual position instead of aiming sideways or backward at the centerline. Its 2-meter lookahead stops at the next turn. Left/right instructions use bends of at least 30 degrees; turn and remaining distances come from projected progress. The actual map position stays unsnapped.
+Guidance tracks projected distance along the route. For nearby starts, the initial projection is not a point you must visit. If no nearby segment can reach the destination, guidance finds the nearest reachable attachment and starts with an estimated return connector; its distance is included in the ETA. While walking beside the line, the compass translates a forward vector to your actual position instead of aiming sideways or backward at the centerline. Its 2-meter lookahead stops at the next turn. Left/right instructions use bends of at least 30 degrees; turn and remaining distances come from projected progress. The actual map position stays unsnapped.
 
 Segment matching favors the current leg within 3 meters, advances through connected turns, and reassesses progress after missed samples or localization corrections. Reverse walking updates progress too. More than 4 meters from the route starts a 2-second off-route timer; returning within 3 meters cancels it. Forward guidance continues during that grace period. Afterward, navigation tries a new hallway route. If no mapped edge is close enough, it retains the previous route and guides back to its matched segment with an estimated dashed connector. Rejoining within 3 meters restores turn guidance; tracking loss pauses the arrow and ETA without clearing the destination. Invalid destinations and disconnected graphs retain explicit failure messages. Arrival requires actual proximity within 1.5 meters of the final approach; projection alone cannot trigger it.
 
@@ -56,12 +56,18 @@ The first-floor graph has been visually overlaid on the corrected image. Verify 
 
 Use two fingers to rotate and pinch, or one finger to pan. Place markers stay
 upright and tappable; overlapping places open a chooser. Tap a place to see its
-Floor 1 card and Navigate button. Recenter follows your location while preserving
-zoom and rotation; Reset rotation restores image-up orientation. Map overview
-fits the current route (including your position), or the mapped building area.
+Floor 1 card and Navigate button. Navigation starts in heading-follow mode: the
+dot stays centered and the map rotates so your horizontal camera heading points
+up. Heading changes blend over 220 ms using the short arc across angle wraparound.
+Holding the phone nearly vertical retains the previous map heading. Pinching
+changes zoom while keeping follow mode; panning or manually rotating enters free
+browsing. Recenter restores heading-follow during navigation and position-follow
+otherwise. Heading follow explicitly enables rotation; Reset rotation selects
+image-up position-follow. Map overview enters free browsing and fits the current
+route (including your position), or the mapped building area.
 No room polygons or additional building geometry are required.
 
-The compact camera uses a real 140 ? 170 viewport instead of cropping a
+The compact camera uses a real 140 by 170 viewport instead of cropping a
 full-screen native camera. Expansion preserves the keyed Android view and ARCore
 session. The vendored plugin rebinds camera textures when Android replaces its
 rendering surface. Debug logs include viewport, surface generation, session
@@ -74,3 +80,22 @@ a pending resolve, and confirm the session identity and resolved anchors survive
 Walk off a route, follow the return indicator, and rejoin until turn instructions
 resume. Repeat after temporarily losing tracking. These physical checks remain
 necessary even when widget tests and the APK build pass.
+
+
+## Automatic localization recovery
+
+Refresh remains scheduled after 20 seconds or 20 meters from the previous
+attempt's completion. The time scheduler runs even without a valid camera sample.
+Cloud failures retain alignment and use ongoing AR tracking for estimated
+movement; the estimate notice is separate from turn instructions. If AR tracking
+itself stops, the dot, directions and ETA pause and the user is told localization
+will recover automatically. No last-known dot is displayed.
+
+When a reference has been cleared, the app automatically rediscovers the selected
+map's anchors. Initial failed discovery retries after 20 seconds, using bounded
+10-second automatic batches of up to 20 anchors. Background/resume clears the old
+pose and restarts discovery; same-map destinations survive. Cancel search stops
+automatic discovery until Locate is pressed or the map is reopened. Mapping and
+background suspension prevent competing cloud operations. Physical verification
+must cover walking through repeated cloud failures, actual tracking loss,
+background/resume, a distant route start and heading-follow alignment.

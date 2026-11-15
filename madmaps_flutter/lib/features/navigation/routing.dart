@@ -70,8 +70,9 @@ RouteResult findRoute(
   FloorSetup setup,
   Offset start,
   String? target,
-  double pixelsPerMeter,
-) {
+  double pixelsPerMeter, {
+  bool allowDistantAttachment = false,
+}) {
   if (target == null) {
     return RouteResult.failure(RouteFailure.unmappedDestination);
   }
@@ -91,65 +92,74 @@ RouteResult findRoute(
   for (final edge in graph.edges) {
     // Approaches are real walk edges too, including University exit -> hallway.
     final a = graph.point(edge.from, setup), b = graph.point(edge.to, setup);
-    final snapped = project(start, a, b), distance = (start - snapped).distance;
-    if (distance < nearestPixels) {
-      nearestPixels = distance;
-      nearestEdge = '${edge.from}->${edge.to}';
-    }
-    if (distance > NavigationTuning.attachmentMeters * pixelsPerMeter) continue;
-    final length = (b - a).distance;
-    final fraction = length == 0 ? 0.0 : (snapped - a).distance / length;
-    final distances = <String, double>{
-      edge.to: graph.cost(edge, setup) * (1 - fraction),
-    };
-    if (edge.bidirectional || fraction < 1e-8) {
-      distances[edge.from] = graph.cost(edge, setup) * fraction;
-    }
-    final previous = <String, String>{}, visited = <String>{};
-    while (true) {
-      String? current;
-      for (final id in distances.keys) {
-        if (!visited.contains(id) &&
-            (current == null || distances[id]! < distances[current]!)) {
-          current = id;
+    final attachments = [
+      project(start, a, b),
+      if (allowDistantAttachment && !edge.bidirectional) ...[a, b],
+    ];
+    for (final snapped in attachments) {
+      final distance = (start - snapped).distance;
+      if (distance < nearestPixels) {
+        nearestPixels = distance;
+        nearestEdge = '${edge.from}->${edge.to}';
+      }
+      if (!allowDistantAttachment &&
+          distance > NavigationTuning.attachmentMeters * pixelsPerMeter)
+        continue;
+      final length = (b - a).distance;
+      final fraction = length == 0 ? 0.0 : (snapped - a).distance / length;
+      final distances = <String, double>{
+        edge.to: graph.cost(edge, setup) * (1 - fraction),
+      };
+      if (edge.bidirectional || fraction < 1e-8) {
+        distances[edge.from] = graph.cost(edge, setup) * fraction;
+      }
+      final previous = <String, String>{}, visited = <String>{};
+      while (true) {
+        String? current;
+        for (final id in distances.keys) {
+          if (!visited.contains(id) &&
+              (current == null || distances[id]! < distances[current]!)) {
+            current = id;
+          }
+        }
+        if (current == null || current == target) break;
+        visited.add(current);
+        for (final next in adjacency[current] ?? <(String, double)>[]) {
+          final candidate = distances[current]! + next.$2;
+          if (candidate < (distances[next.$1] ?? double.infinity)) {
+            distances[next.$1] = candidate;
+            previous[next.$1] = current;
+          }
         }
       }
-      if (current == null || current == target) break;
-      visited.add(current);
-      for (final next in adjacency[current] ?? <(String, double)>[]) {
-        final candidate = distances[current]! + next.$2;
-        if (candidate < (distances[next.$1] ?? double.infinity)) {
-          distances[next.$1] = candidate;
-          previous[next.$1] = current;
-        }
+      if (!distances.containsKey(target)) continue;
+      final ids = <String>[target];
+      while (previous.containsKey(ids.last)) {
+        ids.add(previous[ids.last]!);
       }
-    }
-    if (!distances.containsKey(target)) continue;
-    final ids = <String>[target];
-    while (previous.containsKey(ids.last)) {
-      ids.add(previous[ids.last]!);
-    }
-    final points = <Offset>[snapped];
-    for (final id in ids.reversed) {
-      final p = graph.point(id, setup);
-      if ((p - points.last).distance > 1e-8) points.add(p);
-    }
-    final cost = distances[target]! + distance;
-    if (best == null ||
-        distance < best.attachmentPixels - 1e-6 ||
-        ((distance - best.attachmentPixels).abs() <= 1e-6 &&
-            cost < best.cost)) {
-      best = NavigationRoute(
-        points,
-        cost,
-        '${edge.from}->${edge.to}',
-        distance,
-      );
+      final points = <Offset>[snapped];
+      for (final id in ids.reversed) {
+        final p = graph.point(id, setup);
+        if ((p - points.last).distance > 1e-8) points.add(p);
+      }
+      final cost = distances[target]! + distance;
+      if (best == null ||
+          distance < best.attachmentPixels - 1e-6 ||
+          ((distance - best.attachmentPixels).abs() <= 1e-6 &&
+              cost < best.cost)) {
+        best = NavigationRoute(
+          points,
+          cost,
+          '${edge.from}->${edge.to}',
+          distance,
+        );
+      }
     }
   }
   if (best != null) return RouteResult.success(best);
   return RouteResult.failure(
-    nearestPixels > NavigationTuning.attachmentMeters * pixelsPerMeter
+    !allowDistantAttachment &&
+            nearestPixels > NavigationTuning.attachmentMeters * pixelsPerMeter
         ? RouteFailure.noNearbyEdge
         : RouteFailure.disconnected,
     nearestPixels: nearestPixels,
@@ -260,6 +270,17 @@ class GuidanceState {
     double scale,
   ) {
     result = findRoute(graph, setup, position, target, scale);
+    if ((route == null && result!.failure == RouteFailure.noNearbyEdge) ||
+        result!.failure == RouteFailure.disconnected) {
+      result = findRoute(
+        graph,
+        setup,
+        position,
+        target,
+        scale,
+        allowDistantAttachment: true,
+      );
+    }
     if (result!.route == null) {
       status = result!.message;
       return false;
@@ -268,8 +289,13 @@ class GuidanceState {
     segment = 0;
     progressPixels = 0;
     projected = null;
-    rejoinPoint = null;
-    rejoinMeters = null;
+    rejoinPoint =
+        route!.attachmentPixels > NavigationTuning.corridorMeters * scale
+        ? route!.points.first
+        : null;
+    rejoinMeters = rejoinPoint == null
+        ? null
+        : (position - rejoinPoint!).distance / scale;
     return true;
   }
 

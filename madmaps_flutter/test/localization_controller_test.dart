@@ -19,6 +19,7 @@ class WalkingAr extends ArAdapter {
   bool unstable = false;
   void Function()? onSample;
   Completer<ARAnchor>? pending;
+  Completer<ArFrame?>? blockedFrame;
   Matrix4 candidatePose() {
     final target = Matrix4.translationValues(correction, 0, 0)..rotateY(yaw);
     final pose = Matrix4.inverted(target) * Matrix4.translationValues(10, 0, 0);
@@ -33,6 +34,7 @@ class WalkingAr extends ArAdapter {
 
   @override
   Future<ArFrame?> captureFrame(Iterable<String> names) async {
+    if (blockedFrame != null) return blockedFrame!.future;
     timestamp += 150000000;
     onSample?.call();
     return ArFrame(
@@ -104,6 +106,84 @@ Future<LocalizationController> setup(
 }
 
 void main() {
+  test('timed retries do not wait for an outstanding camera sample', () async {
+    var time = DateTime.utc(2026, 11, 14);
+    final ar = WalkingAr()..error = StateError('offline');
+    final c = await setup(ar, now: () => time);
+    await c.tick();
+    ar.blockedFrame = Completer<ArFrame?>();
+    final pendingSample = c.tick();
+    time = time.add(const Duration(seconds: 20));
+    await c.tick();
+    await Future<void>.delayed(Duration.zero);
+    expect(ar.batches.length, 1);
+    await c.tick();
+    expect(ar.batches.length, 1);
+    ar.blockedFrame!.complete(null);
+    await pendingSample;
+    expect(c.camera, isNull);
+    expect(c.alignment, isNotNull);
+    c.dispose();
+    ar.dispose();
+  });
+
+  test(
+    'tracking loss does not prevent timed refresh retries or erase alignment',
+    () async {
+      var time = DateTime.utc(2026, 11, 14);
+      final ar = WalkingAr()..error = StateError('no match');
+      final c = await setup(ar, now: () => time);
+      await c.tick();
+      final alignment = c.alignment!.clone();
+      ar.sampleTracking = false;
+      ar.tracking = false;
+      for (var i = 1; i <= 2; i++) {
+        time = time.add(const Duration(seconds: 20));
+        await c.tick();
+        await Future<void>.delayed(Duration.zero);
+        expect(ar.batches.length, i);
+        expect(c.camera, isNull);
+        expect(c.alignment!.storage, alignment.storage);
+        expect(c.status, contains('Tracking lost'));
+        expect(c.reference!.id, 'a');
+      }
+      ar.sampleTracking = true;
+      ar.tracking = true;
+      ar.x = 3;
+      await c.tick();
+      expect(c.camera!.entry(0, 3), 3);
+      expect(c.estimated, true);
+      expect(c.status, contains('estimated'));
+      expect(ar.batches.length, 2);
+      c.dispose();
+      ar.dispose();
+    },
+  );
+  test(
+    'failed cloud refresh keeps updating AR movement using the previous alignment',
+    () async {
+      var time = DateTime.utc(2026, 11, 14);
+      final ar = WalkingAr()..error = StateError('offline');
+      final c = await setup(ar, now: () => time);
+      await c.tick();
+      time = time.add(const Duration(seconds: 20));
+      await c.tick();
+      await Future<void>.delayed(Duration.zero);
+      final confirmed = c.lastConfirmed;
+      ar.x = 4;
+      await c.tick();
+      expect(c.camera!.entry(0, 3), 4);
+      ar.x = 7;
+      await c.tick();
+      expect(c.camera!.entry(0, 3), 7);
+      expect(c.lastConfirmed, confirmed);
+      expect(c.estimated, true);
+      expect(ar.batches.length, 1);
+      c.dispose();
+      ar.dispose();
+    },
+  );
+
   test(
     'alignment window rejects motion, repeated timestamps and insufficient duration',
     () {

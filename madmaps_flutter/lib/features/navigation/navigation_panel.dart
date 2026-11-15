@@ -20,7 +20,9 @@ class NavigationPanel extends StatefulWidget {
     required this.onLocate,
     required this.onCancel,
     this.onNavigate,
+    this.estimated = false,
   });
+  final bool estimated;
   final ValueChanged<FloorLocation>? onNavigate;
   final FloorGraph graph;
   final FloorSetup setup;
@@ -38,6 +40,18 @@ class NavigationPanel extends StatefulWidget {
 class _NavigationPanelState extends State<NavigationPanel> {
   final viewport = FloorViewportController();
   String? selectedLocation;
+  @override
+  void initState() {
+    super.initState();
+    viewport.navigation(widget.destination != null);
+  }
+
+  @override
+  void didUpdateWidget(NavigationPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    viewport.navigation(widget.destination != null);
+  }
+
   @override
   void dispose() {
     viewport.dispose();
@@ -94,7 +108,11 @@ class _NavigationPanelState extends State<NavigationPanel> {
     final position = pose == null || c == null
         ? null
         : c.toImage(Offset(pose.entry(0, 3), pose.entry(2, 3)));
-    final heading = pose == null || c == null
+    final horizontalHeadingSquared = pose == null
+        ? 0.0
+        : pose.entry(0, 2) * pose.entry(0, 2) +
+              pose.entry(2, 2) * pose.entry(2, 2);
+    final heading = pose == null || c == null || horizontalHeadingSquared < .01
         ? null
         : c.toImage(
             Offset(
@@ -195,7 +213,7 @@ class _NavigationPanelState extends State<NavigationPanel> {
             child: Text(
               c == null
                   ? 'Calibrate two anchors in Floor 1 setup'
-                  : position == null
+                  : position == null || w.estimated || w.busy
                   ? w.message
                   : g.phase == NavigationPhase.returningToRoute
                   ? 'Estimated return direction; check the floor plan'
@@ -228,6 +246,13 @@ class _NavigationPanelState extends State<NavigationPanel> {
                   tooltip: 'Reset rotation',
                   onPressed: viewport.north,
                   child: const Icon(Icons.explore),
+                ),
+                const SizedBox(height: 8),
+                FloatingActionButton.small(
+                  heroTag: 'heading',
+                  tooltip: 'Heading follow',
+                  onPressed: viewport.followHeading,
+                  child: const Icon(Icons.navigation),
                 ),
               ],
             ),

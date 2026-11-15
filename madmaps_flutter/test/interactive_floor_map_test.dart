@@ -16,6 +16,126 @@ void main() {
     [FloorEdge('a', 'cafe', 200, true)],
     [location],
   );
+
+  testWidgets(
+    'heading follow centers pose, wraps smoothly, and retains zoom while pinching',
+    (tester) async {
+      final controller = FloorViewportController()..navigation(true);
+      var p = const Offset(600, 400);
+      Widget map(Offset? h) => MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 400,
+              height: 400,
+              child: InteractiveFloorMap(
+                graph: graph,
+                setup: FloorSetup(),
+                controller: controller,
+                position: p,
+                heading: h,
+                route: const [],
+                fullRoute: const [],
+                onLocation: (_) {},
+              ),
+            ),
+          ),
+        ),
+      );
+      Offset headingAt(double target) =>
+          p +
+          Offset(
+            math.cos(-math.pi / 2 - target),
+            math.sin(-math.pi / 2 - target),
+          );
+      Matrix4 transform() => tester
+          .widget<Transform>(
+            find
+                .descendant(
+                  of: find.byKey(const ValueKey('interactive-floor-map')),
+                  matching: find.byType(Transform),
+                )
+                .first,
+          )
+          .transform;
+      double angle() =>
+          math.atan2(transform().entry(1, 0), transform().entry(0, 0));
+      await tester.pumpWidget(map(headingAt(math.pi - .02)));
+      await tester.pumpAndSettle();
+      expect(
+        (MatrixUtils.transformPoint(transform(), p) - const Offset(200, 200))
+            .distance,
+        lessThan(.01),
+      );
+      final before = angle();
+      await tester.pumpWidget(map(headingAt(-math.pi + .02)));
+      await tester.pump(const Duration(milliseconds: 110));
+      final halfway = angle();
+      expect(
+        math
+            .atan2(math.sin(halfway - before), math.cos(halfway - before))
+            .abs(),
+        lessThan(.05),
+      );
+      await tester.pumpAndSettle();
+      final forward =
+          MatrixUtils.transformPoint(transform(), headingAt(-math.pi + .02)) -
+          MatrixUtils.transformPoint(transform(), p);
+      expect(forward.dx, closeTo(0, 1e-5));
+      expect(forward.dy, lessThan(0));
+      final held = angle();
+      p = const Offset(620, 420);
+      await tester.pumpWidget(map(null));
+      await tester.pumpAndSettle();
+      expect(angle(), closeTo(held, 1e-6));
+      expect(
+        (MatrixUtils.transformPoint(transform(), p) - const Offset(200, 200))
+            .distance,
+        lessThan(.01),
+      );
+      final viewport = find.byKey(const ValueKey('interactive-floor-map'));
+      final middle = tester.getCenter(viewport),
+          scale = transform().getMaxScaleOnAxis();
+      final first = await tester.startGesture(
+        middle - const Offset(40, 0),
+        pointer: 1,
+      );
+      final second = await tester.startGesture(
+        middle + const Offset(40, 0),
+        pointer: 2,
+      );
+      await tester.pump();
+      await first.moveTo(middle - const Offset(60, 0));
+      await second.moveTo(middle + const Offset(60, 0));
+      await tester.pump();
+      await first.up();
+      await second.up();
+      await tester.pumpAndSettle();
+      expect(controller.mode, FloorFollowMode.heading);
+      expect(transform().getMaxScaleOnAxis(), greaterThan(scale));
+      expect(
+        (MatrixUtils.transformPoint(transform(), p) - const Offset(200, 200))
+            .distance,
+        lessThan(.01),
+      );
+      await tester.drag(viewport, const Offset(30, 10));
+      await tester.pumpAndSettle();
+      expect(controller.mode, FloorFollowMode.free);
+      controller.recenter();
+      await tester.pumpAndSettle();
+      expect(controller.mode, FloorFollowMode.heading);
+      controller.north();
+      await tester.pumpAndSettle();
+      expect(controller.mode, FloorFollowMode.position);
+      expect(angle(), closeTo(0, 1e-6));
+      controller.overview();
+      await tester.pumpAndSettle();
+      expect(controller.mode, FloorFollowMode.free);
+      await tester.pumpWidget(const SizedBox());
+      controller.dispose();
+      expect(tester.takeException(), isNull);
+    },
+  );
   testWidgets(
     'rotation, zoom and pan keep tappable markers on their map points',
     (tester) async {

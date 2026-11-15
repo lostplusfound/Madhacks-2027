@@ -247,10 +247,50 @@ class _MapSessionScreenState extends State<MapSessionScreen>
   bool identified = false;
   bool ready = false;
   String? discoveryMessage;
-  List<AnchorMap> get catalog => widget.maps.isEmpty ? [map] : widget.maps;
+  AnchorMap? _recoveryMap;
+  bool _autoDiscovery = false;
+  Timer? _discoveryRetry;
+  List<AnchorMap> get catalog => _recoveryMap != null
+      ? [_recoveryMap!]
+      : widget.maps.isEmpty
+      ? [map]
+      : widget.maps;
 
-  Future<void> discover() async {
-    if (busy || !active || !ready) return;
+  void queueDiscovery([Duration delay = LocalizationTuning.refreshAfter]) {
+    _discoveryRetry?.cancel();
+    _discoveryRetry = null;
+    if (!_autoDiscovery || !active) return;
+    _discoveryRetry = Timer(delay, () {
+      _discoveryRetry = null;
+      if (!mounted ||
+          !_autoDiscovery ||
+          !active ||
+          localization.nativeReference != null) {
+        return;
+      }
+      if (!ready ||
+          busy ||
+          placing ||
+          draftPose != null ||
+          localization.refreshing) {
+        queueDiscovery(const Duration(seconds: 1));
+        return;
+      }
+      unawaited(discover(automatic: true));
+    });
+  }
+
+  Future<void> discover({bool automatic = false}) async {
+    if (busy || !active || !ready || localization.refreshing) return;
+    _autoDiscovery = true;
+    _discoveryRetry?.cancel();
+    _discoveryRetry = null;
+    if (localization.nativeReference != null &&
+        localization.alignment != null) {
+      updateState(() => discoveryMessage = null);
+      await localization.refresh(explicit: true);
+      return;
+    }
     final candidates = liveAnchorCandidates(catalog);
     if (candidates.isEmpty) {
       updateState(
@@ -265,7 +305,6 @@ class _MapSessionScreenState extends State<MapSessionScreen>
       busy = true;
       placing = false;
       draftPose = null;
-      destination = null;
       mapFromSession = null;
       identified = false;
       discoveryMessage =
@@ -280,6 +319,7 @@ class _MapSessionScreenState extends State<MapSessionScreen>
           found = await ar.resolveAny(
             ids.skip(start).take(20).toList(),
             retain: true,
+            timeout: automatic ? LocalizationTuning.batchTimeout : null,
           );
           break;
         } catch (_) {
@@ -304,7 +344,15 @@ class _MapSessionScreenState extends State<MapSessionScreen>
       );
       if (!mounted || !active || current != generation) return;
       updateState(() {
+        if (map.id != match.map.id) {
+          destination = null;
+          roomName = null;
+          guidance.target = null;
+          guidance.reset();
+          navigationMapId = null;
+        }
         map = match.map;
+        _recoveryMap = match.map;
         mapFromSession = match.alignment(resolved.transformation);
         identified = true;
         discoveryMessage = null;
@@ -313,8 +361,8 @@ class _MapSessionScreenState extends State<MapSessionScreen>
       if (mounted && current == generation) {
         updateState(
           () => discoveryMessage = error is TimeoutException
-              ? 'No anchor found in 90 seconds. Move near a saved anchor and retry.'
-              : 'Could not localize: $error. Check internet and scan near a saved anchor, then retry.',
+              ? 'No anchor found. Retrying automatically; scan near a saved anchor.'
+              : 'Could not localize: $error. Retrying automatically; check internet and scan nearby.',
         );
       }
     } finally {
@@ -323,6 +371,9 @@ class _MapSessionScreenState extends State<MapSessionScreen>
   }
 
   void cancelSearch() {
+    _autoDiscovery = false;
+    _discoveryRetry?.cancel();
+    _discoveryRetry = null;
     generation++;
     unawaited(ar.cancelDiscovery());
     updateState(() {
@@ -482,6 +533,16 @@ class _MapSessionScreenState extends State<MapSessionScreen>
   void syncLocalizationMode() {
     localization.mapping = placing || draftPose != null;
     localization.suspended = busy || !active;
+    if (_autoDiscovery &&
+        active &&
+        ready &&
+        !busy &&
+        !placing &&
+        draftPose == null &&
+        localization.nativeReference == null &&
+        _discoveryRetry == null) {
+      queueDiscovery();
+    }
   }
 
   void updateState(VoidCallback change) {
@@ -528,9 +589,12 @@ class _MapSessionScreenState extends State<MapSessionScreen>
     map = widget.map ?? AnchorMap('discovery', 'Find my location', []);
     loadFloor();
     identified = widget.map != null;
+    _recoveryMap = widget.map;
+    _autoDiscovery = widget.map == null || map.floor.enabled;
+    if (_autoDiscovery) queueDiscovery(Duration.zero);
     if (ready && map.floor.enabled && map.anchors.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && active) unawaited(discover());
+        if (mounted && active) unawaited(discover(automatic: true));
       });
     }
     WidgetsBinding.instance.addObserver(this);
@@ -673,16 +737,24 @@ class _MapSessionScreenState extends State<MapSessionScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     active = state == AppLifecycleState.resumed;
     if (!active) {
+      _discoveryRetry?.cancel();
+      _discoveryRetry = null;
+      if (localization.nativeReference != null) {
+        _recoveryMap = map;
+        _autoDiscovery = true;
+      }
       localization.invalidate();
       placing = false;
       discardDraft();
       generation++;
       unawaited(ar.cancelOperations());
-      if (!identified) {
-        busy = false;
-        discoveryMessage =
-            'Session interrupted. Tap Find my location to scan again.';
-      }
+      busy = false;
+      operation = null;
+      discoveryMessage = _autoDiscovery
+          ? 'Tracking lost - relocalizing automatically.'
+          : 'Search cancelled. Tap Locate to try again.';
+    } else if (_autoDiscovery) {
+      queueDiscovery(Duration.zero);
     }
     refresh();
   }
@@ -699,9 +771,9 @@ class _MapSessionScreenState extends State<MapSessionScreen>
     });
     try {
       await action();
-      if (current != generation) mapFromSession = null;
+      if (current != generation) return;
     } catch (e) {
-      if (mounted) {
+      if (mounted && current == generation) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -711,7 +783,7 @@ class _MapSessionScreenState extends State<MapSessionScreen>
         );
       }
     } finally {
-      if (mounted) {
+      if (mounted && current == generation) {
         updateState(() {
           busy = false;
           operation = null;
@@ -724,7 +796,8 @@ class _MapSessionScreenState extends State<MapSessionScreen>
     'Resolving ${anchor.name}: scan its surroundings…',
     () async {
       if (anchor.expired) throw StateError('Anchor expired');
-      localization.invalidate();
+      _autoDiscovery = true;
+      _recoveryMap = map;
       final current = generation;
       final resolved = await ar.resolve(anchor.cloudId, retain: true);
       if (!mounted || !active || current != generation) {
@@ -737,6 +810,7 @@ class _MapSessionScreenState extends State<MapSessionScreen>
         resolved,
         alignMap(anchor.pose, resolved.transformation),
       );
+      if (mounted && active && current == generation) discoveryMessage = null;
     },
   );
   Future<void> showAnchors() async {
@@ -837,6 +911,7 @@ class _MapSessionScreenState extends State<MapSessionScreen>
 
   @override
   void dispose() {
+    _discoveryRetry?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     ar.removeListener(refresh);
     discardDraft();
@@ -927,6 +1002,7 @@ class _MapSessionScreenState extends State<MapSessionScreen>
                       destination: roomName,
                       message: discoveryMessage ?? localization.status,
                       busy: busy,
+                      estimated: localization.estimated,
                       onSearch: busy ? () {} : showRooms,
                       onNavigate: selectLocation,
                       onLocate: busy ? cancelSearch : discover,

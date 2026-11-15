@@ -114,6 +114,73 @@ void main() {
       expect(g.phase, NavigationPhase.navigating);
     },
   );
+
+  test(
+    'a distant destination starts with return guidance to a reachable segment',
+    () {
+      final g = GuidanceState()..select('d');
+      final graph = hall();
+      final start = const Offset(80, -100);
+      expect(
+        findRoute(graph, setup, start, 'd', 10).failure,
+        RouteFailure.noNearbyEdge,
+      );
+      g.update(graph, setup, calibration, start, now);
+      expect(g.phase, NavigationPhase.returningToRoute);
+      expect(g.rejoinPoint, const Offset(80, 0));
+      expect(g.next, g.rejoinPoint);
+      expect(g.rejoinMeters, 10);
+      expect(g.remainingMeters, 62);
+      g.update(graph, setup, calibration, const Offset(80, -20), now);
+      expect(g.phase, NavigationPhase.navigating);
+      expect(g.rejoinPoint, isNull);
+    },
+  );
+  test(
+    'distant attachment skips disconnected segments and respects one-way entry',
+    () {
+      final graph = FloorGraph(
+        {
+          'a': FloorNode('a', const Offset(0, 0), 'junction'),
+          'b': FloorNode('b', const Offset(100, 0), 'approach'),
+          'c': FloorNode('c', const Offset(0, 100), 'junction'),
+          'd': FloorNode('d', const Offset(100, 100), 'approach'),
+          'isolated': FloorNode('isolated', const Offset(500, 500), 'approach'),
+        },
+        [FloorEdge('a', 'b', 100, false), FloorEdge('c', 'd', 100, false)],
+        [],
+      );
+      final g = GuidanceState()..select('d');
+      g.update(graph, setup, calibration, const Offset(50, -10), now);
+      expect(g.route!.startEdge, 'c->d');
+      expect(g.phase, NavigationPhase.returningToRoute);
+      expect(g.rejoinPoint, const Offset(50, 100));
+      final toStart = findRoute(
+        graph,
+        setup,
+        const Offset(50, -100),
+        'a',
+        10,
+        allowDistantAttachment: true,
+      );
+      expect(toStart.route!.points, [Offset.zero]);
+      expect(
+        findRoute(
+          graph,
+          setup,
+          const Offset(50, -100),
+          'isolated',
+          10,
+          allowDistantAttachment: true,
+        ).failure,
+        RouteFailure.disconnected,
+      );
+      final unreachable = GuidanceState()..select('isolated');
+      unreachable.update(graph, setup, calibration, Offset.zero, now);
+      expect(unreachable.phase, NavigationPhase.unavailable);
+      expect(unreachable.route, isNull);
+    },
+  );
   test('University exit to Cafe works at low and high calibration scales', () {
     for (final scale in [5.0, 10.0, 20.0, 40.0]) {
       final result = findRoute(

@@ -105,6 +105,89 @@ class FakeAnchors extends ARAnchorManager {
 
 void main() {
   testWidgets(
+    'failed discovery retries after twenty seconds and reacquires after background',
+    (tester) async {
+      await tester.pumpWidget(const MaterialApp(home: Text('AR')));
+      final anchors = FakeAnchors();
+      final session = FakeSession(tester.element(find.text('AR')));
+      final ar = ArAdapter(cloudConfigured: () async => true);
+      await ar.attach(session, anchors);
+      ar.tracking = true;
+      final map = AnchorMap('floor', 'Selected floor', [
+        SavedAnchor('a', 'A', 'cloud', Matrix4.identity(), DateTime.utc(2030)),
+      ]);
+      map.floor.enabled = true;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MapSessionScreen(map: map, adapter: ar, save: () async {}),
+        ),
+      );
+      await tester.pump();
+      expect(anchors.requests.length, 1);
+      anchors.onCloudAnchorError!(
+        'resolve',
+        anchors.requests.keys.single,
+        'ERROR_CLOUD_ID_NOT_FOUND',
+      );
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 19));
+      expect(anchors.requests.length, 1);
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump();
+      expect(anchors.requests.length, 2);
+      anchors.resolveRequest(anchors.requests.keys.last);
+      await tester.pump();
+      expect(find.text('Selected floor'), findsOneWidget);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump(const Duration(milliseconds: 1));
+      await tester.pump();
+      expect(anchors.requests.length, 3);
+      anchors.resolveRequest(anchors.requests.keys.last);
+      await tester.pump();
+      expect(find.text('Selected floor'), findsOneWidget);
+      expect(identical(ar.session, session), true);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+  testWidgets(
+    'cancelling automatic discovery suppresses retries until Locate',
+    (tester) async {
+      await tester.pumpWidget(const MaterialApp(home: Text('AR')));
+      final anchors = FakeAnchors();
+      final ar = ArAdapter(cloudConfigured: () async => true);
+      await ar.attach(FakeSession(tester.element(find.text('AR'))), anchors);
+      ar.tracking = true;
+      final map = AnchorMap('floor', 'Floor', [
+        SavedAnchor('a', 'A', 'cloud', Matrix4.identity(), DateTime.utc(2030)),
+      ]);
+      map.floor.enabled = true;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MapSessionScreen(map: map, adapter: ar, save: () async {}),
+        ),
+      );
+      await tester.pump();
+      expect(anchors.requests.length, 1);
+      await tester.tap(find.text('Cancel search').first);
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 40));
+      await tester.pump();
+      expect(anchors.requests.length, 1);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+      expect(anchors.requests.length, 1);
+      await tester.tap(find.byTooltip('Find my location again'));
+      await tester.pump();
+      expect(anchors.requests.length, 2);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets(
     'associated map automatically searches every batch in its own catalog',
     (tester) async {
       await tester.pumpWidget(const MaterialApp(home: Text('AR')));

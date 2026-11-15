@@ -245,11 +245,11 @@ it succeeded or failed. Initial localization/hosting starts the first interval.
 These are tuning defaults, not an accuracy guarantee or anchor visibility radius.
 
 Background searches resolve three nearby, unexpired anchors on the current map,
-then broaden through the remaining candidates after failures (20 total maximum).
+then broaden through the remaining candidates after failures.
 Each cloud batch and subsequent stability validation has a 10-second timeout;
 only one refresh attempt runs at a time. Every completed attempt resets the
 travel/time scheduling baseline without changing fix freshness on failure. Explicit **Refresh location** searches
-up to 20 anchors on the current map. Floor changes still require **Find my location**.
+up to 20 anchors on the current map. To search other saved maps, return home and open the global **Find my location** flow.
 
 A candidate must produce at least five tracking-valid alignment samples over
 0.5 seconds, agreeing within 15 cm horizontally and 3 degrees of heading. Every
@@ -263,8 +263,10 @@ guidance. All errors, including authorization and quota failures, remain eligibl
 for the next 20m/20s interval. Detailed error reasons appear in diagnostic logs.
 After a failed refresh, after 30 seconds without a confirmation, or beyond 24
 horizontal meters of the reference, proximity is labeled estimated. Tracking loss
-hides live guidance without discarding alignment; background/resume still requires
-initial localization again. Regular use refreshes even with no destination selected.
+hides the dot and live guidance without discarding alignment, while timed retries
+continue. Background/resume clears the old pose and automatically rediscovers the
+current map. Initial discovery failures retry after 20 seconds; cancelling a search
+stops discovery retries until Locate or reopening the map. Regular use refreshes even with no destination selected.
 
 Map extension recommends a reference confirmed within 30 seconds, currently
 tracking, with camera and new placement within 20 horizontal meters of it. These

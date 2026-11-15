@@ -77,6 +77,7 @@ class LocalizationController extends ChangeNotifier {
   Matrix4? _blendFrom;
   Vector3? _lastPosition, _sessionPosition;
   double traveled = 0, correctionMeters = 0, correctionRadians = 0;
+  int _intervalRevision = 0;
   int _batchOffset = 0;
   List<SavedAnchor> _cycle = [];
 
@@ -94,12 +95,13 @@ class LocalizationController extends ChangeNotifier {
   }
 
   void _resetInterval() {
+    _intervalRevision++;
     _intervalStarted = now();
     traveled = 0;
-    _lastPosition = _sessionPosition?.clone();
+    _lastPosition = camera == null ? null : _sessionPosition?.clone();
   }
 
-  bool get estimated => stale || failure != null;
+  bool get estimated => stale || failure != null || !referenceTracking;
 
   bool get stale =>
       lastConfirmed == null ||
@@ -131,8 +133,9 @@ class LocalizationController extends ChangeNotifier {
             reference!.pose.getTranslation(),
           ) <=
           LocalizationTuning.mappingMeters;
-  String get status =>
-      '${failure ?? (stale ? "Using previous location (estimated)." : "Localized")}${refreshing ? "\nRefreshing location..." : ""}';
+  String get status => alignment != null && (camera == null || !ar.tracking)
+      ? 'Tracking lost - relocalizing automatically.${refreshing ? "\nRefreshing location..." : ""}'
+      : '${failure ?? (estimated ? "Using AR position (estimated)." : "Localized")}${refreshing ? "\nRefreshing location..." : ""}';
 
   void start() => _timer ??= Timer.periodic(
     const Duration(milliseconds: 100),
@@ -173,8 +176,26 @@ class LocalizationController extends ChangeNotifier {
     return alignMap(reference!.pose, sample.pose);
   }
 
+  void _refreshIfDue() {
+    if (!_closed &&
+        !suspended &&
+        !mapping &&
+        !refreshing &&
+        map != null &&
+        nativeReference != null &&
+        _intervalStarted != null &&
+        (traveled >= LocalizationTuning.refreshMeters ||
+            now().difference(_intervalStarted!) >=
+                LocalizationTuning.refreshAfter)) {
+      unawaited(refresh());
+    }
+  }
+
   Future<void> tick() async {
-    if (_closed || _sampling || nativeReference == null) return;
+    if (_closed || nativeReference == null) return;
+    final intervalRevision = _intervalRevision;
+    _refreshIfDue();
+    if (_sampling) return;
     _sampling = true;
     final epoch = _epoch;
     try {
@@ -183,6 +204,7 @@ class LocalizationController extends ChangeNotifier {
       if (frame == null || !frame.tracking || !ar.tracking) {
         camera = null;
         referenceTracking = false;
+        _lastPosition = null;
         return;
       }
       final live = alignmentFor(frame);
@@ -194,23 +216,20 @@ class LocalizationController extends ChangeNotifier {
       _sessionPosition = frame.camera.getTranslation();
       if (camera != null && !suspended && !mapping && !refreshing) {
         // Corrections aren't walking, and travel during an attempt isn't a new interval.
-        if (_lastPosition != null) {
+        if (_lastPosition != null && intervalRevision == _intervalRevision) {
           traveled += horizontalDistance(_sessionPosition!, _lastPosition!);
         }
         _lastPosition = _sessionPosition!.clone();
-        if (map != null &&
-            _intervalStarted != null &&
-            (traveled >= LocalizationTuning.refreshMeters ||
-                now().difference(_intervalStarted!) >=
-                    LocalizationTuning.refreshAfter)) {
-          unawaited(refresh());
-        }
       }
     } catch (error) {
       camera = null;
+      referenceTracking = false;
+      _lastPosition = null;
       debugPrint('[MadMaps localization] tracking sample unavailable: $error');
     } finally {
       _sampling = false;
+      // Distance may have crossed the threshold in the new sample.
+      _refreshIfDue();
       if (!_closed) notifyListeners();
     }
   }
@@ -328,7 +347,8 @@ class LocalizationController extends ChangeNotifier {
       );
     } catch (error) {
       if (!_closed && epoch == _epoch) {
-        failure = 'Refresh failed. Will retry automatically.';
+        failure =
+            'Using AR position (estimated). Refresh failed; retrying automatically.';
         debugPrint('[MadMaps localization] refresh failed: $error');
       }
     } finally {

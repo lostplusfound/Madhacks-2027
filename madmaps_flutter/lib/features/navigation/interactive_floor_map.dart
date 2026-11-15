@@ -3,22 +3,45 @@ import 'package:flutter/material.dart';
 import 'floor_data.dart';
 import 'floor_screen.dart';
 
+enum FloorFollowMode { heading, position, free }
+
 /// View state is independent of the floor image and AR camera.
 class FloorViewportController extends ChangeNotifier {
-  bool following = true;
+  FloorFollowMode mode = FloorFollowMode.position;
+  bool _navigating = false;
+  bool get following => mode != FloorFollowMode.free;
+  set following(bool value) =>
+      mode = value ? FloorFollowMode.position : FloorFollowMode.free;
   int overviewRevision = 0, northRevision = 0;
+  void navigation(bool active) {
+    if (_navigating == active) return;
+    _navigating = active;
+    if (active) {
+      mode = FloorFollowMode.heading;
+    } else if (mode == FloorFollowMode.heading) {
+      mode = FloorFollowMode.position;
+    }
+    notifyListeners();
+  }
+
+  void followHeading() {
+    mode = FloorFollowMode.heading;
+    notifyListeners();
+  }
+
   void recenter() {
-    following = true;
+    mode = _navigating ? FloorFollowMode.heading : FloorFollowMode.position;
     notifyListeners();
   }
 
   void overview() {
-    following = false;
+    mode = FloorFollowMode.free;
     overviewRevision++;
     notifyListeners();
   }
 
   void north() {
+    mode = FloorFollowMode.position;
     northRevision++;
     notifyListeners();
   }
@@ -49,7 +72,13 @@ class InteractiveFloorMap extends StatefulWidget {
   State<InteractiveFloorMap> createState() => _InteractiveFloorMapState();
 }
 
-class _InteractiveFloorMapState extends State<InteractiveFloorMap> {
+class _InteractiveFloorMapState extends State<InteractiveFloorMap>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController rotation;
+  Tween<double> rotationTween = Tween(begin: 0, end: 0);
+  double? headingTarget;
+  bool hasHeading = false;
+  Offset gestureFocal = Offset.zero;
   Offset center = const Offset(760, 490), anchor = Offset.zero;
   double zoom = 1, angle = 0, startZoom = 1, startAngle = 0;
   int overviewRevision = 0, northRevision = 0;
@@ -58,10 +87,57 @@ class _InteractiveFloorMapState extends State<InteractiveFloorMap> {
   @override
   void initState() {
     super.initState();
+    rotation =
+        AnimationController(
+          vsync: this,
+          duration: const Duration(milliseconds: 220),
+        )..addListener(() {
+          if (mounted && widget.controller.mode == FloorFollowMode.heading) {
+            setState(() => angle = rotationTween.transform(rotation.value));
+          }
+        });
     widget.controller.addListener(changed);
+    updateHeading();
+  }
+
+  void updateHeading() {
+    final p = widget.position, h = widget.heading;
+    if (widget.controller.mode != FloorFollowMode.heading ||
+        p == null ||
+        h == null ||
+        (h - p).distance < 1e-6) {
+      rotation.stop();
+      headingTarget = null;
+      return;
+    }
+    final d = h - p;
+    final target = -math.pi / 2 - math.atan2(d.dy, d.dx);
+    if (headingTarget != null &&
+        math
+                .atan2(
+                  math.sin(target - headingTarget!),
+                  math.cos(target - headingTarget!),
+                )
+                .abs() <
+            1e-5) {
+      return;
+    }
+    headingTarget = target;
+    final delta = math.atan2(
+      math.sin(target - angle),
+      math.cos(target - angle),
+    );
+    if (!hasHeading) {
+      hasHeading = true;
+      angle += delta;
+      return;
+    }
+    rotationTween = Tween(begin: angle, end: angle + delta);
+    rotation.forward(from: 0);
   }
 
   void changed() {
+    updateHeading();
     if (mounted) setState(() {});
   }
 
@@ -72,11 +148,13 @@ class _InteractiveFloorMapState extends State<InteractiveFloorMap> {
       oldWidget.controller.removeListener(changed);
       widget.controller.addListener(changed);
     }
+    updateHeading();
   }
 
   @override
   void dispose() {
     widget.controller.removeListener(changed);
+    rotation.dispose();
     super.dispose();
   }
 
@@ -109,7 +187,7 @@ class _InteractiveFloorMapState extends State<InteractiveFloorMap> {
       bottom = math.max(bottom, p.dy);
     }
     center = Offset((left + right) / 2, (top + bottom) / 2);
-    angle = 0;
+    if (widget.controller.mode != FloorFollowMode.heading) angle = 0;
     zoom = math
         .min(
           viewport.width / math.max(180, right - left + 120),
@@ -141,7 +219,7 @@ class _InteractiveFloorMapState extends State<InteractiveFloorMap> {
           key: const ValueKey('interactive-floor-map'),
           behavior: HitTestBehavior.opaque,
           onScaleStart: (d) {
-            widget.controller.following = false;
+            gestureFocal = d.localFocalPoint;
             startZoom = zoom;
             startAngle = angle;
             anchor = MatrixUtils.transformPoint(
@@ -151,13 +229,23 @@ class _InteractiveFloorMapState extends State<InteractiveFloorMap> {
           },
           onScaleUpdate: (d) => setState(() {
             zoom = (startZoom * d.scale).clamp(.1, 4.0);
-            angle = startAngle + d.rotation;
-            center =
-                anchor -
-                unrotate(
-                  d.localFocalPoint -
-                      Offset(viewport.width / 2, viewport.height / 2),
-                );
+            final panning =
+                (d.localFocalPoint - gestureFocal).distance > 8 &&
+                (d.pointerCount == 1 || (d.scale - 1).abs() < .03);
+            if (panning || d.rotation.abs() > .12) {
+              widget.controller.mode = FloorFollowMode.free;
+              rotation.stop();
+              headingTarget = null;
+            }
+            if (!widget.controller.following) {
+              angle = startAngle + d.rotation;
+              center =
+                  anchor -
+                  unrotate(
+                    d.localFocalPoint -
+                        Offset(viewport.width / 2, viewport.height / 2),
+                  );
+            }
           }),
           child: Stack(
             clipBehavior: Clip.none,
