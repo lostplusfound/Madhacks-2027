@@ -20,9 +20,11 @@ class NavigationPanel extends StatefulWidget {
     required this.onLocate,
     required this.onCancel,
     this.onNavigate,
+    this.distanceLabel,
     this.estimated = false,
   });
   final bool estimated;
+  final String Function(double)? distanceLabel;
   final ValueChanged<FloorLocation>? onNavigate;
   final FloorGraph graph;
   final FloorSetup setup;
@@ -104,6 +106,8 @@ class _NavigationPanelState extends State<NavigationPanel> {
   @override
   Widget build(BuildContext context) {
     final w = widget, g = w.guidance;
+    String distance(double meters) =>
+        w.distanceLabel?.call(meters) ?? '${meters.round()} m';
     final pose = w.pose, c = w.calibration;
     final position = pose == null || c == null
         ? null
@@ -135,7 +139,7 @@ class _NavigationPanelState extends State<NavigationPanel> {
         ? points
         : <Offset>[g.projected!, ...points.skip(g.segment + 1)];
     return ColoredBox(
-      color: const Color(0xffeef2f6),
+      color: const Color(0xfff6f4f0),
       child: Stack(
         children: [
           Positioned.fill(
@@ -178,7 +182,7 @@ class _NavigationPanelState extends State<NavigationPanel> {
                             ? Icons.u_turn_left
                             : Icons.straight,
                         size: 36,
-                        color: Colors.blue,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -189,10 +193,10 @@ class _NavigationPanelState extends State<NavigationPanel> {
                             : g.remainingMeters == null
                             ? g.status
                             : g.phase == NavigationPhase.returningToRoute
-                            ? 'Return to route - ${g.rejoinMeters!.round()} m'
+                            ? 'Return to route - ${distance(g.rejoinMeters!)}'
                             : g.arrived
                             ? 'Near entrance'
-                            : '${g.maneuver}${g.maneuverMeters == null ? '' : ' in ${g.maneuverMeters!.round()} m'}',
+                            : '${g.maneuver}${g.maneuverMeters == null ? '' : ' in ${distance(g.maneuverMeters!)}'}',
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                     ),
@@ -280,7 +284,7 @@ class _NavigationPanelState extends State<NavigationPanel> {
                               ? g.status
                               : g.arrived
                               ? 'Near entrance (estimated)'
-                              : '${duration.inSeconds < 60 ? 'Less than 1 min' : '${(duration.inSeconds / 60).ceil()} min'} • ${g.remainingMeters!.round()} m • ETA $eta',
+                              : '${duration.inSeconds < 60 ? 'Less than 1 min' : '${(duration.inSeconds / 60).ceil()} min'} • ${distance(g.remainingMeters!)} • ETA $eta',
                           maxLines: 2,
                         ),
                       const SizedBox(height: 8),

@@ -1,5 +1,8 @@
 import 'dart:math' as math;
 import 'dart:async';
+import '../shell/navigation_session.dart';
+import '../shell/app_state.dart';
+import '../shell/name_dialog.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ar_flutter_plugin_plus/ar_flutter_plugin.dart';
@@ -16,39 +19,6 @@ import '../navigation/floor_screen.dart';
 import '../navigation/routing.dart';
 import '../navigation/navigation_panel.dart';
 import 'package:vector_math/vector_math_64.dart' show Vector3;
-
-Future<String?> askName(
-  BuildContext context,
-  String title, [
-  String initial = '',
-]) async {
-  var value = initial;
-  return showDialog<String>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text(title),
-      content: TextFormField(
-        initialValue: initial,
-        autofocus: true,
-        maxLength: 60,
-        onChanged: (v) => value = v,
-        decoration: const InputDecoration(labelText: 'Name'),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: () {
-            if (value.trim().isNotEmpty) Navigator.pop(context, value.trim());
-          },
-          child: const Text('Save'),
-        ),
-      ],
-    ),
-  );
-}
 
 class MapsScreen extends StatefulWidget {
   const MapsScreen({super.key});
@@ -226,11 +196,15 @@ class MapSessionScreen extends StatefulWidget {
     this.map,
     this.maps = const [],
     this.adapter,
+    this.session,
+    this.appState,
     required this.save,
   });
 
   /// Optional injected adapter is owned and disposed by this screen.
   final ArAdapter? adapter;
+  final NavigationSession? session;
+  final AppState? appState;
   final AnchorMap? map;
   final List<AnchorMap> maps;
   final Future<void> Function() save;
@@ -422,12 +396,29 @@ class _MapSessionScreenState extends State<MapSessionScreen>
     refresh();
   }
 
+  int appliedRevision = -1;
+  String? appliedMap;
+  void requestChanged() {
+    if (mounted && widget.session?.revision != appliedRevision) setState(() {});
+  }
+
+  void cancelTrip() {
+    if (!mounted) return;
+    updateState(() {
+      roomName = null;
+      destination = null;
+      guidance.target = null;
+      guidance.reset();
+    });
+  }
+
   void selectLocation(FloorLocation location) {
     final node = map.floor.locationNodes[location.id] ?? location.node;
     if (node == null || map.floor.calibration(map) == null) return;
+    widget.session?.choose(location);
     updateState(() {
       destination = null;
-      roomName = location.label;
+      roomName = widget.appState?.label(location) ?? location.label;
       navigationMapId = map.id;
       guidance.select(node);
     });
@@ -501,6 +492,22 @@ class _MapSessionScreenState extends State<MapSessionScreen>
   }
 
   void updateGuidance() {
+    final session = widget.session;
+    final requested = session?.destination;
+    if (session != null &&
+        requested != null &&
+        floorGraph != null &&
+        map.floor.enabled &&
+        map.floor.calibration(map) != null &&
+        (appliedRevision != session.revision || appliedMap != map.id)) {
+      appliedRevision = session.revision;
+      appliedMap = map.id;
+      final node = map.floor.locationNodes[requested.id] ?? requested.node;
+      destination = null;
+      roomName = widget.appState?.label(requested) ?? requested.label;
+      navigationMapId = map.id;
+      guidance.select(node ?? '');
+    }
     if (navigationMapId != null && navigationMapId != map.id) {
       guidance.target = null;
       guidance.reset();
@@ -522,6 +529,28 @@ class _MapSessionScreenState extends State<MapSessionScreen>
       DateTime.now(),
       relocalized: relocalized,
     );
+    if (requested != null &&
+        (map.floor.locationNodes[requested.id] ?? requested.node) == null) {
+      guidance.status =
+          'This destination has no mapped entrance yet. Choose another destination.';
+    }
+    if (session != null) {
+      final revision = session.revision;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || session.revision != revision) return;
+        if (session.update(guidance, tracking: camera != null)) {
+          final place = session.destination;
+          if (place != null) {
+            widget.appState?.recordVisit(place.id);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('You have arrived near the entrance.'),
+              ),
+            );
+          }
+        }
+      });
+    }
   }
 
   bool busy = false, placing = false, expanded = false, active = true;
@@ -581,6 +610,10 @@ class _MapSessionScreenState extends State<MapSessionScreen>
   @override
   void initState() {
     super.initState();
+    widget.session?.attached = true;
+    widget.session?.onCancel = cancelTrip;
+    widget.session?.addListener(requestChanged);
+    widget.appState?.addListener(refresh);
     ar = widget.adapter ?? ArAdapter();
     localization = LocalizationController(ar)
       ..addListener(refresh)
@@ -911,6 +944,10 @@ class _MapSessionScreenState extends State<MapSessionScreen>
 
   @override
   void dispose() {
+    widget.appState?.removeListener(refresh);
+    widget.session?.removeListener(requestChanged);
+    final session = widget.session;
+    WidgetsBinding.instance.addPostFrameCallback((_) => session?.detach());
     _discoveryRetry?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     ar.removeListener(refresh);
@@ -1006,12 +1043,8 @@ class _MapSessionScreenState extends State<MapSessionScreen>
                       onSearch: busy ? () {} : showRooms,
                       onNavigate: selectLocation,
                       onLocate: busy ? cancelSearch : discover,
-                      onCancel: () => updateState(() {
-                        roomName = null;
-                        destination = null;
-                        guidance.target = null;
-                        guidance.reset();
-                      }),
+                      onCancel: widget.session?.cancel ?? cancelTrip,
+                      distanceLabel: widget.appState?.distance,
                     ),
                   ),
                 Positioned(
@@ -1205,18 +1238,14 @@ class _MapSessionScreenState extends State<MapSessionScreen>
                             SizedBox(width: 220, child: Text(guidance.status)),
                             if (guidance.remainingMeters != null)
                               Text(
-                                '${guidance.remainingMeters!.toStringAsFixed(1)} m remaining (estimated)',
+                                '${widget.appState?.distance(guidance.remainingMeters!) ?? '${guidance.remainingMeters!.round()} m'} remaining (estimated)',
                               ),
                             const Text(
                               'Draft hallway map',
                               style: TextStyle(color: Colors.deepOrange),
                             ),
                             TextButton(
-                              onPressed: () => updateState(() {
-                                roomName = null;
-                                guidance.target = null;
-                                guidance.reset();
-                              }),
+                              onPressed: widget.session?.cancel ?? cancelTrip,
                               child: const Text('Stop navigation'),
                             ),
                           ],

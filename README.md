@@ -5,6 +5,10 @@ Named AR maps, saved anchor metadata, floor calibration, and map overrides stay
 on the phone. Cloud Anchor hosting/resolution uses Google directly; these flows
 do not require the Serverpod backend, PostgreSQL, or a backend round trip.
 
+The visitor UI now provides Home search, Map, Saved and Profile tabs, using real
+floor-1 navigation. See [Swara UI integration and feature differences](docs/SWARA_UI_INTEGRATION.md).
+Mapping tools retain local AR map creation and calibration.
+
 Floor-associated maps provide a full-screen floor plan, live position/heading,
 highlighted remaining route, turn instructions, distance, estimated walking time
 and arrival time, Cancel, and an expandable AR camera. The map supports pan,
@@ -22,7 +26,7 @@ searches cover all live saved anchors in batches of at most 20. Off-route and
 distant-start guidance use estimated connectors back to reachable hallway routes.
 See [AR setup and recovery](docs/AR_PROTOTYPE.md).
 
-Latest recorded verification on November 14, 2026: **80 Flutter tests passed**,
+Latest recorded verification on November 14, 2026: **88 Flutter tests passed**,
 `dart analyze` reported no errors or warnings (informational notices remain), and
 the Android debug APK built successfully. Earlier anchor hosting was confirmed
 on Pixel 6a. The user has reported positive hands-on feedback, but measured

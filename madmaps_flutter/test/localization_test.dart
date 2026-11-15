@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vector_math/vector_math_64.dart' show Matrix4, Vector3;
 import 'package:madmaps/features/localization/map_data.dart';
-import 'package:madmaps/main.dart';
+import 'package:madmaps/features/localization/prototype_screen.dart';
 
 void main() {
   test('aligns translated and rotated sessions, including height', () {
@@ -100,9 +100,9 @@ void main() {
       isTrue,
     );
   });
-  testWidgets('create map and rename from home', (tester) async {
+  testWidgets('create map and rename from mapping tools', (tester) async {
     SharedPreferences.setMockInitialValues({});
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(const MaterialApp(home: MapsScreen()));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Create map'));
     await tester.pumpAndSettle();
