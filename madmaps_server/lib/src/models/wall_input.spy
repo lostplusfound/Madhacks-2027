@@ -1,0 +1,5 @@
+class: WallInput
+fields:
+  wallId: String
+  floorId: String
+  vertices: List<WallPoint>

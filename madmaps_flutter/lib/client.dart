@@ -22,8 +22,11 @@ final serverUrl = getServerUrl();
 /// In a larger app, you may want to use the dependency injection of your choice
 /// instead of using a global client object. This is just a simple example.
 late final Client client;
+Future<void>? _initialization;
 
-Future<void> initializeClient() async {
+Future<void> initializeClient() => _initialization ??= _initializeClient();
+
+Future<void> _initializeClient() async {
   client = Client(await serverUrl)
     ..connectivityMonitor = FlutterConnectivityMonitor();
 }

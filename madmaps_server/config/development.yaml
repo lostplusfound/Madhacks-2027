@@ -23,13 +23,13 @@ insightsServer:
 
 # This is the database setup for your server.
 database:
-  host: localhost
+  host: 127.0.0.1
   port: 8090
   name: madmaps
   user: postgres
   #requireSsl: true # defaults to false
   #isUnixSocket: true # defaults to false
-  dataPath: .serverpod/development/pgdata
+  # External PostgreSQL: scripts/start-local-backend.ps1 or Docker Compose.
   #maxConnectionCount: 10 # Defaults to 10, a negative or null value removes the limit
 
 

@@ -1,5 +1,39 @@
 # Role 1: AR localization and calibration
 
+An initial Android anchor-map prototype is implemented under
+`madmaps_flutter/lib/features/localization/`. See [setup, behavior, and physical
+acceptance steps](../AR_PROTOTYPE.md). Floor-1 image calibration is integrated;
+shared/backend domain integration below remains future work.
+
+The prototype now includes automatic discovery across local maps, wall/floor
+placement, live reference tracking, and continuous current-map handoffs. Regular
+use and navigation refresh after 20m/20s from attempt completion, including after
+failures; mapping pauses refreshes only while adding an anchor. Stable matches
+are accepted and blended automatically, and mapping warnings never force a refresh.
+
+On November 14, 2026, the user reported that the updated flow works well in
+hands-on use after earlier hosting confirmation on Pixel 6a. The latest recorded
+combined suite has 88 passing Flutter tests and a successful Android debug build. Formal restart-and-resolve acceptance and measured navigation accuracy
+remain to be recorded. The local plugin override remains pinned at 1.1.3, sourced
+from the published package; no InsideOut source was copied. See the prototype
+guide for current behavior, setup, patch provenance, and physical acceptance.
+
+Current recovery also retries without a tracked camera sample, retains estimated
+AR movement after cloud failures, hides the dot on tracking loss, and automatically
+rediscovers the map after background/resume. Cancel search suppresses discovery
+until Locate/reopening. Compact camera expansion preserves the keyed native view;
+surface replacement rebinds the existing session's camera texture. These behaviors
+need physical verification, especially while compact. See [navigation integration](../FLOOR_NAVIGATION.md)
+and [latest test coverage](../TESTING.md). The proposed service/interface checklist
+below has not been implemented as a shared backend contract.
+
+The Swara visitor shell retains `MapSessionScreen` as the native session owner.
+Its optional `NavigationSession` bridge accepts destination/cancel requests and
+publishes real guidance. Tab changes must preserve the same AR owner; Back closes
+the session, while Cancel only clears the trip. Native continuity across tabs is
+still a physical acceptance check. Map management is now reached from Profile or
+the Map toolbar. See [UI integration notes](../SWARA_UI_INTEGRATION.md).
+
 ## Mission and current state
 
 Deliver trustworthy floor-local poses on Android. Use the third-party package ar_flutter_plugin_plus 1.1.3 and write application AR functionality during the hackathon. Read ../CONTRACTS.md and ../COORDINATE_SYSTEMS.md: both are proposals, not frozen APIs. Confirm physical phone access immediately.

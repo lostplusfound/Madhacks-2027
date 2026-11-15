@@ -34,12 +34,11 @@ packages:
     source: hosted
     version: "14.7.0"
   ar_flutter_plugin_plus:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
-      name: ar_flutter_plugin_plus
-      sha256: "806fa0dff7348f423f69b5b68fa72ee68feca27e729682b7463d2d4375c03807"
-      url: "https://pub.dev"
-    source: hosted
+      path: "third_party/ar_flutter_plugin_plus"
+      relative: true
+    source: path
     version: "1.1.3"
   archive:
     dependency: transitive
@@ -57,6 +56,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.7.0"
+  asn1lib:
+    dependency: transitive
+    description:
+      name: asn1lib
+      sha256: cfb3cf6a53158918d52dda61bc26f0cc8612a0d3b9dc29e87eaa3423902ca636
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.6.8"
   async:
     dependency: transitive
     description:
@@ -81,6 +88,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.2.3"
+  cbor:
+    dependency: transitive
+    description:
+      name: cbor
+      sha256: "9e0745c45bc29e8ed4acb79801ecbc86aab51f952e503517e6c002c7f4ca9118"
+      url: "https://pub.dev"
+    source: hosted
+    version: "6.5.2"
   characters:
     dependency: transitive
     description:
@@ -193,6 +208,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.9"
+  dart_jsonwebtoken:
+    dependency: transitive
+    description:
+      name: dart_jsonwebtoken
+      sha256: ad84e60181696513d04d5f2078e0bbc20365b911f46f647797317414bdc88fbe
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.4.1"
   dbus:
     dependency: transitive
     description:
@@ -201,6 +224,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.15"
+  email_validator:
+    dependency: transitive
+    description:
+      name: email_validator
+      sha256: b19aa5d92fdd76fbc65112060c94d45ba855105a28bb6e462de7ff03b12fa1fb
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.0"
   fake_async:
     dependency: transitive
     description:
@@ -264,6 +295,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_tts:
+    dependency: transitive
+    description:
+      name: flutter_tts
+      sha256: ce5eb209b40e95f2f4a1397116c87ab2fcdff32257d04ed7a764e75894c03775
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.2.5"
   flutter_web_plugins:
     dependency: transitive
     description: flutter
@@ -402,6 +441,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.2.8"
+  hex:
+    dependency: transitive
+    description:
+      name: hex
+      sha256: "4e7cd54e4b59ba026432a6be2dd9d96e4c5205725194997193bf871703b82c4a"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.0"
   hooks:
     dependency: transitive
     description:
@@ -434,6 +481,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.1.2"
+  image:
+    dependency: transitive
+    description:
+      name: image
+      sha256: bc13f61f0f5cb77936e78ae5dae3800f442718dac5d2bc4654f03c239230ed0c
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.13.1"
   io:
     dependency: transitive
     description:
@@ -626,6 +681,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.1.0"
+  passkeys_server:
+    dependency: transitive
+    description:
+      name: passkeys_server
+      sha256: "0173c533b0c0a9fb92a7a215f1b77432ec48c504f3de9fa0221dc6ab50718f98"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.0"
   path:
     dependency: transitive
     description:
@@ -866,6 +929,46 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.1.2"
+  serverpod_argon2:
+    dependency: transitive
+    description:
+      name: serverpod_argon2
+      sha256: bc38946561c556693f8802e4f590761773e5a139346f2e9c9542c936ca706a8f
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.0"
+  serverpod_auth_core_client:
+    dependency: transitive
+    description:
+      name: serverpod_auth_core_client
+      sha256: "03eb3cea85142dad3ff737bdf878c359e9f3905751d1e2e9d55fc646334f5ce0"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.1.2"
+  serverpod_auth_core_server:
+    dependency: transitive
+    description:
+      name: serverpod_auth_core_server
+      sha256: eee6d37030b2929a0341e0b9d308a133682164340c84f8483e59ddd7fb4de0d0
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.1.2"
+  serverpod_auth_idp_client:
+    dependency: transitive
+    description:
+      name: serverpod_auth_idp_client
+      sha256: "6fbaaf41e7614db4ef9cbc7fc820a1235fc2d5352118b596f3e6dd8c21f6e2ce"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.1.2"
+  serverpod_auth_idp_server:
+    dependency: transitive
+    description:
+      name: serverpod_auth_idp_server
+      sha256: a926fc057c62ade9436acd0ff1aadd22746f84550b3166c3935de2d0152926dc
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.1.2"
   serverpod_client:
     dependency: transitive
     description:
@@ -962,6 +1065,62 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.1.2"
+  shared_preferences:
+    dependency: transitive
+    description:
+      name: shared_preferences
+      sha256: "1e85e0dccf5b4a016077fea7dfbb4a7cb39c759ac1596fcf60c06deadb7da91f"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.5.6"
+  shared_preferences_android:
+    dependency: transitive
+    description:
+      name: shared_preferences_android
+      sha256: "137dedccacb394b8f470d6c9b435ffc3d33faaa6ce2949c4f54a61007d64396d"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.5.5"
+  shared_preferences_foundation:
+    dependency: transitive
+    description:
+      name: shared_preferences_foundation
+      sha256: "89435cb71ecb1ad1bf29ef73a381f871a06f433d4182b7e2ba7243b02b2c544b"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.6.2"
+  shared_preferences_linux:
+    dependency: transitive
+    description:
+      name: shared_preferences_linux
+      sha256: "580abfd40f415611503cae30adf626e6656dfb2f0cee8f465ece7b6defb40f2f"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.4.1"
+  shared_preferences_platform_interface:
+    dependency: transitive
+    description:
+      name: shared_preferences_platform_interface
+      sha256: "649dc798a33931919ea356c4305c2d1f81619ea6e92244070b520187b5140ef9"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.4.2"
+  shared_preferences_web:
+    dependency: transitive
+    description:
+      name: shared_preferences_web
+      sha256: c49bd060261c9a3f0ff445892695d6212ff603ef3115edbb448509d407600019
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.4.3"
+  shared_preferences_windows:
+    dependency: transitive
+    description:
+      name: shared_preferences_windows
+      sha256: "94ef0f72b2d71bc3e700e025db3710911bd51a71cefb65cc609dd0d9a982e3c1"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.4.1"
   shelf:
     dependency: transitive
     description:
@@ -994,6 +1153,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.0"
+  sign_in_with_apple_server:
+    dependency: transitive
+    description:
+      name: sign_in_with_apple_server
+      sha256: b431982c88e8649aecb5a17678082cb8045d70eebca8555acb1d1b561d4756b9
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.0"
   sky_engine:
     dependency: transitive
     description: flutter
@@ -1251,10 +1418,10 @@ packages:
     dependency: transitive
     description:
       name: xml
-      sha256: "0fe8cc98946def31cbcbc8734aa4067031e6f65ea3a78a508060bfed2200bfeb"
+      sha256: "67f0aff7be013d107995e9b75bf4e7f2c3ef2dfdb2c8e68024bba0a7fd5756a4"
       url: "https://pub.dev"
     source: hosted
-    version: "7.1.0"
+    version: "7.0.1"
   yaml:
     dependency: transitive
     description:
@@ -1265,4 +1432,4 @@ packages:
     version: "3.1.4"
 sdks:
   dart: ">=3.13.0 <4.0.0"
-  flutter: ">=3.44.4 <4.0.0"
+  flutter: ">=3.47.0 <4.0.0"

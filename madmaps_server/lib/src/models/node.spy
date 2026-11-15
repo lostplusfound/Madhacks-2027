@@ -1,0 +1,25 @@
+class: Nodes
+table: nodes
+
+fields:
+  nodeId: String, column=node_id, unique
+  graphId: int?, column=graph_id, relation(parent=map_graph)
+  floorId: int?, column=floor_id, relation(parent=floor)
+  floor: int
+  x: double
+  y: double
+  locationId: String?, column=location_id
+  kind: Kind
+  status: MapEntityStatus, default=active
+  createdBy: String?, column=created_by
+  updatedBy: String?, column=updated_by
+  createdAt: DateTime, default=now, column=created_at
+  updatedAt: DateTime, default=now, column=updated_at
+  deletedAt: DateTime?, column=deleted_at
+  version: int, default=1
+
+indexes:
+  nodes_graph_floor_idx:
+    fields: graphId, floorId
+  nodes_owner_idx:
+    fields: createdBy

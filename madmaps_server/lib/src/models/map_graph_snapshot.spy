@@ -1,0 +1,9 @@
+class: MapGraphSnapshot
+fields:
+  graph: MapGraph
+  building: Building
+  floors: List<Floor>
+  nodes: List<Nodes>
+  edges: List<Edge>
+  locations: List<Locations>
+  walls: List<WallInput>

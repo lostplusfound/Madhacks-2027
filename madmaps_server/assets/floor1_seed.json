@@ -1,0 +1,463 @@
+{
+  "request": {
+    "graphId": "morgridge-floor1",
+    "buildingId": "morgridge-hall",
+    "name": "Morgridge Hall Floor 1 (draft geometry)",
+    "floors": [
+      {
+        "floorId": "morgridge-floor1",
+        "floorNumber": 1,
+        "name": "Floor 1",
+        "width": 1632.0,
+        "height": 1056.0,
+        "metersPerUnit": 1.0
+      }
+    ],
+    "nodes": [
+      {
+        "nodeId": "f1-demo-1524",
+        "floorId": "morgridge-floor1",
+        "x": 586.0,
+        "y": 733.0,
+        "locationId": "f1-1524",
+        "kind": "approach"
+      },
+      {
+        "nodeId": "f1-demo-south-hall",
+        "floorId": "morgridge-floor1",
+        "x": 515.0,
+        "y": 704.0,
+        "locationId": null,
+        "kind": "junction"
+      },
+      {
+        "nodeId": "f1-demo-south-turn",
+        "floorId": "morgridge-floor1",
+        "x": 510.0,
+        "y": 595.0,
+        "locationId": null,
+        "kind": "junction"
+      },
+      {
+        "nodeId": "f1-demo-lobby",
+        "floorId": "morgridge-floor1",
+        "x": 570.0,
+        "y": 520.0,
+        "locationId": null,
+        "kind": "junction"
+      },
+      {
+        "nodeId": "f1-demo-main-hall",
+        "floorId": "morgridge-floor1",
+        "x": 645.0,
+        "y": 410.0,
+        "locationId": null,
+        "kind": "junction"
+      },
+      {
+        "nodeId": "f1-demo-1570",
+        "floorId": "morgridge-floor1",
+        "x": 646.0,
+        "y": 364.0,
+        "locationId": "f1-1570",
+        "kind": "approach"
+      },
+      {
+        "nodeId": "f1-demo-heart",
+        "floorId": "morgridge-floor1",
+        "x": 770.0,
+        "y": 403.0,
+        "locationId": "f1-heart",
+        "kind": "landmark"
+      },
+      {
+        "nodeId": "f1-demo-cafe-turn",
+        "floorId": "morgridge-floor1",
+        "x": 811.0,
+        "y": 362.0,
+        "locationId": null,
+        "kind": "junction"
+      },
+      {
+        "nodeId": "f1-demo-cafe",
+        "floorId": "morgridge-floor1",
+        "x": 850.0,
+        "y": 357.0,
+        "locationId": "f1-cafe",
+        "kind": "approach"
+      },
+      {
+        "nodeId": "f1-exit-orchard",
+        "floorId": "morgridge-floor1",
+        "x": 477.0,
+        "y": 552.0,
+        "locationId": "f1-orchard-exit",
+        "kind": "approach"
+      },
+      {
+        "nodeId": "f1-exit-courtyard",
+        "floorId": "morgridge-floor1",
+        "x": 799.0,
+        "y": 449.0,
+        "locationId": "f1-courtyard-exit",
+        "kind": "approach"
+      },
+      {
+        "nodeId": "f1-university-bend-1",
+        "floorId": "morgridge-floor1",
+        "x": 831.0,
+        "y": 271.0,
+        "locationId": null,
+        "kind": "junction"
+      },
+      {
+        "nodeId": "f1-university-bend-2",
+        "floorId": "morgridge-floor1",
+        "x": 914.0,
+        "y": 216.0,
+        "locationId": null,
+        "kind": "junction"
+      },
+      {
+        "nodeId": "f1-exit-university",
+        "floorId": "morgridge-floor1",
+        "x": 994.0,
+        "y": 165.0,
+        "locationId": "f1-university-exit",
+        "kind": "approach"
+      },
+      {
+        "nodeId": "f1-auditorium-restroom-1-approach",
+        "floorId": "morgridge-floor1",
+        "x": 490.0,
+        "y": 442.0,
+        "locationId": "f1-auditorium-restroom-1",
+        "kind": "approach"
+      },
+      {
+        "nodeId": "f1-auditorium-restroom-2-approach",
+        "floorId": "morgridge-floor1",
+        "x": 510.0,
+        "y": 418.0,
+        "locationId": "f1-auditorium-restroom-2",
+        "kind": "approach"
+      },
+      {
+        "nodeId": "f1-cafe-restroom-1-approach",
+        "floorId": "morgridge-floor1",
+        "x": 976.0,
+        "y": 249.0,
+        "locationId": "f1-cafe-restroom-1",
+        "kind": "approach"
+      },
+      {
+        "nodeId": "f1-cafe-restroom-2-approach",
+        "floorId": "morgridge-floor1",
+        "x": 1000.0,
+        "y": 280.0,
+        "locationId": "f1-cafe-restroom-2",
+        "kind": "approach"
+      },
+      {
+        "nodeId": "f1-elevator-bank-approach",
+        "floorId": "morgridge-floor1",
+        "x": 685.0,
+        "y": 503.0,
+        "locationId": "f1-elevator-bank",
+        "kind": "approach"
+      },
+      {
+        "nodeId": "f1-main-stairs-approach",
+        "floorId": "morgridge-floor1",
+        "x": 776.0,
+        "y": 300.0,
+        "locationId": "f1-main-stairs",
+        "kind": "approach"
+      }
+    ],
+    "edges": [
+      {
+        "edgeId": "f1-edge-f1-demo-south-hall--f1-demo-1524",
+        "fromNodeId": "f1-demo-south-hall",
+        "toNodeId": "f1-demo-1524",
+        "type": "walk",
+        "cost": 76.6942,
+        "bidirectional": true
+      },
+      {
+        "edgeId": "f1-edge-f1-demo-south-turn--f1-demo-south-hall",
+        "fromNodeId": "f1-demo-south-turn",
+        "toNodeId": "f1-demo-south-hall",
+        "type": "walk",
+        "cost": 109.1146,
+        "bidirectional": true
+      },
+      {
+        "edgeId": "f1-edge-f1-demo-lobby--f1-demo-south-turn",
+        "fromNodeId": "f1-demo-lobby",
+        "toNodeId": "f1-demo-south-turn",
+        "type": "walk",
+        "cost": 96.0469,
+        "bidirectional": true
+      },
+      {
+        "edgeId": "f1-edge-f1-demo-main-hall--f1-demo-lobby",
+        "fromNodeId": "f1-demo-main-hall",
+        "toNodeId": "f1-demo-lobby",
+        "type": "walk",
+        "cost": 133.1353,
+        "bidirectional": true
+      },
+      {
+        "edgeId": "f1-edge-f1-demo-1570--f1-demo-main-hall",
+        "fromNodeId": "f1-demo-1570",
+        "toNodeId": "f1-demo-main-hall",
+        "type": "walk",
+        "cost": 46.0109,
+        "bidirectional": true
+      },
+      {
+        "edgeId": "f1-edge-f1-demo-heart--f1-demo-main-hall",
+        "fromNodeId": "f1-demo-heart",
+        "toNodeId": "f1-demo-main-hall",
+        "type": "walk",
+        "cost": 125.1958,
+        "bidirectional": true
+      },
+      {
+        "edgeId": "f1-edge-f1-demo-cafe-turn--f1-demo-heart",
+        "fromNodeId": "f1-demo-cafe-turn",
+        "toNodeId": "f1-demo-heart",
+        "type": "walk",
+        "cost": 57.9828,
+        "bidirectional": true
+      },
+      {
+        "edgeId": "f1-edge-f1-demo-cafe--f1-demo-cafe-turn",
+        "fromNodeId": "f1-demo-cafe",
+        "toNodeId": "f1-demo-cafe-turn",
+        "type": "walk",
+        "cost": 39.3192,
+        "bidirectional": true
+      },
+      {
+        "edgeId": "f1-edge-f1-exit-orchard--f1-demo-south-turn",
+        "fromNodeId": "f1-exit-orchard",
+        "toNodeId": "f1-demo-south-turn",
+        "type": "walk",
+        "cost": 54.2033,
+        "bidirectional": true
+      },
+      {
+        "edgeId": "f1-edge-f1-exit-courtyard--f1-demo-heart",
+        "fromNodeId": "f1-exit-courtyard",
+        "toNodeId": "f1-demo-heart",
+        "type": "walk",
+        "cost": 54.3783,
+        "bidirectional": true
+      },
+      {
+        "edgeId": "f1-edge-f1-university-bend-1--f1-demo-cafe-turn",
+        "fromNodeId": "f1-university-bend-1",
+        "toNodeId": "f1-demo-cafe-turn",
+        "type": "walk",
+        "cost": 93.1719,
+        "bidirectional": true
+      },
+      {
+        "edgeId": "f1-edge-f1-university-bend-2--f1-university-bend-1",
+        "fromNodeId": "f1-university-bend-2",
+        "toNodeId": "f1-university-bend-1",
+        "type": "walk",
+        "cost": 99.5691,
+        "bidirectional": true
+      },
+      {
+        "edgeId": "f1-edge-f1-exit-university--f1-university-bend-2",
+        "fromNodeId": "f1-exit-university",
+        "toNodeId": "f1-university-bend-2",
+        "type": "walk",
+        "cost": 94.8736,
+        "bidirectional": true
+      },
+      {
+        "edgeId": "f1-edge-f1-demo-lobby--f1-auditorium-restroom-1-approach",
+        "fromNodeId": "f1-demo-lobby",
+        "toNodeId": "f1-auditorium-restroom-1-approach",
+        "type": "walk",
+        "cost": 111.7318,
+        "bidirectional": true
+      },
+      {
+        "edgeId": "f1-edge-f1-demo-lobby--f1-auditorium-restroom-2-approach",
+        "fromNodeId": "f1-demo-lobby",
+        "toNodeId": "f1-auditorium-restroom-2-approach",
+        "type": "walk",
+        "cost": 118.3385,
+        "bidirectional": true
+      },
+      {
+        "edgeId": "f1-edge-f1-university-bend-2--f1-cafe-restroom-1-approach",
+        "fromNodeId": "f1-university-bend-2",
+        "toNodeId": "f1-cafe-restroom-1-approach",
+        "type": "walk",
+        "cost": 70.2353,
+        "bidirectional": true
+      },
+      {
+        "edgeId": "f1-edge-f1-university-bend-2--f1-cafe-restroom-2-approach",
+        "fromNodeId": "f1-university-bend-2",
+        "toNodeId": "f1-cafe-restroom-2-approach",
+        "type": "walk",
+        "cost": 107.2007,
+        "bidirectional": true
+      },
+      {
+        "edgeId": "f1-edge-f1-demo-lobby--f1-elevator-bank-approach",
+        "fromNodeId": "f1-demo-lobby",
+        "toNodeId": "f1-elevator-bank-approach",
+        "type": "walk",
+        "cost": 116.2497,
+        "bidirectional": true
+      },
+      {
+        "edgeId": "f1-edge-f1-demo-cafe-turn--f1-main-stairs-approach",
+        "fromNodeId": "f1-demo-cafe-turn",
+        "toNodeId": "f1-main-stairs-approach",
+        "type": "walk",
+        "cost": 71.1969,
+        "bidirectional": true
+      }
+    ],
+    "locations": [
+      {
+        "locationId": "f1-1524",
+        "floorId": "morgridge-floor1",
+        "roomNumber": "1524",
+        "name": null,
+        "category": "other",
+        "aliases": null,
+        "routeNodeId": "f1-demo-1524"
+      },
+      {
+        "locationId": "f1-1570",
+        "floorId": "morgridge-floor1",
+        "roomNumber": "1570",
+        "name": "Hello World Auditorium",
+        "category": "auditorium",
+        "aliases": "auditorium",
+        "routeNodeId": "f1-demo-1570"
+      },
+      {
+        "locationId": "f1-auditorium-restroom-1",
+        "floorId": "morgridge-floor1",
+        "roomNumber": null,
+        "name": "Restroom near auditorium, symbol 1",
+        "category": "bathroom",
+        "aliases": null,
+        "routeNodeId": "f1-auditorium-restroom-1-approach"
+      },
+      {
+        "locationId": "f1-auditorium-restroom-2",
+        "floorId": "morgridge-floor1",
+        "roomNumber": null,
+        "name": "Restroom near auditorium, symbol 2",
+        "category": "bathroom",
+        "aliases": null,
+        "routeNodeId": "f1-auditorium-restroom-2-approach"
+      },
+      {
+        "locationId": "f1-cafe",
+        "floorId": "morgridge-floor1",
+        "roomNumber": null,
+        "name": "Cafe",
+        "category": "food",
+        "aliases": "coffee counter; coffee shop",
+        "routeNodeId": "f1-demo-cafe"
+      },
+      {
+        "locationId": "f1-cafe-restroom-1",
+        "floorId": "morgridge-floor1",
+        "roomNumber": null,
+        "name": "Restroom near Cafe, symbol 1",
+        "category": "bathroom",
+        "aliases": null,
+        "routeNodeId": "f1-cafe-restroom-1-approach"
+      },
+      {
+        "locationId": "f1-cafe-restroom-2",
+        "floorId": "morgridge-floor1",
+        "roomNumber": null,
+        "name": "Restroom near Cafe, symbol 2",
+        "category": "bathroom",
+        "aliases": null,
+        "routeNodeId": "f1-cafe-restroom-2-approach"
+      },
+      {
+        "locationId": "f1-courtyard-exit",
+        "floorId": "morgridge-floor1",
+        "roomNumber": null,
+        "name": "Exit to Courtyard",
+        "category": "exit",
+        "aliases": null,
+        "routeNodeId": "f1-exit-courtyard"
+      },
+      {
+        "locationId": "f1-elevator-bank",
+        "floorId": "morgridge-floor1",
+        "roomNumber": null,
+        "name": "Elevator bank near Orchard Street and Courtyard exits",
+        "category": "elevator",
+        "aliases": null,
+        "routeNodeId": "f1-elevator-bank-approach"
+      },
+      {
+        "locationId": "f1-heart",
+        "floorId": "morgridge-floor1",
+        "roomNumber": null,
+        "name": "Morgridge Hall Heart",
+        "category": "other",
+        "aliases": null,
+        "routeNodeId": "f1-demo-heart"
+      },
+      {
+        "locationId": "f1-main-stairs",
+        "floorId": "morgridge-floor1",
+        "roomNumber": null,
+        "name": "Main Stairs",
+        "category": "stairs",
+        "aliases": null,
+        "routeNodeId": "f1-main-stairs-approach"
+      },
+      {
+        "locationId": "f1-orchard-exit",
+        "floorId": "morgridge-floor1",
+        "roomNumber": null,
+        "name": "Exit to Orchard Street",
+        "category": "exit",
+        "aliases": null,
+        "routeNodeId": "f1-exit-orchard"
+      },
+      {
+        "locationId": "f1-university-exit",
+        "floorId": "morgridge-floor1",
+        "roomNumber": null,
+        "name": "Exit to University",
+        "category": "exit",
+        "aliases": null,
+        "routeNodeId": "f1-exit-university"
+      }
+    ],
+    "walls": []
+  },
+  "reviewNotes": {
+    "f1-auditorium-restroom-1": "Draft floor-plan entrance approach; verify entrance and walkability on site.",
+    "f1-auditorium-restroom-2": "Draft floor-plan entrance approach; verify entrance and walkability on site.",
+    "f1-cafe-restroom-1": "Draft floor-plan entrance approach; verify entrance and walkability on site.",
+    "f1-cafe-restroom-2": "Draft floor-plan entrance approach; verify entrance and walkability on site.",
+    "f1-elevator-bank": "Draft floor-plan entrance approach; verify entrance and walkability on site.",
+    "f1-main-stairs": "Draft floor-plan entrance approach; verify entrance and walkability on site."
+  },
+  "geometryStatus": "draft",
+  "metersPerUnitNote": "Pixel graph only. Runtime distances use the phone calibration, not this placeholder scale."
+}

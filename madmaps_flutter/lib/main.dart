@@ -1,30 +1,33 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'features/shell/app_state.dart';
+import 'features/navigation/map_repository.dart';
+import 'features/shell/madmaps_shell.dart';
+import 'features/shell/shared_widgets.dart';
 
-import 'data/morgridge_mock_data.dart';
-import 'screens/madmaps_screens.dart';
-import 'state/madmaps_state.dart';
-
-void main() => runApp(const MadMapsApp());
-
-class MadMapsApp extends StatefulWidget {
-  const MadMapsApp({super.key});
-
-  @override
-  State<MadMapsApp> createState() => _MadMapsAppState();
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  SharedPreferences? preferences;
+  try {
+    preferences = await SharedPreferences.getInstance();
+  } catch (_) {
+    // Browsing and in-memory preferences remain available if storage fails.
+  }
+  runApp(MyApp(state: AppState(preferences)));
 }
 
-class _MadMapsAppState extends State<MadMapsApp> {
-  late final MadMapsState state = MadMapsState();
-
+class MyApp extends StatefulWidget {
+  const MyApp({super.key, required this.state, this.repository});
+  final AppState state;
+  final MapRepository? repository;
   @override
-  void dispose() {
-    state.dispose();
-    super.dispose();
-  }
+  State<MyApp> createState() => _MyAppState();
+}
 
+class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
-    animation: state,
+    animation: widget.state,
     builder: (context, _) => MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'MadMaps',
@@ -32,37 +35,23 @@ class _MadMapsAppState extends State<MadMapsApp> {
         useMaterial3: true,
         scaffoldBackgroundColor: alabaster,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: state.highContrast
+          seedColor: widget.state.contrast
               ? const Color(0xff005f73)
               : brandCrimson,
+          contrastLevel: widget.state.contrast ? 1 : 0,
           surface: Colors.white,
           primary: state.highContrast ? const Color(0xff005f73) : brandCrimson,
           secondary: state.highContrast ? const Color(0xffe07a00) : routeCobalt,
           onSurface: state.highContrast ? const Color(0xff102a43) : deepInk,
         ),
-        textTheme: const TextTheme(
-          bodyMedium: TextStyle(fontFamily: 'Arial'),
-          displayMedium: TextStyle(
-            fontFamily: 'Arial',
-            fontWeight: FontWeight.w700,
-          ),
-        ),
+        cardTheme: const CardThemeData(elevation: 0, color: Colors.white),
       ),
-      builder: (context, child) {
-        final media = MediaQuery.of(context);
-        return MediaQuery(
-          data: state.highContrast
-              ? media.copyWith(
-                  textScaler: media.textScaler.clamp(
-                    minScaleFactor: 1.18,
-                    maxScaleFactor: 2.0,
-                  ),
-                )
-              : media,
-          child: child ?? const SizedBox.shrink(),
-        );
-      },
-      home: MadMapsShell(state: state),
+      home: MadMapsShell(state: widget.state, repository: widget.repository),
     ),
   );
+  @override
+  void dispose() {
+    widget.state.dispose();
+    super.dispose();
+  }
 }
