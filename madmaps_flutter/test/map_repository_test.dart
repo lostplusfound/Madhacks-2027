@@ -257,22 +257,34 @@ void main() {
     state.dispose();
   });
   test(
-    'seed preserves current Floor 1 IDs, geometry, routes and categories',
+    'adapter preserves backend Floor 1 IDs, geometry, routes and categories',
     () async {
       final snapshot = fixture();
       final actual = adaptSnapshot(snapshot);
-      final bundled = await FloorGraph.load();
-      expect(actual.nodes.keys.toSet(), bundled.nodes.keys.toSet());
-      for (final id in actual.nodes.keys) {
-        expect(actual.nodes[id]!.point, bundled.nodes[id]!.point);
+      expect(
+        actual.nodes.keys.toSet(),
+        snapshot.nodes.map((n) => n.nodeId).toSet(),
+      );
+      for (final node in snapshot.nodes) {
+        expect(actual.nodes[node.nodeId]!.point, Offset(node.x, node.y));
       }
       expect(
         actual.locations.map((p) => [p.id, p.label, p.aliases, p.node]),
-        bundled.locations.map((p) => [p.id, p.label, p.aliases, p.node]),
+        snapshot.locations.map(
+          (p) => [
+            p.locationId,
+            p.name ??
+                (p.roomNumber == null ? p.locationId : 'Room ${p.roomNumber}'),
+            p.aliases ?? '',
+            p.routeNodeId,
+          ],
+        ),
       );
       expect(
         actual.edges.map((e) => [e.from, e.to, e.cost, e.bidirectional]),
-        bundled.edges.map((e) => [e.from, e.to, e.cost, e.bidirectional]),
+        snapshot.edges.map(
+          (e) => [e.fromNodeId, e.toNodeId, e.costPx, e.bidirectional],
+        ),
       );
       expect(
         snapshot.locations
