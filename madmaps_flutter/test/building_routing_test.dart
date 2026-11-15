@@ -192,10 +192,57 @@ void main() {
         result.route!.points,
         isNot(contains(g.nodes['f1-demo-cafe-turn']!.point)),
       );
-      expect(result.route!.points.last, const Offset(655, 834));
+      // The west door branches directly from the west-side hallway.
+      // Going through the north entry first sends visitors east and back west.
       expect(
         result.route!.points,
-        contains(g.nodes['f1-1524-east-hall']!.point),
+        isNot(contains(g.nodes['f1-1524-north-entry']!.point)),
+      );
+      expect(
+        result.route!.points,
+        contains(g.nodes['f1-demo-south-hall']!.point),
+      );
+      expect(result.route!.points.last, const Offset(430, 753));
+      expect(
+        result.route!.points,
+        contains(g.nodes['f1-1524-orchard-approach']!.point),
+      );
+    },
+  );
+  test(
+    'basement routes around the central tables through the marked aisles',
+    () {
+      final g = floors[0]!;
+      final result = findRoute(
+        g,
+        FloorSetup(),
+        g.nodes['f0-central-hall']!.point,
+        'f0-island-south',
+        10,
+      );
+      expect(result.route, isNotNull);
+      expect(
+        result.route!.points,
+        contains(g.nodes['f0-table-north-bend']!.point),
+      );
+      expect(
+        g.permits(
+          g.nodes['f0-central-hall']!.point,
+          g.nodes['f0-island-south']!.point,
+        ),
+        isFalse,
+      );
+      final southern = findRoute(
+        g,
+        FloorSetup(),
+        g.nodes['f0-south-turn']!.point,
+        'f0-island-south',
+        10,
+      );
+      expect(southern.route, isNotNull);
+      expect(
+        southern.route!.points,
+        contains(g.nodes['f0-table-south-junction']!.point),
       );
     },
   );

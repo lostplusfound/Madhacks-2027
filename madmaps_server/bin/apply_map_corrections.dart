@@ -85,7 +85,8 @@ Future<void> main(List<String> args) async {
         for (final delta in update['changes'][key]) {
           final before = delta['before'] as Map<String, dynamic>?;
           final after = delta['after'] as Map<String, dynamic>?;
-          final id = (after ?? before)![idKey] as String;
+          final id =
+              (after ?? before ?? delta['previous'].first)![idKey] as String;
           Map<String, dynamic>? clean(Map<String, dynamic>? v) =>
               v == null ? null : (Map.of(v)..remove('__className__'));
           final current = clean(actual[key]![id] as Map<String, dynamic>?);
@@ -96,6 +97,9 @@ Future<void> main(List<String> args) async {
                     expected.keys.every((k) => same(current[k], expected[k]));
           if (matches(after)) continue;
           if (!matches(before) &&
+              !((delta['previous'] as List?) ?? []).any(
+                (value) => matches(value as Map<String, dynamic>?),
+              ) &&
               !(delta.containsKey('intermediate') &&
                   matches(delta['intermediate'] as Map<String, dynamic>?)))
             throw StateError(

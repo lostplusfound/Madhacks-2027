@@ -113,8 +113,8 @@
       {
         "nodeId": "f0-central-hall",
         "floorId": "morgridge-floor0",
-        "x": 685.0,
-        "y": 397.0,
+        "x": 610.0,
+        "y": 375.0,
         "locationId": null,
         "kind": "junction"
       },
@@ -145,8 +145,8 @@
       {
         "nodeId": "f0-island-south",
         "floorId": "morgridge-floor0",
-        "x": 936.0,
-        "y": 271.0,
+        "x": 970.0,
+        "y": 285.0,
         "locationId": null,
         "kind": "junction"
       },
@@ -154,7 +154,7 @@
         "nodeId": "f0-north-hall",
         "floorId": "morgridge-floor0",
         "x": 855.0,
-        "y": 234.0,
+        "y": 195.0,
         "locationId": null,
         "kind": "junction"
       },
@@ -185,8 +185,8 @@
       {
         "nodeId": "f0-south-turn",
         "floorId": "morgridge-floor0",
-        "x": 700.0,
-        "y": 458.0,
+        "x": 668.0,
+        "y": 463.0,
         "locationId": null,
         "kind": "junction"
       },
@@ -289,8 +289,8 @@
       {
         "nodeId": "f0-b2550-hall",
         "floorId": "morgridge-floor0",
-        "x": 761.0769,
-        "y": 324.0557,
+        "x": 740.0,
+        "y": 285.0,
         "locationId": null,
         "kind": "junction"
       },
@@ -325,6 +325,30 @@
         "y": 249.5034,
         "locationId": null,
         "kind": "junction"
+      },
+      {
+        "nodeId": "f0-table-north-bend",
+        "floorId": "morgridge-floor0",
+        "locationId": null,
+        "kind": "junction",
+        "x": 825.0,
+        "y": 215.0
+      },
+      {
+        "nodeId": "f0-table-east-bend",
+        "floorId": "morgridge-floor0",
+        "locationId": null,
+        "kind": "junction",
+        "x": 965.0,
+        "y": 310.0
+      },
+      {
+        "nodeId": "f0-table-south-junction",
+        "floorId": "morgridge-floor0",
+        "locationId": null,
+        "kind": "junction",
+        "x": 810.0,
+        "y": 375.0
       }
     ],
     "edges": [
@@ -333,7 +357,7 @@
         "fromNodeId": "f0-central-hall",
         "toNodeId": "f0-south-turn",
         "type": "walk",
-        "cost": 62.817195,
+        "cost": 105.394497,
         "bidirectional": true
       },
       {
@@ -341,7 +365,7 @@
         "fromNodeId": "f0-central-hall",
         "toNodeId": "f0-west-study-bend",
         "type": "walk",
-        "cost": 72.277244,
+        "cost": 40.311289,
         "bidirectional": true
       },
       {
@@ -365,7 +389,7 @@
         "fromNodeId": "f0-island-south",
         "toNodeId": "f0-east-hall",
         "type": "walk",
-        "cost": 68.264193,
+        "cost": 39.446166,
         "bidirectional": true
       },
       {
@@ -373,7 +397,7 @@
         "fromNodeId": "f0-b2550",
         "toNodeId": "f0-b2550-hall",
         "type": "walk",
-        "cost": 66.576505,
+        "cost": 26.570661,
         "bidirectional": true
       },
       {
@@ -381,7 +405,7 @@
         "fromNodeId": "f0-north-hall",
         "toNodeId": "f0-b2556",
         "type": "walk",
-        "cost": 55.461698,
+        "cost": 52.201533,
         "bidirectional": true
       },
       {
@@ -389,7 +413,7 @@
         "fromNodeId": "f0-north-hall",
         "toNodeId": "f0-island-south",
         "type": "walk",
-        "cost": 89.050547,
+        "cost": 146.030819,
         "bidirectional": true
       },
       {
@@ -397,7 +421,7 @@
         "fromNodeId": "f0-north-hall",
         "toNodeId": "f0-north-study-hall",
         "type": "walk",
-        "cost": 123.166554,
+        "cost": 101.079177,
         "bidirectional": true
       },
       {
@@ -437,7 +461,7 @@
         "fromNodeId": "f0-south-turn",
         "toNodeId": "f0-b2590",
         "type": "walk",
-        "cost": 47.265209,
+        "cost": 79.630396,
         "bidirectional": true
       },
       {
@@ -445,7 +469,7 @@
         "fromNodeId": "f0-south-turn",
         "toNodeId": "f0-south-hall",
         "type": "walk",
-        "cost": 124.064499,
+        "cost": 134.525091,
         "bidirectional": true
       },
       {
@@ -453,7 +477,7 @@
         "fromNodeId": "f0-stairs-landing",
         "toNodeId": "f0-north-hall",
         "type": "walk",
-        "cost": 81.987804,
+        "cost": 52.009614,
         "bidirectional": true
       },
       {
@@ -578,10 +602,10 @@
       },
       {
         "edgeId": "f0-north-hall--f0-b2550-hall",
-        "fromNodeId": "f0-north-hall",
+        "fromNodeId": "f0-table-north-bend",
         "toNodeId": "f0-b2550-hall",
         "type": "walk",
-        "cost": 130.121396,
+        "cost": 110.113578,
         "bidirectional": true
       },
       {
@@ -589,7 +613,7 @@
         "fromNodeId": "f0-b2550-hall",
         "toNodeId": "f0-central-hall",
         "type": "walk",
-        "cost": 105.39718,
+        "cost": 158.113883,
         "bidirectional": true
       },
       {
@@ -638,6 +662,46 @@
         "toNodeId": "f0-north-hall-east",
         "type": "walk",
         "cost": 45.271915,
+        "bidirectional": true
+      },
+      {
+        "edgeId": "f0-north-hall--f0-table-north-bend",
+        "fromNodeId": "f0-north-hall",
+        "toNodeId": "f0-table-north-bend",
+        "type": "walk",
+        "cost": 36.055513,
+        "bidirectional": true
+      },
+      {
+        "edgeId": "f0-island-south--f0-table-east-bend",
+        "fromNodeId": "f0-island-south",
+        "toNodeId": "f0-table-east-bend",
+        "type": "walk",
+        "cost": 25.495098,
+        "bidirectional": true
+      },
+      {
+        "edgeId": "f0-table-east-bend--f0-table-south-junction",
+        "fromNodeId": "f0-table-east-bend",
+        "toNodeId": "f0-table-south-junction",
+        "type": "walk",
+        "cost": 168.077363,
+        "bidirectional": true
+      },
+      {
+        "edgeId": "f0-table-south-junction--f0-south-turn",
+        "fromNodeId": "f0-table-south-junction",
+        "toNodeId": "f0-south-turn",
+        "type": "walk",
+        "cost": 167.056877,
+        "bidirectional": true
+      },
+      {
+        "edgeId": "f0-b2550-hall--f0-table-south-junction",
+        "fromNodeId": "f0-b2550-hall",
+        "toNodeId": "f0-table-south-junction",
+        "type": "walk",
+        "cost": 114.017543,
         "bidirectional": true
       }
     ],
@@ -851,6 +915,54 @@
           {
             "x": 953,
             "y": 228
+          }
+        ]
+      },
+      {
+        "wallId": "f0-central-tables-west",
+        "floorId": "morgridge-floor0",
+        "vertices": [
+          {
+            "x": 634,
+            "y": 378
+          },
+          {
+            "x": 736,
+            "y": 307
+          },
+          {
+            "x": 788,
+            "y": 374
+          },
+          {
+            "x": 678,
+            "y": 440
+          }
+        ]
+      },
+      {
+        "wallId": "f0-central-tables-east",
+        "floorId": "morgridge-floor0",
+        "vertices": [
+          {
+            "x": 765,
+            "y": 286
+          },
+          {
+            "x": 852,
+            "y": 220
+          },
+          {
+            "x": 948,
+            "y": 281
+          },
+          {
+            "x": 944,
+            "y": 297
+          },
+          {
+            "x": 824,
+            "y": 354
           }
         ]
       }
