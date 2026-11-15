@@ -21,6 +21,23 @@ void main() {
   });
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
+  test(
+    'automatic placement projects aligned poses and rejects invalid positions',
+    () {
+      final map = scan();
+      final calibration = map.floor.calibration(map)!;
+      final pose = Matrix4.translationValues(1, 0, 2);
+      final expected = calibration.toImage(const Offset(1, 2));
+      expect(captureImagePoint(map, pose, const Size(10000, 10000)), expected);
+      expect(() => captureImagePoint(map, pose, Size.zero), throwsStateError);
+      map.floor.calibrationIds.clear();
+      expect(
+        () => captureImagePoint(map, pose, const Size(10000, 10000)),
+        throwsStateError,
+      );
+    },
+  );
+
   testWidgets('scan placement uses an arbitrary pin on an uncluttered plan', (
     tester,
   ) async {
@@ -163,8 +180,67 @@ void main() {
         find.textContaining('Follow these steps manually'),
         findsOneWidget,
       );
-      expect(find.byType(CheckboxListTile), findsWidgets);
+      expect(find.byTooltip('Previous step'), findsOneWidget);
+      expect(find.byTooltip('Next step'), findsOneWidget);
+      expect(find.byKey(const ValueKey('manual-step-0')), findsOneWidget);
       expect(localized, isFalse);
+      expect(
+        tester
+            .widget<IconButton>(find.byKey(const ValueKey('previous-step')))
+            .onPressed,
+        isNull,
+      );
+      expect(
+        tester
+            .widget<IconButton>(find.byKey(const ValueKey('next-step')))
+            .onPressed,
+        isNull,
+      );
+      expect(
+        tester
+            .widget<ListTile>(find.byKey(const ValueKey('manual-step-0')))
+            .selected,
+        isTrue,
+      );
+      await tester.ensureVisible(find.text('Start'));
+      await tester.tap(find.text('Start'));
+      await tester.pumpAndSettle();
+      final other = graph.locations.firstWhere(
+        (p) => p.node != null && p.node != end.node,
+      );
+      await tester.enterText(find.byType(TextField), other.label);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(other.label).last);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const ValueKey('next-step')));
+      final initialMap = tester.widget<FloorCanvas>(find.byType(FloorCanvas));
+      expect(initialMap.routePosition, initialMap.fullRoute.first);
+      expect(initialMap.route, initialMap.fullRoute);
+      expect(initialMap.showDestinationMarker, isFalse);
+      await tester.tap(find.byKey(const ValueKey('next-step')));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<ListTile>(find.byKey(const ValueKey('manual-step-1')))
+            .selected,
+        isTrue,
+      );
+      final advancedMap = tester.widget<FloorCanvas>(find.byType(FloorCanvas));
+      expect(advancedMap.routePosition, advancedMap.route.first);
+      expect(advancedMap.route.length, lessThan(advancedMap.fullRoute.length));
+      expect(advancedMap.routePosition, isNot(initialMap.routePosition));
+      await tester.tap(find.byKey(const ValueKey('previous-step')));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<ListTile>(find.byKey(const ValueKey('manual-step-0')))
+            .selected,
+        isTrue,
+      );
+      final restoredMap = tester.widget<FloorCanvas>(find.byType(FloorCanvas));
+      expect(restoredMap.routePosition, initialMap.routePosition);
+      expect(restoredMap.route, initialMap.fullRoute);
+      await tester.scrollUntilVisible(find.text('Use current location'), -400);
       await tester.tap(find.text('Use current location'));
       await tester.pumpAndSettle();
       expect(find.byType(CheckboxListTile), findsNothing);

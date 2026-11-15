@@ -21,10 +21,14 @@ class FloorCanvas extends StatelessWidget {
     this.selectedLocation,
     this.highContrast = false,
     this.showPosition = true,
+    this.routePosition,
+    this.showDestinationMarker = true,
   });
   final String? selectedLocation;
   final bool highContrast;
   final bool showPosition;
+  final Offset? routePosition;
+  final bool showDestinationMarker;
   final FloorGraph graph;
   final FloorSetup setup;
   final Offset? camera, headingPoint;
@@ -82,6 +86,8 @@ class FloorCanvas extends StatelessWidget {
                       highContrast,
                       pin,
                       showPosition,
+                      routePosition,
+                      showDestinationMarker,
                     ),
                   ),
                 ],
@@ -116,10 +122,14 @@ class _FloorPainter extends CustomPainter {
     this.highContrast,
     this.pin,
     this.showPosition,
+    this.routePosition,
+    this.showDestinationMarker,
   );
   final String? selectedLocation;
   final bool highContrast;
   final bool showPosition;
+  final Offset? routePosition;
+  final bool showDestinationMarker;
   final FloorGraph graph;
   final FloorSetup setup;
   final Offset? camera, headingPoint;
@@ -186,8 +196,44 @@ class _FloorPainter extends CustomPainter {
           ..strokeCap = StrokeCap.round,
       );
     }
-    if (route.isNotEmpty) {
+    if (showDestinationMarker && route.isNotEmpty) {
       canvas.drawCircle(p(route.last), 9, Paint()..color = Colors.red);
+    }
+    if (routePosition != null) {
+      final center = p(routePosition!);
+      // Manual guidance indicates the next path segment, not device heading.
+      for (final next in route) {
+        final delta = p(next) - center;
+        if (delta.distance < .01) continue;
+        final direction = delta / delta.distance;
+        final tip = center + direction * 32;
+        final side = Offset(-direction.dy, direction.dx);
+        final arrow = Path()
+          ..moveTo(center.dx, center.dy)
+          ..lineTo(tip.dx, tip.dy)
+          ..moveTo(
+            (tip - direction * 8 + side * 5).dx,
+            (tip - direction * 8 + side * 5).dy,
+          )
+          ..lineTo(tip.dx, tip.dy)
+          ..lineTo(
+            (tip - direction * 8 - side * 5).dx,
+            (tip - direction * 8 - side * 5).dy,
+          );
+        for (final stroke in [(Colors.white, 7.0), (Colors.red, 3.0)]) {
+          canvas.drawPath(
+            arrow,
+            Paint()
+              ..color = stroke.$1
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = stroke.$2
+              ..strokeCap = StrokeCap.round
+              ..strokeJoin = StrokeJoin.round,
+          );
+        }
+        break;
+      }
+      canvas.drawCircle(center, 9, Paint()..color = Colors.red);
     }
     for (final entry
         in showGraph

@@ -254,6 +254,11 @@ class _SharedPointEditorState extends State<SharedPointEditor> {
     unawaited(loadOriginal());
   }
 
+  bool get canLocalize =>
+      map.anchors.length >= 2 &&
+      map.floor.calibration(map) != null &&
+      map.anchors.any((a) => !a.expired);
+
   Future<void> loadOriginal() async {
     try {
       expected = await SharedCaptures().originalJson(map.id);
@@ -377,9 +382,35 @@ class _SharedPointEditorState extends State<SharedPointEditor> {
                   : () => remove(anchor),
             ),
           ),
+        if (canLocalize)
+          FilledButton.icon(
+            icon: const Icon(Icons.my_location),
+            label: const Text('Localize and add point'),
+            onPressed:
+                busy || expected == null || conflict || map.anchors.length >= 20
+                ? null
+                : () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute<void>(
+                        builder: (_) => GuidedCaptureScreen(
+                          graph: widget.graph,
+                          existingMap: map,
+                          expectedJson: expected,
+                          automaticPlacement: true,
+                        ),
+                      ),
+                    );
+                    if (context.mounted) Navigator.pop(context);
+                  },
+          ),
+        if (!canLocalize)
+          const Text(
+            'Automatic placement needs a calibrated scan with at least two points and an unexpired anchor.',
+          ),
         FilledButton.icon(
           icon: const Icon(Icons.add_location_alt_outlined),
-          label: const Text('Add point'),
+          label: const Text('Add point with map pin'),
           onPressed:
               busy || expected == null || conflict || map.anchors.length >= 20
               ? null
@@ -415,11 +446,13 @@ class GuidedCaptureScreen extends StatefulWidget {
     this.adapter,
     this.existingMap,
     this.expectedJson,
+    this.automaticPlacement = false,
   });
   final FloorGraph graph;
   final ArAdapter? adapter;
   final AnchorMap? existingMap;
   final String? expectedJson;
+  final bool automaticPlacement;
   @override
   State<GuidedCaptureScreen> createState() => _GuidedCaptureScreenState();
 }
@@ -455,6 +488,7 @@ class _GuidedCaptureScreenState extends State<GuidedCaptureScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    cameraMode = widget.automaticPlacement;
     ar.addListener(changed);
     ar.onTap = (hits) async {
       if (!cameraMode ||
@@ -538,7 +572,11 @@ class _GuidedCaptureScreenState extends State<GuidedCaptureScreen>
   }
 
   Future<void> host() async {
-    if (draft == null || point == null || busy || !ar.tracking || interrupted)
+    if (draft == null ||
+        (!widget.automaticPlacement && point == null) ||
+        busy ||
+        !ar.tracking ||
+        interrupted)
       return;
     setState(() {
       busy = true;
@@ -581,16 +619,28 @@ class _GuidedCaptureScreenState extends State<GuidedCaptureScreen>
           );
         }
         final alignment = alignMap(savedReference!.pose, refSample.pose);
+        final pose = alignment * hostedSample.pose;
+        late final Offset imagePoint;
+        try {
+          imagePoint = widget.automaticPlacement
+              ? captureImagePoint(map, pose, widget.graph.imageSize)
+              : point!;
+        } catch (_) {
+          await ar.release(anchor);
+          draft = null;
+          rethrow;
+        }
         map.anchors.add(
           SavedAnchor(
             anchor.name,
             'Point ${map.anchors.length + 1}',
             anchor.cloudanchorid!,
-            alignment * hostedSample.pose,
+            pose,
             DateTime.now().add(cloudAnchorLifetime),
           ),
         );
-        map.floor.anchorPoints[anchor.name] = point!;
+        map.floor.anchorPoints[anchor.name] = imagePoint;
+        point = imagePoint;
         map.scanCoverage.add(scan.progress);
         draft = null;
         complete = true;
@@ -698,9 +748,13 @@ class _GuidedCaptureScreenState extends State<GuidedCaptureScreen>
           padding: const EdgeInsets.all(12),
           child: Text(
             complete
-                ? 'Calibration ready. Scale: ${map.floor.calibration(map)!.scale.toStringAsFixed(1)} pixels/meter. Check the two positions before sharing.'
+                ? widget.existingMap != null
+                      ? 'New point ready. Check its position on the plan before sharing.'
+                      : 'Calibration ready. Scale: ${map.floor.calibration(map)!.scale.toStringAsFixed(1)} pixels/meter. Check the two positions before sharing.'
                 : cameraMode && widget.existingMap != null && reference == null
                 ? 'Scan around an existing point to localize before placing the new point.'
+                : cameraMode && widget.automaticPlacement
+                ? 'Walk to the next spot, tap a visible floor surface, then move around it and scan.'
                 : cameraMode
                 ? 'At your selected map point, tap that point on a visible floor surface, then move around it and scan.'
                 : 'Drop a pin anywhere on the plan where you want to scan${native.isEmpty ? '.' : ', at least 2 meters from the first point.'}',
@@ -784,6 +838,7 @@ class _GuidedCaptureScreenState extends State<GuidedCaptureScreen>
                             graph: widget.graph,
                             existingMap: widget.existingMap,
                             expectedJson: widget.expectedJson,
+                            automaticPlacement: widget.automaticPlacement,
                           ),
                         ),
                       );

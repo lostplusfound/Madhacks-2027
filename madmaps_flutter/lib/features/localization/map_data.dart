@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui' show Offset, Size;
 import 'dart:math' as math;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:vector_math/vector_math_64.dart';
@@ -140,4 +141,23 @@ bool repairCaptureCalibration(AnchorMap map) {
   }
   map.floor.calibrationIds.clear();
   return false;
+}
+
+/// Project an aligned hosted pose through the scan's existing calibration.
+Offset captureImagePoint(AnchorMap map, Matrix4 pose, Size bounds) {
+  final calibration = map.floor.calibration(map);
+  if (calibration == null)
+    throw StateError('This scan needs calibration before automatic placement.');
+  final point = calibration.toImage(Offset(pose.entry(0, 3), pose.entry(2, 3)));
+  if (!point.dx.isFinite ||
+      !point.dy.isFinite ||
+      point.dx < 0 ||
+      point.dy < 0 ||
+      point.dx > bounds.width ||
+      point.dy > bounds.height) {
+    throw StateError(
+      'The new point is outside this floor plan. Localize again and retry.',
+    );
+  }
+  return point;
 }

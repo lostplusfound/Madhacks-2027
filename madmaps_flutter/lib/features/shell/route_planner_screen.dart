@@ -90,14 +90,16 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
   BuildingRoute? route;
   String? error;
   int legIndex = 0;
-  final completed = <int>{};
+  int stepIndex = 0;
+  final stepLegs = <int>[];
+  final stepPoints = <int>[];
   List<FloorLocation> get places =>
       widget.floors.values.expand((g) => g.locations).toList();
   void calculate() {
     route = null;
     error = null;
     legIndex = 0;
-    completed.clear();
+    stepIndex = 0;
     if (start == null || end == null) return;
     final g = widget.floors[start!.floor]!;
     if (start!.node == null || !g.nodes.containsKey(start!.node)) {
@@ -119,14 +121,18 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
   }
 
   List<String> instructions() {
+    stepLegs.clear();
+    stepPoints.clear();
     if (route == null) return [];
     final steps = <String>[];
-    for (final leg in route!.legs) {
+    for (var legNumber = 0; legNumber < route!.legs.length; legNumber++) {
+      final leg = route!.legs[legNumber];
       final label = widget.floors[leg.floor]!.floorLabel;
       final scale = widget.floors[leg.floor]!.metersPerPixel;
       if (leg.points.length > 1) {
         var distance = 0.0;
         var action = 'Follow the highlighted path';
+        var segmentStart = 0;
         for (var i = 1; i < leg.points.length; i++) {
           distance += (leg.points[i] - leg.points[i - 1]).distance * scale;
           final turn = i + 1 < leg.points.length
@@ -136,6 +142,9 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
                 )
               : null;
           if (turn != 'Continue') {
+            stepLegs.add(legNumber);
+            stepPoints.add(segmentStart);
+            segmentStart = i;
             steps.add(
               '$label: $action for about ${widget.state.distance(distance)}.',
             );
@@ -145,13 +154,24 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
         }
       }
       if (leg.exit case final exit?) {
+        stepLegs.add(legNumber);
+        stepPoints.add(leg.points.length - 1);
         steps.add(
           '${floorTransitionInstruction(exit)}.',
         );
       }
     }
+    stepLegs.add(route!.legs.length - 1);
+    stepPoints.add(route!.legs.last.points.length - 1);
     steps.add('Reach the entrance to ${widget.state.label(end!)}.');
     return steps;
+  }
+
+  void selectStep(int index) {
+    setState(() {
+      stepIndex = index;
+      legIndex = stepLegs[index];
+    });
   }
 
   @override
@@ -271,21 +291,74 @@ class _RoutePlannerScreenState extends State<RoutePlannerScreen> {
                 setup: FloorSetup(),
                 showGraph: false,
                 showLabels: false,
-                route: leg.points,
+                route: legIndex < stepLegs[stepIndex]
+                    ? const []
+                    : legIndex == stepLegs[stepIndex]
+                    ? leg.points.sublist(stepPoints[stepIndex])
+                    : leg.points,
                 fullRoute: leg.points,
+                routePosition: legIndex == stepLegs[stepIndex]
+                    ? leg.points[stepPoints[stepIndex]]
+                    : null,
+                showDestinationMarker: false,
+              ),
+            ),
+            Card(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Text(
+                      'Step ${stepIndex + 1} of ${steps.length}',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      steps[stepIndex],
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        IconButton(
+                          key: const ValueKey('previous-step'),
+                          tooltip: 'Previous step',
+                          onPressed: stepIndex == 0
+                              ? null
+                              : () => selectStep(stepIndex - 1),
+                          icon: const Icon(Icons.arrow_back),
+                        ),
+                        IconButton(
+                          key: const ValueKey('next-step'),
+                          tooltip: 'Next step',
+                          onPressed: stepIndex == steps.length - 1
+                              ? null
+                              : () => selectStep(stepIndex + 1),
+                          icon: const Icon(Icons.arrow_forward),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
             for (var i = 0; i < steps.length; i++)
-              CheckboxListTile(
-                value: completed.contains(i),
+              ListTile(
+                key: ValueKey('manual-step-$i'),
+                selected: i == stepIndex,
+                selectedTileColor: Theme.of(
+                  context,
+                ).colorScheme.primaryContainer,
+                leading: Icon(
+                  i < stepIndex
+                      ? Icons.check_circle_outline
+                      : i == stepIndex
+                      ? Icons.play_arrow
+                      : Icons.circle_outlined,
+                ),
                 title: Text('${i + 1}. ${steps[i]}'),
-                onChanged: (v) => setState(() {
-                  if (v == true) {
-                    completed.add(i);
-                  } else {
-                    completed.remove(i);
-                  }
-                }),
+                onTap: () => selectStep(i),
               ),
           ],
           FilledButton.icon(

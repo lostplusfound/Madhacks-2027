@@ -72,3 +72,17 @@ The additive migration creates `ar_capture` and `floor_connector`. The launcher 
 Regressions cover mapped-destination connectivity, wall intersections, bathroom and 1524 routes, connector choices, automatic stairs/elevator handoff without replacing the AR session, and capture persistence/retries/revision compatibility. Physical walking, native hosting, second-phone resolution, and connector pairing checks remain necessary. Serverpod/Dart MCP was unavailable during implementation; the local runner API/CLI fallback was used. No physical phone validation is claimed.
 
 Cross-floor directions offer a Between floors choice of Elevator or Stairs in the planner, Map controls, and live route menu. Avoid stairs overrides the choice until stairs are allowed again. Unavailable choices report no connected route. The live position pointer is drawn above place markers and labels, at a constant screen size.
+
+## Manual steps and automatic capture placement
+
+Named-start directions highlight one current step with Previous/Next arrows and
+step selection from the instruction list. Advancing selects the matching floor
+leg; the floor selector remains available for preview. Progress is manual and
+does not record a tracked arrival.
+
+In a shared scan with two or more points, valid calibration, and an unexpired
+anchor, choose **Localize and add point**. Scan an existing point, walk to the
+next spot, tap a physical floor surface, and scan around it. Its plan position
+is computed from the tracked reference and hosted pose, then shown for review
+before sharing. **Add point with map pin** remains available. New scans still
+need two pinned calibration points. Interrupted sessions require restarting.
