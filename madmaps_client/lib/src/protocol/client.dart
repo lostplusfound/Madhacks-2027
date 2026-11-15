@@ -96,6 +96,31 @@ class EndpointBuildingMap extends _isc.EndpointRef {
   @override
   String get name => 'buildingMap';
 
+  /// Compare-and-swap shared metadata without changing map geometry.
+  _ida.Future<_i1pvqriv.ArCapture> updateCapture(
+    _i1pvqriv.ArCapture capture,
+    String expectedAnchorMapJson,
+  ) => caller.callServerEndpoint<_i1pvqriv.ArCapture>(
+    'buildingMap',
+    'updateCapture',
+    {
+      'capture': capture,
+      'expectedAnchorMapJson': expectedAnchorMapJson,
+    },
+  );
+
+  _ida.Future<void> deleteCapture(
+    String captureId,
+    String expectedAnchorMapJson,
+  ) => caller.callServerEndpoint<void>(
+    'buildingMap',
+    'deleteCapture',
+    {
+      'captureId': captureId,
+      'expectedAnchorMapJson': expectedAnchorMapJson,
+    },
+  );
+
   _ida.Future<List<_ik47qssa.FloorConnector>> listConnectors(
     String buildingId,
   ) => caller.callServerEndpoint<List<_ik47qssa.FloorConnector>>(

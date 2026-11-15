@@ -17,7 +17,12 @@ class SavedScreen extends StatelessWidget {
   final int displayedFloor;
   final ValueChanged<FloorLocation> onChoose;
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: state,
+    builder: (context, _) => contents(context),
+  );
+
+  Widget contents(BuildContext context) {
     final saved = places.where((p) => state.saved.contains(p.id)).toList();
     final suggested =
         places

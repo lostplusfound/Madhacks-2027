@@ -36,6 +36,7 @@ BuildingRoute? planBuildingRoute({
   Map<int, FloorSetup> setups = const {},
   Map<int, double> measuredScales = const {},
   bool avoidStairs = false,
+  String? startNode,
 }) {
   final source = floors[startFloor], target = floors[destination.floor];
   if (source == null ||
@@ -116,7 +117,12 @@ BuildingRoute? planBuildingRoute({
     if ((distance - nearest).abs() < 1e-6) attachments.add((e, p));
   }
   const root = '@start';
-  for (final (e, p) in attachments) {
+  if (startNode != null) {
+    if (!source.nodes.containsKey(startNode)) return null;
+    link(root, ref(startFloor, startNode), 0);
+  }
+  for (final (e, p)
+      in startNode == null ? attachments : <(FloorEdge, Offset)>[]) {
     final a = source.point(e.from, setup),
         b = source.point(e.to, setup),
         length = (a - b).distance;

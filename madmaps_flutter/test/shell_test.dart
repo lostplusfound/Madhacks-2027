@@ -123,7 +123,11 @@ void main() {
       expect(find.byTooltip('Save place'), findsOneWidget);
       await tester.tap(find.byTooltip('Save place'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Saved'));
+      await tester.tap(find.text('Profile'));
+      await tester.pumpAndSettle();
+      expect(find.text('Community'), findsOneWidget);
+      expect(find.text('Saved'), findsNothing);
+      await tester.tap(find.text('Saved places'));
       await tester.pumpAndSettle();
       expect(state.saved.length, 1);
       await tester.longPress(find.text('Room 1524'));
@@ -136,15 +140,18 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Navigate'));
       await tester.pumpAndSettle();
+      expect(find.text('Current location'), findsOneWidget);
+      expect(find.text('Directions'), findsOneWidget);
+      await tester.tap(find.text('Localize and navigate'));
+      await tester.pumpAndSettle();
       expect(find.text('Scan a floor to enable live guidance'), findsOneWidget);
       expect(find.text('Open mapping tools'), findsOneWidget);
       await tester.tap(find.text('Open mapping tools'));
-      await tester.pumpAndSettle();
-      expect(find.text('Map with AR'), findsOneWidget);
-      await tester.pageBack();
+      await tester.pump();
+      expect(find.text('Community'), findsWidgets);
+      await tester.tap(find.text('Map'));
       await tester.pumpAndSettle();
       expect(find.text('My room'), findsOneWidget);
-      expect(find.text('Cancel'), findsOneWidget);
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
       expect(find.text('Explore Floor 1'), findsOneWidget);
@@ -193,6 +200,12 @@ void main() {
       await tester.enterText(find.byType(TextField), '1524');
       await tester.pumpAndSettle();
       await tester.tap(find.text('Room 1524'));
+      await tester.pump();
+      await tester.runAsync(() async {
+        await FloorGraph.load();
+      });
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Localize and navigate'));
       await tester.pump();
       await tester.runAsync(() async {
         await FloorGraph.load();

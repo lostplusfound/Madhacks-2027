@@ -8,6 +8,7 @@ class FloorCanvas extends StatelessWidget {
     required this.graph,
     required this.setup,
     this.camera,
+    this.pin,
     this.headingPoint,
     this.route = const [],
     this.fullRoute = const [],
@@ -25,6 +26,7 @@ class FloorCanvas extends StatelessWidget {
   final FloorGraph graph;
   final FloorSetup setup;
   final Offset? camera, headingPoint;
+  final Offset? pin;
   final List<Offset> route;
   final List<Offset> fullRoute;
   final ValueChanged<Offset>? onPoint;
@@ -76,6 +78,7 @@ class FloorCanvas extends StatelessWidget {
                       rejoinPoint,
                       selectedLocation,
                       highContrast,
+                      pin,
                     ),
                   ),
                 ],
@@ -108,6 +111,7 @@ class _FloorPainter extends CustomPainter {
     this.rejoinPoint,
     this.selectedLocation,
     this.highContrast,
+    this.pin,
   );
   final String? selectedLocation;
   final bool highContrast;
@@ -119,6 +123,7 @@ class _FloorPainter extends CustomPainter {
   final bool labels;
   final bool showGraph;
   final Offset? rejoinPoint;
+  final Offset? pin;
   @override
   void paint(Canvas canvas, Size size) {
     Offset p(Offset q) => Offset(
@@ -202,6 +207,41 @@ class _FloorPainter extends CustomPainter {
         )..layout(maxWidth: 130);
         text.paint(canvas, p(graph.point(node, setup)) + const Offset(5, 3));
       }
+    }
+    if (pin != null) {
+      final tip = p(pin!);
+      final marker = Path()
+        ..moveTo(tip.dx, tip.dy)
+        ..cubicTo(
+          tip.dx - 5,
+          tip.dy - 8,
+          tip.dx - 12,
+          tip.dy - 15,
+          tip.dx - 8,
+          tip.dy - 22,
+        )
+        ..cubicTo(
+          tip.dx - 4,
+          tip.dy - 30,
+          tip.dx + 4,
+          tip.dy - 30,
+          tip.dx + 8,
+          tip.dy - 22,
+        )
+        ..cubicTo(
+          tip.dx + 12,
+          tip.dy - 15,
+          tip.dx + 5,
+          tip.dy - 8,
+          tip.dx,
+          tip.dy,
+        );
+      canvas.drawPath(marker, Paint()..color = Colors.red.shade700);
+      canvas.drawCircle(
+        tip + const Offset(0, -19),
+        4,
+        Paint()..color = Colors.white,
+      );
     }
     if (camera != null) {
       if (rejoinPoint != null) {

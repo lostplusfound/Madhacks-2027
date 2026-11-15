@@ -8,12 +8,16 @@ be shared through Serverpod; see [navigation and capture](docs/ALL_FLOOR_NAVIGAT
 Cloud Anchor hosting/resolution uses Google directly. The visitor shell requires
 a successful Serverpod map load; already-loaded maps remain usable in memory.
 
-The visitor UI now provides Home search, Map, Saved and Profile tabs, using real
+The visitor UI now provides Home search, Map, Community and Profile tabs, using real
 floor-1 navigation. See [Swara UI integration and feature differences](docs/SWARA_UI_INTEGRATION.md).
-Home includes available backend category shortcuts; Saved supports bookmarks and aliases;
+Home includes available backend category shortcuts; Saved places under Profile supports bookmarks and aliases;
 Profile offers units, high contrast, spoken directions, and **Manage AR maps and
 calibration**. Set up two anchors and Floor 1 calibration there, return to Map,
 then select **Find my location**. A missing-setup prompt retains the destination.
+Community provides shared AR point creation and editing. **Plan a route** lets
+visitors choose start and end places for manual instructions across floors.
+The default start, **Current location**, requires visual localization; selecting
+a named start provides directions without the camera, with optional live guidance.
 Tab changes retain the active session; Cancel clears the trip, and Back closes it.
 Basement and floors 1?3 support browsing, room selection, search, and saved places.
 All four floors support graph routing through stairs and elevators. See [current navigation and capture](docs/ALL_FLOOR_NAVIGATION.md). See [map/UI integration](docs/MAPS_UI_RECOVERY.md).

@@ -5,6 +5,115 @@ import '../mapping/capture_validation.dart';
 import 'map_graph_service.dart';
 
 class BuildingMapEndpoint extends Endpoint {
+  /// Compare-and-swap shared metadata without changing map geometry.
+  Future<ArCapture> updateCapture(
+    Session session,
+    ArCapture capture,
+    String expectedAnchorMapJson,
+  ) async {
+    final graph = await const MapGraphService().getGraph(
+      session,
+      capture.graphId,
+    );
+    if (graph == null ||
+        graph.graph.version != capture.graphVersion ||
+        !graph.floors.any((f) => f.floorNumber == capture.floorNumber)) {
+      throw MapApiException(
+        code: 'revisionMismatch',
+        message: 'Reload the floor map before editing this scan.',
+      );
+    }
+    late DateTime expiry;
+    try {
+      expiry = validateCapture(
+        capture.anchorMapJson,
+        capture.captureId,
+        capture.floorNumber,
+        DateTime.now().toUtc(),
+      );
+    } catch (_) {
+      throw MapApiException(
+        code: 'invalidCapture',
+        message: 'Keep 2 to 20 valid points and a valid calibration pair.',
+      );
+    }
+    return session.db.transaction((transaction) async {
+      await session.db.unsafeQuery(
+        'SELECT pg_advisory_xact_lock(hashtext(@captureId))',
+        parameters: QueryParameters.named({'captureId': capture.captureId}),
+        transaction: transaction,
+      );
+      final existing = await ArCapture.db.findFirstRow(
+        session,
+        where: (t) => t.captureId.equals(capture.captureId),
+        transaction: transaction,
+      );
+      if (existing == null ||
+          !existing.expiresAt.isAfter(DateTime.now().toUtc()) ||
+          existing.graphId != capture.graphId ||
+          existing.graphVersion != capture.graphVersion ||
+          existing.floorNumber != capture.floorNumber) {
+        throw MapApiException(
+          code: 'captureConflict',
+          message: 'This scan changed or was removed. Refresh Community.',
+        );
+      }
+      if (existing.anchorMapJson == capture.anchorMapJson) return existing;
+      if (existing.anchorMapJson != expectedAnchorMapJson) {
+        throw MapApiException(
+          code: 'captureConflict',
+          message:
+              'Someone edited this scan. Refresh Community before editing again.',
+        );
+      }
+      return ArCapture.db.updateRow(
+        session,
+        existing.copyWith(
+          anchorMapJson: capture.anchorMapJson,
+          expiresAt: expiry,
+        ),
+        transaction: transaction,
+      );
+    });
+  }
+
+  Future<void> deleteCapture(
+    Session session,
+    String captureId,
+    String expectedAnchorMapJson,
+  ) async {
+    await session.db.transaction((transaction) async {
+      await session.db.unsafeQuery(
+        'SELECT pg_advisory_xact_lock(hashtext(@captureId))',
+        parameters: QueryParameters.named({'captureId': captureId}),
+        transaction: transaction,
+      );
+      final existing = await ArCapture.db.findFirstRow(
+        session,
+        where: (t) => t.captureId.equals(captureId),
+        transaction: transaction,
+      );
+      if (existing == null ||
+          !existing.expiresAt.isAfter(DateTime.now().toUtc()))
+        return;
+      if (existing.anchorMapJson != expectedAnchorMapJson) {
+        throw MapApiException(
+          code: 'captureConflict',
+          message:
+              'Someone edited this scan. Refresh Community before removing it.',
+        );
+      }
+      // Retain the ID so an old queued initial upload cannot resurrect this scan.
+      await ArCapture.db.updateRow(
+        session,
+        existing.copyWith(
+          expiresAt: DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+        ),
+        transaction: transaction,
+      );
+    });
+  }
+
   Future<List<FloorConnector>> listConnectors(
     Session session,
     String buildingId,
@@ -71,7 +180,8 @@ class BuildingMapEndpoint extends Endpoint {
         transaction: transaction,
       );
       if (existing != null) {
-        if (existing.graphId != capture.graphId ||
+        if (!existing.expiresAt.isAfter(DateTime.now().toUtc()) ||
+            existing.graphId != capture.graphId ||
             existing.graphVersion != capture.graphVersion ||
             existing.floorNumber != capture.floorNumber ||
             jsonEncode(jsonDecode(existing.anchorMapJson)) !=

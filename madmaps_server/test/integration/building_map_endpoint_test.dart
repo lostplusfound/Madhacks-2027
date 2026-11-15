@@ -127,6 +127,107 @@ void main() {
         ),
       );
     });
+    test(
+      'shared edits reject conflicts, retry safely, and deletion cannot be resurrected',
+      () async {
+        final snapshot = await graph();
+        final original = await endpoints.buildingMap.publishCapture(
+          sessions,
+          input(snapshot.graph.version),
+        );
+        final changed =
+            jsonDecode(original.anchorMapJson) as Map<String, dynamic>;
+        changed['name'] = 'Updated shared scan';
+        final edit = original.copyWith(anchorMapJson: jsonEncode(changed));
+        final updated = await endpoints.buildingMap.updateCapture(
+          sessions,
+          edit,
+          original.anchorMapJson,
+        );
+        expect(updated.id, original.id);
+        expect(updated.anchorMapJson, edit.anchorMapJson);
+        expect(
+          (await endpoints.buildingMap.updateCapture(
+            sessions,
+            edit,
+            original.anchorMapJson,
+          )).id,
+          original.id,
+        );
+        changed['name'] = 'Conflicting update';
+        await expectLater(
+          endpoints.buildingMap.updateCapture(
+            sessions,
+            original.copyWith(anchorMapJson: jsonEncode(changed)),
+            original.anchorMapJson,
+          ),
+          throwsA(
+            isA<MapApiException>().having(
+              (e) => e.code,
+              'code',
+              'captureConflict',
+            ),
+          ),
+        );
+        await expectLater(
+          endpoints.buildingMap.deleteCapture(
+            sessions,
+            original.captureId,
+            original.anchorMapJson,
+          ),
+          throwsA(
+            isA<MapApiException>().having(
+              (e) => e.code,
+              'code',
+              'captureConflict',
+            ),
+          ),
+        );
+        await endpoints.buildingMap.deleteCapture(
+          sessions,
+          original.captureId,
+          updated.anchorMapJson,
+        );
+        await endpoints.buildingMap.deleteCapture(
+          sessions,
+          original.captureId,
+          updated.anchorMapJson,
+        );
+        expect(
+          await endpoints.buildingMap.listCaptures(
+            sessions,
+            'capture-floor',
+            snapshot.graph.version,
+          ),
+          isEmpty,
+        );
+        await expectLater(
+          endpoints.buildingMap.publishCapture(sessions, original),
+          throwsA(
+            isA<MapApiException>().having(
+              (e) => e.code,
+              'code',
+              'captureConflict',
+            ),
+          ),
+        );
+        await expectLater(
+          endpoints.buildingMap.updateCapture(
+            sessions,
+            edit,
+            updated.anchorMapJson,
+          ),
+          throwsA(
+            isA<MapApiException>().having(
+              (e) => e.code,
+              'code',
+              'captureConflict',
+            ),
+          ),
+        );
+      },
+    );
+
     test('stale map revision and graph overrides are rejected', () async {
       final snapshot = await graph();
       await expectLater(

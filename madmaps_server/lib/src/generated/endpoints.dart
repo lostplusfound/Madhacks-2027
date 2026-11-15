@@ -200,6 +200,58 @@ class Endpoints extends _is.EndpointDispatch {
       name: 'buildingMap',
       endpoint: endpoints['buildingMap']!,
       methodConnectors: {
+        'updateCapture': _is.MethodConnector(
+          name: 'updateCapture',
+          params: {
+            'capture': _is.ParameterDescription(
+              name: 'capture',
+              type: _is.getType<_ifbpi8hm.ArCapture>(),
+              nullable: false,
+            ),
+            'expectedAnchorMapJson': _is.ParameterDescription(
+              name: 'expectedAnchorMapJson',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['buildingMap'] as _i1x4rfk8.BuildingMapEndpoint)
+                      .updateCapture(
+                        session,
+                        params['capture'],
+                        params['expectedAnchorMapJson'],
+                      ),
+        ),
+        'deleteCapture': _is.MethodConnector(
+          name: 'deleteCapture',
+          params: {
+            'captureId': _is.ParameterDescription(
+              name: 'captureId',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'expectedAnchorMapJson': _is.ParameterDescription(
+              name: 'expectedAnchorMapJson',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['buildingMap'] as _i1x4rfk8.BuildingMapEndpoint)
+                      .deleteCapture(
+                        session,
+                        params['captureId'],
+                        params['expectedAnchorMapJson'],
+                      ),
+        ),
         'listConnectors': _is.MethodConnector(
           name: 'listConnectors',
           params: {

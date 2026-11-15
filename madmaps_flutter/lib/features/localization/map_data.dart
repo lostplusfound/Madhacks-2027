@@ -120,3 +120,24 @@ double relativeBearing(Matrix4 camera, Vector3 target) {
   final angle = math.atan2(target.x - p.x, -(target.z - p.z)) - heading(camera);
   return math.atan2(math.sin(angle), math.cos(angle));
 }
+
+/// Preserve the current pair when possible, otherwise find a valid replacement.
+bool repairCaptureCalibration(AnchorMap map) {
+  final current = map.floor.calibration(map);
+  if (current != null && current.scale >= 1 && current.scale <= 200)
+    return true;
+  for (var i = 0; i < map.anchors.length; i++) {
+    for (var j = i + 1; j < map.anchors.length; j++) {
+      map.floor.calibrationIds
+        ..clear()
+        ..addAll([map.anchors[i].id, map.anchors[j].id]);
+      final calibration = map.floor.calibration(map);
+      if (calibration != null &&
+          calibration.scale >= 1 &&
+          calibration.scale <= 200)
+        return true;
+    }
+  }
+  map.floor.calibrationIds.clear();
+  return false;
+}

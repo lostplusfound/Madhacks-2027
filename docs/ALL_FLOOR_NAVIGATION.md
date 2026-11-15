@@ -12,7 +12,48 @@ Upper-floor corrections already made are retained; further upper-floor auditing 
 
 Edit `serverUrl` in `madmaps_flutter/lib/client.dart` and hot reload. The getter is reread on reassembly, the client reconnects, repository caches are invalidated, and stale responses are rejected. The JSON config asset and SERVER_URL override are removed. Pending destinations and local anchor metadata are retained.
 
-Open mapping tools from Profile or the map toolbar. Select a floor and a known point on the plan. Tap that physical point on a visible floor surface, scan around it, and host the anchor. Repeat at a second known point at least 2 meters away, in the same AR session. Check calibration and select Share scan. Interrupted captures must restart the pair; failed uploads are saved for Retry pending uploads.
+Open Community from the bottom bar; Profile and map-toolbar mapping shortcuts
+also open Community. A floor without a compatible shared scan starts with two
+known points at least 2 meters apart in the same AR session. Tap each point on
+the plan and then its physical position on a visible floor surface, scan, host,
+and share. Interrupted captures must restart; failed uploads are saved for retry.
+
+Existing shared scans offer Add point, Remove point, and Remove entire shared
+scan. Add point first resolves an existing anchor; the hosted pose is transformed
+into the saved scan frame using a simultaneous tracked reference sample.
+Removing a calibration point selects a valid remaining pair. Removing the final
+usable pair requires confirming removal of the entire scan. Each scan supports
+2 to 20 anchors. Edits publish immediately through Serverpod and compare the
+original stored JSON to prevent overwriting concurrent edits. No schema migration
+is needed. Deletions retain an expired record so queued uploads cannot resurrect
+the scan. Retry pending uploads includes edits; discard conflicting edits in the
+scan editor and refresh before editing again. Removal only unpublishes metadata,
+not Google's hosted resources. Shared records take precedence over old local copies.
+
+Community also lists local points and links to the original phone-only map tools.
+On opening Community, a one-time import per phone/backend publishes the saved
+Floor 1 snapshot. Local records remain untouched. Interrupted imports resume the
+same payloads, and successful imports do not repeat. Other floors are excluded.
+Cloud expiry is never extended; expired or uncalibrated points are reported and
+kept locally. Missing image positions are derived from the existing calibration,
+while local graph overrides are omitted from shared captures. More than 20 points
+are split into scans retaining the same calibration pair.
+
+Route previews and Community scan placement hide generated place labels and graph
+lines. Tap anywhere on the floor plan to drop a red scan pin; it does not snap to
+rooms or graph nodes. Pan and zoom remain available.
+
+Choose a destination or select Plan a route to specify both endpoints. Current
+location is the default start and requires visual localization before live
+guidance. A named start displays an estimated route and numbered manual steps
+without AR, including floor transitions and Avoid stairs. Manual checkboxes do
+not track position or record arrival. Optional visual localization changes the
+origin to the actual resolved position. Saved places now lives under Profile.
+
+Restarting `scripts/start-local-backend.ps1` applies reviewed corrections, creates
+missing floors, and verifies existing seed data. It does not replace existing
+graphs with changed seed files. Image-only edits do not require reseeding; graph
+edits require a matching backend graph update. Restart the app to reload maps.
 
 The separate mapper entry point, from `madmaps_flutter`, is:
 

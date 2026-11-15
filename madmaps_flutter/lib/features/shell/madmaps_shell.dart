@@ -16,6 +16,7 @@ import 'saved_screen.dart';
 import 'profile_screen.dart';
 import 'navigation_session.dart';
 import 'shared_widgets.dart';
+import 'route_planner_screen.dart';
 
 class MadMapsShell extends StatefulWidget {
   const MadMapsShell({super.key, required this.state, this.repository});
@@ -172,15 +173,35 @@ class _MadMapsShellState extends State<MadMapsShell>
       tab = 1;
     });
     viewport.overview();
-    session.choose(place);
-    if (session.attached) setState(() => displayedFloor = 1);
-    if (!session.attached) unawaited(openSession());
+    unawaited(planRoute(place));
+  }
+
+  Future<void> planRoute([FloorLocation? place]) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (plannerContext) => RoutePlannerScreen(
+          floors: floors,
+          connectors: connectors,
+          state: widget.state,
+          destination: place,
+          initialAvoidStairs: session.avoidStairs,
+          onLocalize: (destination, avoidStairs) {
+            Navigator.pop(plannerContext);
+            session.setAvoidStairs(avoidStairs);
+            session.choose(destination);
+            setState(() {
+              tab = 1;
+              displayedFloor = 1;
+            });
+            unawaited(openSession());
+          },
+        ),
+      ),
+    );
   }
 
   Future<void> openTools() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => CaptureHome(floors: floors)),
-    );
+    setState(() => tab = 2);
   }
 
   Future<void> openSession() async {
@@ -195,10 +216,7 @@ class _MadMapsShellState extends State<MadMapsShell>
       final shared = repository is ServerMapRepository
           ? await SharedCaptures().load(floors)
           : <AnchorMap>[];
-      final maps = <AnchorMap>[
-        ...local,
-        ...shared.where((m) => !local.any((l) => l.id == m.id)),
-      ];
+      final maps = await SharedCaptures().navigationMaps(local, shared);
       if (!mounted) return;
       final usable = maps.where((m) => m.floor.calibration(m) != null).toList();
       if (usable.isEmpty) {
@@ -217,7 +235,7 @@ class _MadMapsShellState extends State<MadMapsShell>
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const Text(
-                    'Choose a floor in Map with AR and capture two known points, or download shared scans. Your destination will stay selected.',
+                    'Choose a floor in Community and capture two known points, or download shared scans. Your destination will stay selected.',
                   ),
                   const SizedBox(height: 16),
                   FilledButton(
@@ -365,6 +383,11 @@ class _MadMapsShellState extends State<MadMapsShell>
                       value: session.avoidStairs,
                       onChanged: session.setAvoidStairs,
                     ),
+                    OutlinedButton.icon(
+                      onPressed: () => planRoute(session.destination),
+                      icon: const Icon(Icons.alt_route),
+                      label: const Text('Plan a route'),
+                    ),
                     FilledButton.icon(
                       onPressed: opening ? null : openSession,
                       icon: const Icon(Icons.camera_alt_outlined),
@@ -485,13 +508,22 @@ class _MadMapsShellState extends State<MadMapsShell>
                       ),
                     ],
                   ),
-                  SavedScreen(
-                    places: places,
+                  tab == 2
+                      ? CaptureHome(floors: floors)
+                      : const SizedBox.shrink(),
+                  ProfileScreen(
                     state: widget.state,
-                    onChoose: choose,
-                    displayedFloor: displayedFloor,
+                    onTools: openTools,
+                    saved: SavedScreen(
+                      places: places,
+                      state: widget.state,
+                      onChoose: (place) {
+                        Navigator.pop(context);
+                        choose(place);
+                      },
+                      displayedFloor: displayedFloor,
+                    ),
                   ),
-                  ProfileScreen(state: widget.state, onTools: openTools),
                 ],
               ),
       ),
@@ -536,9 +568,9 @@ class _MadMapsShellState extends State<MadMapsShell>
                 label: 'Map',
               ),
               NavigationDestination(
-                icon: Icon(Icons.bookmark_border),
-                selectedIcon: Icon(Icons.bookmark, color: brandCrimson),
-                label: 'Saved',
+                icon: Icon(Icons.people_outline),
+                selectedIcon: Icon(Icons.people, color: brandCrimson),
+                label: 'Community',
               ),
               NavigationDestination(
                 icon: Icon(Icons.person_outline),

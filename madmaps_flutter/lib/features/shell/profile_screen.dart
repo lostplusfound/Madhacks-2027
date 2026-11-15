@@ -3,9 +3,15 @@ import 'app_state.dart';
 import 'shared_widgets.dart';
 
 class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key, required this.state, required this.onTools});
+  const ProfileScreen({
+    super.key,
+    required this.state,
+    required this.onTools,
+    this.saved,
+  });
   final AppState state;
   final VoidCallback onTools;
+  final Widget? saved;
   @override
   Widget build(BuildContext context) => ListView(
     padding: const EdgeInsets.all(24),
@@ -13,6 +19,21 @@ class ProfileScreen extends StatelessWidget {
       const SectionHeading('Your preferences'),
       const Text('Preferences and saved places stay on this phone.'),
       const SizedBox(height: 20),
+      if (saved != null)
+        ListTile(
+          leading: const Icon(Icons.bookmark_border),
+          title: const Text('Saved places'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute<void>(
+              builder: (_) => Scaffold(
+                appBar: AppBar(title: const Text('Saved places')),
+                body: saved!,
+              ),
+            ),
+          ),
+        ),
       Card(
         child: SwitchListTile(
           title: const Text('High contrast'),
@@ -62,7 +83,7 @@ class ProfileScreen extends StatelessWidget {
       ),
       const SectionHeading('About this prototype'),
       const EmptyCard(
-        'Live navigation supports Floor 1. Hallway geometry and walking estimates are draft. Camera access and saved Cloud Anchors are required for localization. Accessibility of routes has not been verified.',
+        'Routes connect the Basement and Floors 1–3. Hallway geometry and walking estimates are draft. Current location requires camera access and shared or saved Cloud Anchors. Choose a named start for manual directions. Accessibility of routes has not been verified.',
       ),
     ],
   );

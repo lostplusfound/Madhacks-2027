@@ -3,6 +3,8 @@ building:
   - getBuilding:
   - listBuildings:
 buildingMap:
+  - updateCapture:
+  - deleteCapture:
   - listConnectors:
   - listCaptures:
   - publishCapture:

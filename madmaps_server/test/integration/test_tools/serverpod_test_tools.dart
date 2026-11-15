@@ -376,6 +376,76 @@ class _BuildingMapEndpoint {
 
   final _is.SerializationManager _serializationManager;
 
+  _ida.Future<_ifbpi8hm.ArCapture> updateCapture(
+    _ist.TestSessionBuilder sessionBuilder,
+    _ifbpi8hm.ArCapture capture,
+    String expectedAnchorMapJson,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'buildingMap',
+            method: 'updateCapture',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'buildingMap',
+          methodName: 'updateCapture',
+          parameters: _ist.testObjectToJson({
+            'capture': capture,
+            'expectedAnchorMapJson': expectedAnchorMapJson,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_ifbpi8hm.ArCapture>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<void> deleteCapture(
+    _ist.TestSessionBuilder sessionBuilder,
+    String captureId,
+    String expectedAnchorMapJson,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'buildingMap',
+            method: 'deleteCapture',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'buildingMap',
+          methodName: 'deleteCapture',
+          parameters: _ist.testObjectToJson({
+            'captureId': captureId,
+            'expectedAnchorMapJson': expectedAnchorMapJson,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<void>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
   _ida.Future<List<_i1k428cv.FloorConnector>> listConnectors(
     _ist.TestSessionBuilder sessionBuilder,
     String buildingId,
