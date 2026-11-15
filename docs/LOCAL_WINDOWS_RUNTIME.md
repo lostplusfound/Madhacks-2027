@@ -41,8 +41,10 @@ Pub cache and Flutter SDK are unchanged. This retains the runner's watch/reload
 support through the legacy VM service. Use this launcher on this machine rather
 than the unmodified global CLI to start a stopped runner.
 
-To attach, run `serverpod start` from `madmaps_server` if the CLI is on PATH, or
-use `dart ../.dart_tool/toolchains/serverpod_cli/bin/local_cli.dill start`.
+Logs are already streamed by the launcher using PowerShell's
+`Get-Content -Tail 60 -Wait` on `madmaps_server/.dart_tool/serverpod/runner.log`.
+Do not run a separate `serverpod start` just to see logs. The launcher passes
+`--no-flutter` so attaching cannot auto-launch the companion app.
 
 To launch the phone app separately, with the phone connected over USB:
 
@@ -55,3 +57,48 @@ The laptop IP must remain `10.138.33.209`; update the config asset or provide
 `SERVER_URL` if the network assigns a different address. Phone Wi-Fi access also
 requires Windows Firewall to allow TCP 8080 and the Wi-Fi network to permit
 device-to-device connections. The phone never needs access to PostgreSQL ports.
+
+## Startup progress and troubleshooting
+
+Expected sequence: dependency resolution, `Starting project-local PostgreSQL`,
+per-environment checking/starting/ready messages, local CLI preparation, runner
+readiness, seed verification, then continuous log output. Package-update notices
+from pub are informational. First-time PostgreSQL download and local CLI kernel
+compilation can take longer than subsequent starts.
+
+The PostgreSQL helper launches pg_ctl directly, closes its stdin, and waits for
+its exit code with a bounded timeout. It does not await EOF on pipes inherited by
+PostgreSQL or launch it through a detached PowerShell wrapper. Those earlier
+approaches caused silent waits/failures on this machine. The launcher invokes
+this helper directly with dart to avoid unrelated workspace build-hook work.
+
+If startup fails, read the first error above the launcher's generic failure:
+
+| Symptom | Check |
+| --- | --- |
+| PostgreSQL fails to start | `.serverpod/local-postgres/development.postgres.log` or `test.postgres.log` inside madmaps_server; check port conflicts on 8090/9090 |
+| Password authentication fails | Existing cluster password must match config/passwords.yaml; changing the file does not change an initialized database role |
+| Missing experimental VM-service snapshot | Start through this launcher, which prepares the local CLI workaround; do not alter the global SDK |
+| Seed verification differs | An existing graph was edited; coordinate an explicit update rather than deleting data or forcing replacement |
+| Phone cannot connect | Check laptop IP, port 8080, Wi-Fi isolation and firewall; localhost on the phone refers to the phone |
+| App still shows places after shutdown | Loaded graph and successful searches are retained in memory; this is not proof that the API is running |
+
+Credentials, database clusters, downloaded tools and runtime logs are ignored by
+Git. Ctrl+C stops services without deleting database contents, saved anchors or
+preferences. Use one launcher terminal at a time; it takes responsibility for
+both project-local databases even if they were already running.
+
+If a terminal is force-killed, its finally block may not execute. For manual
+cleanup, from the repository root:
+
+```powershell
+cd madmaps_server
+dart ../.dart_tool/toolchains/serverpod_cli/bin/local_cli.dill --no-analytics runner stop
+& ../.dart_tool/toolchains/postgres16/pgsql/bin/pg_ctl.exe -D .serverpod/local-postgres/development -m fast -w stop
+& ../.dart_tool/toolchains/postgres16/pgsql/bin/pg_ctl.exe -D .serverpod/local-postgres/test -m fast -w stop
+```
+
+Do not delete the data directories to fix a startup failure. A working LAN client
+request was verified on the laptop; actual phone Wi-Fi access and the latest
+complete Ctrl+C path remain user acceptance checks. The earlier script cleanup
+was observed stopping the runner and both databases after an interrupted startup.

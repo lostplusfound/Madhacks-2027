@@ -2,23 +2,33 @@
 
 ## Current local integration status
 
-This file preserves the **initial scaffold setup history** below. It is not the
-current feature or Android-build status. Later implementation added local AR map
-storage, Cloud Anchor discovery/handoffs, floor calibration, graph routing,
-interactive map-first navigation, compact AR, automatic recovery, heading-follow,
-and the Swara visitor shell with local bookmarks and preferences.
+Current branch `integration/luray-maps-search` combines the visitor UI and AR
+navigation with Luray's backend through `ba2537c`. The visitor shell requires a
+Serverpod graph load; localization, calibration and routing remain on-device.
 
-Latest recorded checks on November 14, 2026: **88 Flutter tests passed**, analysis
-reported no errors/warnings (informational notices remain), and the Android debug
-APK built with the configured Java 17 toolchain. The local-only AR/map flow needs
-no Serverpod backend or database. Earlier hosting was confirmed on Pixel 6a;
-physical navigation accuracy and the latest compact/localization acceptance
-checks remain outstanding. Backend/runner blockers below were recorded at initial
-setup and were not revalidated by these Flutter checks.
+Verified on November 14, 2026:
 
-See [README](../README.md), [AR setup](AR_PROTOTYPE.md),
-[floor navigation](FLOOR_NAVIGATION.md), [UI integration](SWARA_UI_INTEGRATION.md),
-and [testing](TESTING.md).
+- 94 Flutter tests and all 24 backend tests, including database endpoint tests, passed.
+- Static analysis had no errors/warnings; informational notices remain.
+- The Android debug APK built with Java 17 and AR plugin 1.1.3.
+- Portable PostgreSQL 16.16 runs on this Windows ARM64 laptop: development on
+  127.0.0.1:8090 and tests on 127.0.0.1:9090. Docker is not required.
+- The runner started using the project-local legacy VM-service workaround and
+  applied the latest migration. Floor 1 was seeded and verified repeatedly:
+  20 nodes, 19 edges, 13 destinations, no wall polygons.
+- A generated client read the graph and searched room 1524 through the laptop's
+  LAN address, `http://10.138.33.209:8080/`.
+
+The launcher now owns startup, log following and shutdown; Ctrl+C stops the runner
+and both databases. PostgreSQL startup uses pg_ctl directly and waits for its exit
+code rather than inherited pipe EOF. The direct startup helper was verified after
+this fix; physical phone acceptance and a full post-fix Ctrl+C acceptance run
+remain for the user. No latest physical AR accuracy result is implied.
+
+See [Windows startup](LOCAL_WINDOWS_RUNTIME.md), [backend integration](LURAY_INTEGRATION.md),
+[AR setup](AR_PROTOTYPE.md) and [testing](TESTING.md). The sections below preserve
+initial scaffold history; their failures and missing features are historical,
+not the current runtime status.
 
 ## Original scaffold implementation
 

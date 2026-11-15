@@ -34,7 +34,7 @@ searches cover all live saved anchors in batches of at most 20. Off-route and
 distant-start guidance use estimated connectors back to reachable hallway routes.
 See [AR setup and recovery](docs/AR_PROTOTYPE.md).
 
-Latest recorded verification on November 14, 2026: **88 Flutter tests passed**,
+Latest recorded verification on November 14, 2026: **94 Flutter tests and 24 backend tests passed**,
 `dart analyze` reported no errors or warnings (informational notices remain), and
 the Android debug APK built successfully. Earlier anchor hosting was confirmed
 on Pixel 6a. The user has reported positive hands-on feedback, but measured
@@ -44,13 +44,13 @@ new amenity approaches remain draft.
 
 Indoor navigation for MadHacks: Flutter, Serverpod/PostgreSQL, and the third-party AR package `ar_flutter_plugin_plus: 1.1.3`.
 
-The Flutter app includes an Android AR localization prototype and first-floor graph routing with local persistence. The backend now includes Luray?s graph persistence, destination search, categories, authenticated editing and reports. The visitor frontend integrates map/search reads; reporting UI and AI processing remain future work.
+The Flutter app includes an Android AR localization prototype and first-floor graph routing with local persistence. The backend now includes Luray's graph persistence, destination search, categories, authenticated editing and reports. The visitor frontend integrates map/search reads; reporting UI and AI processing remain future work.
 
 **All domain contracts are proposals, not set in stone.** Revise them together as features are implemented. See [the contract discussion draft](docs/CONTRACTS.md).
 
 ```text
 madmaps_flutter/     Flutter app and platform scaffolds
-madmaps_server/      Serverpod server, greeting endpoint, database configuration
+madmaps_server/      Serverpod graph/search/report endpoints, database configuration
 madmaps_client/      Generated typed client
 pubspec.yaml        Dart workspace
 docs/               Architecture, contracts, coordinates, schedule and validation
@@ -61,19 +61,27 @@ docs/roles/         Independent teammate handoffs
 
 Tools used: Flutter 3.50.0, Dart 3.14.0, Serverpod CLI/packages 4.1.2. See [setup results and blockers](docs/SETUP_STATUS.md). Android is the initial AR target. The web greeting example cannot validate AR.
 
-For the local Android prototype, configure keyless Cloud Anchor authorization
-using the [AR guide](docs/AR_PROTOTYPE.md#configure-and-run), then run:
+For day-to-day development on this Windows laptop, run from the repository root:
 
 ```powershell
-# Repository root
-dart analyze
-# Flutter package
-cd madmaps_flutter
-flutter test
-flutter build apk --debug
-# Physical Android: supply the Serverpod address reachable from this phone.
-flutter run -d <android-device-id> -t lib/driver.dart --dart-define=SERVER_URL=http://<computer-LAN-IP>:8080/
+powershell -ExecutionPolicy Bypass -File scripts/start-local-backend.ps1
 ```
+
+Keep this terminal open: it starts development/test PostgreSQL, starts Serverpod
+without Flutter auto-launch, seeds/verifies Floor 1, and follows backend logs.
+**Ctrl+C stops the runner and both databases.** Launch Flutter yourself in another
+terminal after configuring [Cloud Anchor authorization](docs/AR_PROTOTYPE.md#configure-and-run):
+
+```powershell
+cd madmaps_flutter
+flutter devices
+flutter run -d <android-device-id> -t lib/driver.dart
+```
+
+The phone defaults to `http://10.138.33.209:8080/`. Both devices must be on a
+network that permits device-to-device traffic. If the laptop IP changes, use
+`--dart-define=SERVER_URL=http://<new-IP>:8080/` and fully restart the app.
+See [Windows startup and troubleshooting](docs/LOCAL_WINDOWS_RUNTIME.md).
 
 The debug APK is `madmaps_flutter/build/app/outputs/flutter-apk/app-debug.apk`.
 Fully stop and rebuild/relaunch after native plugin changes; hot reload or Dart
@@ -81,53 +89,33 @@ hot restart cannot replace Android code. See [testing](docs/TESTING.md) for the
 physical checklist. Use Serverpod/Dart MCP tooling for connected app control when
 available, as described in `AGENTS.md`.
 
-The commands below concern backend setup; see the integration guide above for Floor 1 seeding.
-From repository root in PowerShell:
+For a fresh clone, activate Serverpod CLI 4.1.2, resolve dependencies, and create
+`madmaps_server/config/passwords.yaml` from its example only if it does not already
+exist. Preserve existing database passwords; the launcher reuses persistent
+clusters. See [backend integration](docs/LURAY_INTEGRATION.md) for auth secrets,
+map IDs and seeding rules. Credentials and local tooling/data stay ignored.
+
+For checks, keep the backend script running, then use separate terminals:
 
 ```powershell
-dart pub global activate serverpod_cli 4.1.2
-flutter pub get
-# Fresh clone only: do not overwrite an existing local password file.
-Copy-Item madmaps_server/config/passwords.yaml.example madmaps_server/config/passwords.yaml
+# Repository root
 dart analyze
-dart format --output=none --set-exit-if-changed madmaps_flutter/lib madmaps_client/lib madmaps_server/lib madmaps_server/bin
-```
-
-Use Serverpod MCP for generation/migrations, restarts, and logs as specified in AGENTS.md. Generation is normally handled by the runner. The following CLI commands are fallbacks when MCP is unavailable or the runner cannot start; the initial setup machine required an explicit global-run entry point:
-
-```powershell
-cd madmaps_server
-dart pub global run serverpod_cli:serverpod_cli --no-analytics generate
-dart test
-dart pub global run serverpod_cli:serverpod_cli --no-analytics runner start
-```
-
-Development and test configs use external PostgreSQL at ports 8090 and 9090.
-On this Windows ARM64 laptop, `scripts/start-local-backend.ps1` starts portable
-PostgreSQL and the runner without Docker; see the Windows startup guide above.
-Docker Compose remains an alternative with the same database ports:
-
-```powershell
-# In madmaps_server; match your ignored passwords.yaml values.
-$env:MADMAPS_DATABASE_PASSWORD = 'your-local-development-password'
-$env:MADMAPS_TEST_DATABASE_PASSWORD = 'your-local-test-password'
-docker compose up -d postgres postgres_test
-dart test
-dart pub global run serverpod_cli:serverpod_cli --no-analytics runner start
-```
-
-Docker is not installed on this laptop; portable PostgreSQL is verified. Start the database before attempting a backend round trip. In another terminal:
-
-```powershell
-cd madmaps_flutter
+# In madmaps_flutter
 flutter test
-flutter run -d chrome --dart-define=SERVER_URL=http://localhost:8080/
-# Physical Android: replace with your computer's LAN address.
-flutter run --dart-define=SERVER_URL=http://192.168.1.100:8080/
 flutter build apk --debug
+# In madmaps_server
+dart test
 ```
 
-Use flutter devices to select a phone. Configure keyless Cloud Anchor authorization as described in the AR prototype guide before hosting or resolving anchors. Anchor saving is confirmed on Pixel 6a; the remaining physical acceptance checks are pending. No Python tooling or map validator exists yet.
+Use Serverpod MCP for migrations, restarts and logs when available, as described
+in `AGENTS.md`. The runner generates protocol code and applies pending migrations
+on startup. Never edit generated server/client code manually. On this Windows
+SDK, use the project launcher rather than unmodified `serverpod runner start`;
+it prepares the local VM-service workaround. Docker remains an alternative,
+using PostgreSQL ports 8090 and 9090, but is not installed or verified here.
+
+Earlier anchor hosting was confirmed on Pixel 6a. Measured AR accuracy and the
+latest physical acceptance checklist remain outstanding; see [testing](docs/TESTING.md).
 
 ## Team handoffs
 

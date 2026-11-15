@@ -28,7 +28,7 @@ Only when the MCP is not available or `serverpod runner start` cannot bring the 
 - `serverpod generate` to regenerate the client and the generated server code.
 - `serverpod create-migration` after changing a model with a `table` (add `--force` for destructive changes). It only writes the migration; the runner applies pending migrations when it boots the server.
 
-Tests need no Docker. `config/test.yaml` sets `database.dataPath`, so Serverpod starts and manages the test database (an embedded PostgreSQL) itself, and the project's `docker-compose.yaml` is not used for it. Just run `dart test` in the server package.
+Tests need no Docker, but current development/test configs use external PostgreSQL (127.0.0.1:8090 and :9090), not database.dataPath. On this Windows ARM64 machine, start scripts/start-local-backend.ps1 from the repository root, leave it running, and run dart test in madmaps_server. The script starts portable PostgreSQL, prepares the project-local CLI workaround for the missing experimental VM-service snapshot, starts the runner with --no-docker --no-flutter, seeds Floor 1 and follows logs. Flutter is launched manually by the user. Ctrl+C in this script stops the runner and both local databases; preserve this lifecycle behavior. See docs/LOCAL_WINDOWS_RUNTIME.md. Prefer MCP tools when available; do not change the global Flutter SDK or Pub cache for this workaround.
 
 Checklist after doing changes, in this order:
 

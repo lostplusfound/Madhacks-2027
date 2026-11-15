@@ -2,19 +2,17 @@
 
 ## Latest recorded verification
 
-On November 14, 2026, after the Swara visitor UI integration on
-`integration/swara-ui` (merge `6b06f84`), including the existing map controls,
-compact AR, route recovery, and automatic localization/heading-follow:
-**88 Flutter tests passed**. `dart analyze` reported no errors or warnings
-(informational notices remain), changed Dart sources were formatted, and
-`flutter build apk --debug` succeeded. The APK is
-`madmaps_flutter/build/app/outputs/flutter-apk/app-debug.apk`.
+On November 14, 2026, on `integration/luray-maps-search`, **94 Flutter tests and
+24 backend tests passed**. `dart analyze` reported no errors/warnings
+(informational notices remain), and the Android debug APK built successfully.
+The APK is `madmaps_flutter/build/app/outputs/flutter-apk/app-debug.apk`.
 
-These checks are local-only. They neither require nor validate Serverpod,
-PostgreSQL, a backend round trip, Cloud Anchor authorization, or physical accuracy.
-Earlier successful hosting was confirmed by the user on Pixel 6a. Positive
-hands-on feedback does not replace the physical acceptance checklist below.
-Older result counts in the AR/setup history are snapshots, not current totals.
+The backend tests used project-local PostgreSQL on port 9090. A live generated
+client also read the seeded Floor 1 graph and searched room 1524 through
+`http://10.138.33.209:8080/`. The seed was verified repeatedly without overwrites.
+These checks do not establish phone Wi-Fi reachability, Cloud Anchor authorization
+or measured physical AR accuracy. Earlier hosting was confirmed on Pixel 6a.
+Historical Swara-only counts remain in the UI merge record.
 
 ## Commands
 
@@ -51,8 +49,8 @@ no live driver run, install, or physical verification is implied.
 | Compact camera | Camera-widget/session identity and pending search retained across compact/expanded layout, scrollable permission prompts; actual native frame continuity still needs device verification |
 
 The synthetic fixtures and fake anchors used in tests do not resolve physically.
-Shared/backend domain types, revision enforcement across a repository service,
-publication review, accessibility rules, and multi-floor transitions remain
+Serverpod domain types and graph-version checks exist. Shared anchor storage,
+publication review, accessibility rules and multi-floor transitions remain
 future work; current local routing deliberately uses a draft floor graph.
 
 ## Physical Android checklist
@@ -111,10 +109,31 @@ Measure outbound/return position and heading errors, correction jumps, and any
 incorrect map match. Long-term 365-day authorization/expiry behavior and iOS
 interoperability need separate verification. Browser tests cannot validate AR.
 
-## Optional backend tests
+## Backend and launcher checks
 
-The generated Serverpod stack is separate from this local integration. Run
-`dart test` in `madmaps_server` only for backend changes. Follow `AGENTS.md` for
-runner and migration tooling and [setup history](SETUP_STATUS.md) for recorded
-platform blockers. Generated greeting tests are framework smoke tests, not proof
-of map persistence or shared domain integration.
+Start `scripts/start-local-backend.ps1` from the repository root and keep it
+running, then run `dart test` in `madmaps_server`. The test database must be
+available on port 9090; current configs do not use embedded PostgreSQL. Endpoint
+fixtures are isolated by Serverpod's test tooling. Docker is optional.
+
+Coverage includes graph CRUD and rollback, anonymous reads, authenticated writes,
+owner checks, search/categories, reports, wall validation, seed fidelity, frontend
+snapshot validation, offline query reuse, stale search responses, retry recovery
+and preservation of local aliases and navigation sessions.
+
+For a manual runtime check:
+
+1. Run the launcher; confirm database readiness, runner startup and seed verification,
+   followed by log output. Flutter must not launch automatically.
+2. Launch the phone app separately. Confirm Home loads and room 1524 is searchable.
+3. During a trip, stop the backend from a separate terminal to test connection loss
+   without stopping the phone. Loaded navigation data should remain usable;
+   an uncached search should report a connection error. Restart and Retry.
+4. Press Ctrl+C in the launcher terminal; confirm the runner and both databases stop.
+   Ports 8080, 8090 and 9090 should no longer have listeners.
+5. Rerun the launcher; saved map/calibration/preferences and the database graph
+   should remain intact. Startup must not overwrite an edited seed graph.
+
+The PostgreSQL launch fix was checked directly; the complete latest Ctrl+C path
+and phone acceptance remain manual checks. See [Windows runtime](LOCAL_WINDOWS_RUNTIME.md)
+for troubleshooting. Backend APIs do not validate physical walkability or AR accuracy.

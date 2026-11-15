@@ -2,11 +2,11 @@
 
 ## Current state
 
-The Android app implements local named AR maps and first-floor indoor navigation.
-The backend remains a generated Serverpod starter; it is not used by the current
-AR/map flow. The published AR dependency stays pinned at
-`ar_flutter_plugin_plus: 1.1.3`, with a documented local override under
-`third_party/`. No shared/backend domain package or map API has been introduced.
+The Android app combines local AR localization and first-floor routing with
+Serverpod graph/catalogue reads. The generated client exposes Luray's graph,
+search, category, editing and reporting APIs; the visitor UI currently uses only
+map/search reads. The AR dependency stays pinned at `ar_flutter_plugin_plus: 1.1.3`
+with its documented local override under `third_party/`.
 
 ## Visitor UI and state ownership
 
@@ -34,8 +34,9 @@ Current data flow:
    `LocalizationController` maintains alignment, validates anchor handoffs,
    blends corrections, and schedules 20m/20s refresh. The session screen restarts
    discovery when the reference is cleared and handles lifecycle/cancellation.
-3. `FloorGraph` loads the bundled floor-1 CSVs; `FloorSetup` calibrates AR X/Z
-   meters to image pixels. `GuidanceState` computes directed routes, progress,
+3. `ServerMapRepository` loads and validates a Serverpod snapshot, adapting it to
+   one shared `FloorGraph`. The bundled CSVs are seed/test source data, not a
+   runtime fallback. `FloorSetup` calibrates AR X/Z meters to image pixels. `GuidanceState` computes directed routes, progress,
    structured maneuvers/ETA, distant attachments, and return-to-route recovery.
 4. `NavigationPanel` composes controls and status. `InteractiveFloorMap` shares
    one pan/zoom/rotation transform across image and overlays, with screen-sized
@@ -58,14 +59,37 @@ See [floor navigation](FLOOR_NAVIGATION.md), [AR behavior](AR_PROTOTYPE.md), and
 [verification](TESTING.md). The current implementation uses Flutter SDK state
 management; the service boundaries below describe future shared-domain work.
 
+## Backend and runtime boundaries
+
+The shell injects a MapRepository, making real server reads replaceable in tests.
+ServerMapRepository validates Floor 1 dimensions, finite coordinates and graph
+references, maps backend locations to stable frontend IDs, and retains successful
+search results in memory. Home debounces queries and ignores stale replies;
+personal aliases stay local and merge into the results. A failed backend load
+shows Retry. A loaded graph remains pinned through an active navigation session;
+app restart requires another server load. There is no persistent offline map cache.
+
+PostgreSQL stores shared graph data and reports. Cloud Anchor poses, floor
+calibration, local overrides, bookmarks, preferences and visit history are not
+uploaded. Backend lifecycle status active is not a claim of verified geometry.
+The seed preserves draft review notes; edge costs and node coordinates remain
+image pixels. Physical walking distances use phone calibration.
+
+Luray's wall model is supported by backend validation, but the current Floor 1
+seed has no polygons. The frontend rejects Floor 1 snapshots containing wall
+constraints until its local router understands them. The backend's A* library
+has no visitor routing endpoint; existing local routing still drives guidance.
+
+On this Windows ARM64 machine, the project launcher manages two portable
+PostgreSQL instances, prepares an ignored local Serverpod CLI workaround, starts
+the runner without Flutter, seeds/verifies Floor 1 and follows runner.log. Ctrl+C
+runs shutdown for the runner and both database clusters. See
+[Windows runtime](LOCAL_WINDOWS_RUNTIME.md) for commands and failure diagnosis.
+
 ## Proposed direction
 
-Flutter presents floor plans and guidance. A future shared Dart package owns domain models. Localization translates AR session poses into floor-local building meters behind a service boundary. Routing consumes a published map and localized position. Serverpod would store maps, review state, and calibrated anchor metadata; its generated client connects Flutter to endpoints. Optional Python/Databricks tooling produces draft maps for human review.
-
-These boundaries and all contracts are proposals, not fixed requirements. Revise them together before implementation. Start with Flutter SDK state management (ChangeNotifier/ValueNotifier) rather than adding a framework.
-
-## MVP and later work
-
-Android, one floor, one verified hallway route, and reliable anchor resolution are the MVP. Preserve floor IDs and map revisions for future multiple-floor support. Cross-floor edges must eventually identify stair/elevator transitions; failed anchor resolution is not evidence of floor identity. iOS interoperability, accounts, automated geometry, and global 3D reconstruction are outside initialization.
-
-Unreviewed AI edges must not silently become published routes. Backend secrets stay server-side. Databricks is optional; manually authored draft JSON is the fallback. No provider access has been verified.
+Shared anchor persistence, publication/review policy, server routing, a separate
+shared domain package, multi-floor/accessibility routing, and AI map generation
+remain future work. Domain contracts are proposals; coordinate changes rather
+than treating the draft contract document as the implemented wire API. Keep the
+existing Flutter SDK state management unless a concrete need justifies a change.

@@ -36,8 +36,10 @@ services need `serverSideSessionKeyHashPepper` and `emailSecretHashPepper` in
 addition to the existing database/service secrets. Use independent random values.
 The visitor app does not require sign-in. Map writes remain authenticated.
 
-Start the runner in `madmaps_server` with `serverpod runner start`. It applies
-Luray's pending migrations on boot. Then, from that package, run:
+On this Windows laptop, run `scripts/start-local-backend.ps1` from the repository
+root. It starts PostgreSQL and the patched local runner, applies pending migrations,
+and seeds/verifies Floor 1 automatically. For an explicit seed check while the
+database is running, execute this from `madmaps_server`:
 
 ```powershell
 dart run bin/seed_floor1.dart
@@ -51,13 +53,15 @@ Floor 1 CSVs, including the added amenity approaches. Geometry remains draft eve
 though database rows have active lifecycle status. Seed fidelity tests detect
 future divergence from the frontend assets.
 
-Launch/build the Android app with the server address reachable from the phone:
+Launch the Android app separately from `madmaps_flutter`; the configured default
+is `http://10.138.33.209:8080/`. Override only when the laptop address changes:
 
 ```powershell
 flutter run -t lib/driver.dart --dart-define=SERVER_URL=http://<computer-LAN-IP>:8080/
 ```
 
-Use the actual address reported by the runner. `MAP_GRAPH_ID` optionally overrides
+The runner may print localhost; a physical phone must use the laptop LAN address
+and actual API port. `MAP_GRAPH_ID` optionally overrides
 the graph ID; any replacement must match the bundled 1632×1056 Floor 1 image and
 retain compatible IDs/coordinates for existing local calibration and overrides.
 

@@ -1,5 +1,10 @@
 # Swara UI integration
 
+This is the historical UI merge record. Subsequent Serverpod map/search integration
+and current startup behavior are documented in [backend integration](LURAY_INTEGRATION.md)
+and [Windows runtime](LOCAL_WINDOWS_RUNTIME.md). The 88-test count below belongs
+to the UI-only merge; current recorded totals are 94 Flutter and 24 backend tests.
+
 Integrated on `integration/swara-ui` from `integration/floorplan-navigation`
 (`832cb46`) and `origin/ui_swara` (`dc92422`), recorded in merge commit `6b06f84`.
 

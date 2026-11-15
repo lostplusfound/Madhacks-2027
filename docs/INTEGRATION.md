@@ -6,11 +6,12 @@ The Flutter entry flow opens the visitor Home screen, with Map, Saved, and
 Profile tabs. Home searches the real floor-1 catalogue; Saved contains local
 bookmarks and aliases. `MapStore` persists map and
 anchor metadata plus floor calibration/overrides in SharedPreferences. Google
-Cloud hosts/resolves Cloud Anchors directly. The bundled floor-1 image and CSV
-graph are loaded by Flutter; Serverpod domain endpoints, generated client models,
-and database migrations are not part of this flow.
+Cloud hosts/resolves Cloud Anchors directly. The floor image stays bundled; the graph and catalogue are read through the
+generated Serverpod client. One validated FloorGraph is shared by the shell,
+navigation and calibration tools. See [backend integration](LURAY_INTEGRATION.md).
 
-1. Configure the pinned plugin/keyless authorization using [AR setup](AR_PROTOTYPE.md).
+1. Start the [backend script](LOCAL_WINDOWS_RUNTIME.md), then launch Flutter separately.
+   Configure pinned plugin/keyless authorization using [AR setup](AR_PROTOTYPE.md).
 2. Open **Profile > Manage AR maps and calibration**, create a map, host
    separated anchors, associate it with floor 1, and calibrate their image
    positions. Return to Map and select **Find my location**, or choose a
@@ -28,14 +29,17 @@ and database migrations are not part of this flow.
 Update root `nodes.csv`, `edges.csv`, and `locations.csv` together with their
 matching copies in `madmaps_flutter/assets/floor1/`. The removed Swara
 `assets/graph/` copies and mock routing engine are not used.
+Update `madmaps_server/assets/floor1_seed.json` when changing the source CSVs;
+seed fidelity tests detect drift. The seed verifier refuses to overwrite a changed
+existing database graph, so coordinate intentional graph updates explicitly.
 Preserve saved anchor frames and local overrides; never silently reinterpret
 pixels as meters. Current graph/amenity approaches are draft and need on-site
 walkability checks. Shared domain contracts remain proposals, not a description
 of the current local serialization format.
 
-Latest recorded local checks: 88 Flutter tests, analysis without errors/warnings,
-and a successful Android debug APK build on November 14, 2026. These are not a
-physical localization test or proof of backend map integration.
+Latest recorded checks: 94 Flutter tests, 24 backend tests, analysis without
+errors/warnings and an Android debug APK build on November 14, 2026. A LAN client
+graph read and room search also passed. Physical localization remains unverified.
 
 ## UI integration decisions
 
@@ -48,18 +52,19 @@ Multi-floor and step-free routing, description-based localization, opening hours
 and report submission are omitted because no real implementation/data source
 exists. See [the merge decisions and remaining checks](SWARA_UI_INTEGRATION.md).
 
-## Optional starter backend integration
+## Backend integration
 
-README describes the generated endpoint/client greeting example. That verifies
-framework wiring only. Backend map persistence, shared domain types, review state,
-AI processing, and production map publication remain future work. Any future
-backend implementation must use Serverpod. Follow `AGENTS.md` for runner,
-generation, migration, restart, and log tooling; do not edit generated code.
+Serverpod supplies graph snapshots, destination search and category shortcuts.
+Graph editing and issue reports exist on the backend but have no visitor UI in
+this pass. Reads are anonymous; writes require authentication. The app retains
+loaded data in memory, reports failed uncached requests, and requires a new
+backend load after restart. Shared Cloud Anchor storage, server routing,
+publication review and AI processing remain future work.
 
-For an emulator/backend round trip, use 10.0.2.2 for the host; a physical phone
-uses the development machine's LAN address and suitable firewall/network settings.
-`SERVER_URL` is relevant to this greeting/backend flow, not the local AR/map flow.
-See [setup history](SETUP_STATUS.md) for earlier environment blockers.
+Use the [Windows launcher](LOCAL_WINDOWS_RUNTIME.md) for PostgreSQL, the patched
+local runner, Floor 1 seeding and logs. It never launches Flutter. Ctrl+C stops
+the runner and both local database instances. Follow `AGENTS.md` for MCP tooling
+when available and never manually edit generated code.
 
 ## Future shared-domain integration
 
@@ -67,5 +72,6 @@ Agree a revision of the proposed contracts, introduce explicit repository and
 localization service adapters, and coordinate shared types with the AR/navigation
 owners. Validate floor/map revision, calibrated poses, and persistence semantics
 before replacing local storage. Add publication/review and accessibility policies
-before claiming verified routes. No cross-floor routing, backend migration, or
-shared domain package was introduced by the local navigation enhancements.
+before claiming verified routes. Cross-floor routing and shared anchor persistence remain unsupported. Luray
+provides Serverpod models and migrations; those are separate from the phone
+anchor/calibration serialization.
