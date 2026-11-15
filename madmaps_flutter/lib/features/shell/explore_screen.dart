@@ -26,7 +26,16 @@ class ExploreScreen extends StatefulWidget {
     this.previewPosition,
     this.tripControls,
     this.connectorError,
+    this.selectedBuilding,
+    this.onBuildingChanged,
+    this.catalogError,
+    this.onReloadMaps,
+    this.mapContent,
   });
+  final String? selectedBuilding, catalogError;
+  final ValueChanged<String?>? onBuildingChanged;
+  final VoidCallback? onReloadMaps;
+  final Widget? mapContent;
   final List<FloorLocation> places;
   final MapRepository repository;
   final AppState state;
@@ -109,6 +118,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
   @override
   void didUpdateWidget(covariant ExploreScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
+    String signature(List<FloorLocation> places) => places
+        .map((p) => '${p.id}:${p.label}:${p.buildingName}:${p.floorLabel}')
+        .join('|');
+    if (signature(oldWidget.places) != signature(widget.places) &&
+        (query.isNotEmpty || category != null)) {
+      updateSearch(query, filter: category);
+    }
+
     if (widget.panelTitle != oldWidget.panelTitle && widget.panelTitle != null)
       searchFor('');
     if (widget.tripControls != null && oldWidget.tripControls == null) {
@@ -131,13 +148,22 @@ class _ExploreScreenState extends State<ExploreScreen> {
     FocusManager.instance.primaryFocus?.unfocus();
     searchFor('');
     widget.onChoose(place);
-    expandSheet(.5);
+    expandSheet(place.placeMapId == null ? .5 : .22);
   }
 
   @override
   Widget build(BuildContext context) {
     final state = widget.state;
-    final byId = {for (final p in widget.places) p.id: p};
+    final buildings = widget.places.map((p) => p.buildingName).toSet().toList()
+      ..sort();
+    final visiblePlaces = widget.places
+        .where(
+          (p) =>
+              widget.selectedBuilding == null ||
+              p.buildingName == widget.selectedBuilding,
+        )
+        .toList();
+    final byId = {for (final p in visiblePlaces) p.id: p};
     final ids = <String>{...?resultIds};
     if (query.isNotEmpty)
       ids.addAll(
@@ -158,7 +184,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
         PlaceTile(place: p, state: state, onChoose: () => selectPlace(p));
     List<Widget> group(List<String> ids) => [
       for (final id in ids.take(4))
-        for (final p in widget.places.where((p) => p.id == id)) tile(p),
+        for (final p in visiblePlaces.where((p) => p.id == id)) tile(p),
     ];
     final active = query.isNotEmpty || category != null;
     final floor = widget.floors[widget.displayedFloor]!;
@@ -181,59 +207,75 @@ class _ExploreScreenState extends State<ExploreScreen> {
             Positioned.fill(
               top: headerHeight,
               bottom: constraints.maxHeight * sheetSize.clamp(.22, .5),
-              child: InteractiveFloorMap(
-                key: ValueKey(floor.floor),
-                graph: floor,
-                setup: FloorSetup(),
-                controller: widget.viewport,
-                selectedLocation: widget.selectedPlace,
-                highContrast: state.contrast,
-                position: widget.previewPosition,
-                heading: null,
-                route: widget.previewPath,
-                fullRoute: widget.previewPath,
-                onLocation: selectPlace,
-              ),
-            ),
-            Positioned(
-              top: headerHeight + 10,
-              right: 16,
-              child: Material(
-                elevation: 2,
-                borderRadius: BorderRadius.circular(18),
-                color: Theme.of(context).colorScheme.surface,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Column(
-                    children: [
-                      DropdownButtonHideUnderline(
-                        child: DropdownButton<int>(
-                          value: widget.displayedFloor,
-                          items: [
-                            for (final f
-                                in (widget.floors.values.toList()
-                                  ..sort((a, b) => a.floor.compareTo(b.floor))))
-                              DropdownMenuItem(
-                                value: f.floor,
-                                child: Text(f.floorLabel),
+              child:
+                  (widget.mapContent == null
+                      ? null
+                      : LayoutBuilder(
+                          builder: (context, bounds) => SingleChildScrollView(
+                            child: SizedBox(
+                              height: bounds.maxHeight.clamp(
+                                420.0,
+                                double.infinity,
                               ),
-                          ],
-                          onChanged: (f) {
-                            if (f != null) widget.onFloor(f);
-                          },
+                              child: widget.mapContent,
+                            ),
+                          ),
+                        )) ??
+                  InteractiveFloorMap(
+                    key: ValueKey(floor.floor),
+                    graph: floor,
+                    setup: FloorSetup(),
+                    controller: widget.viewport,
+                    selectedLocation: widget.selectedPlace,
+                    highContrast: state.contrast,
+                    position: widget.previewPosition,
+                    heading: null,
+                    route: widget.previewPath,
+                    fullRoute: widget.previewPath,
+                    onLocation: selectPlace,
+                  ),
+            ),
+            if (widget.mapContent == null)
+              Positioned(
+                top: headerHeight + 10,
+                right: 16,
+                child: Material(
+                  elevation: 2,
+                  borderRadius: BorderRadius.circular(18),
+                  color: Theme.of(context).colorScheme.surface,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Column(
+                      children: [
+                        DropdownButtonHideUnderline(
+                          child: DropdownButton<int>(
+                            value: widget.displayedFloor,
+                            items: [
+                              for (final f
+                                  in (widget.floors.values.toList()..sort(
+                                    (a, b) => a.floor.compareTo(b.floor),
+                                  )))
+                                DropdownMenuItem(
+                                  value: f.floor,
+                                  child: Text(f.floorLabel),
+                                ),
+                            ],
+                            onChanged: (f) {
+                              if (f != null) widget.onFloor(f);
+                            },
+                          ),
                         ),
-                      ),
-                      IconButton(
-                        tooltip: 'Show whole floor',
-                        onPressed: widget.viewport.overview,
-                        icon: const Icon(Icons.center_focus_strong),
-                      ),
-                    ],
+                        IconButton(
+                          tooltip: 'Show whole floor',
+                          onPressed: widget.viewport.overview,
+                          icon: const Icon(Icons.center_focus_strong),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            if (sheetSize < .5 && keyboard == 0)
+            if (widget.mapContent == null && sheetSize < .5 && keyboard == 0)
               Positioned(
                 right: 16,
                 bottom: constraints.maxHeight * sheetSize + 12,
@@ -303,9 +345,35 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         if (widget.panelTitle != null ||
                             widget.tripControls != null)
                           const SizedBox(height: 12),
+                        if (buildings.length > 1)
+                          DropdownButton<String>(
+                            key: const Key('destination-building-filter'),
+                            isExpanded: true,
+                            value: widget.selectedBuilding,
+                            hint: const Text('All buildings'),
+                            items: [
+                              const DropdownMenuItem<String>(
+                                value: null,
+                                child: Text('All buildings'),
+                              ),
+                              for (final name in buildings)
+                                DropdownMenuItem(
+                                  value: name,
+                                  child: Text(name),
+                                ),
+                            ],
+                            onChanged: widget.onBuildingChanged,
+                          ),
                         if (widget.tripControls != null && !active)
                           widget.tripControls!
                         else ...[
+                          if (widget.catalogError != null) ...[
+                            Text(widget.catalogError!),
+                            TextButton(
+                              onPressed: widget.onReloadMaps,
+                              child: const Text('Retry uploaded maps'),
+                            ),
+                          ],
                           if (widget.connectorError != null)
                             Text(widget.connectorError!),
                           if (!active) ...[
@@ -388,7 +456,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             selectPlace(results.first);
                         },
                         decoration: InputDecoration(
-                          hintText: 'Search Morgridge Hall',
+                          hintText: 'Search buildings and destinations',
                           prefixIcon: const Icon(Icons.search),
                           suffixIcon: !active
                               ? null

@@ -84,6 +84,10 @@ def export_reviews(root, output):
 def execute(request, directory, root):
     settings = load_settings(root)
     action = request.get("action", "extract")
+    if action == "extract" and request.get("profile") == "places":
+        from .places import execute_places
+
+        return execute_places(request, directory, root, settings)
     if action == "review":
         # previous_result is supplied by Serverpod from its job registry, never a browser path.
         previous = load_json(request["previous_result"])

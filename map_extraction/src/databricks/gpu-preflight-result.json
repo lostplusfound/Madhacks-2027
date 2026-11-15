@@ -1,0 +1,33 @@
+{
+  "checked_at": "2026-11-15T13:22:45Z",
+  "workspace": "https://dbc-be616652-c982.cloud.databricks.com",
+  "run_id": "688116848383551",
+  "run_url": "https://dbc-be616652-c982.cloud.databricks.com/jobs/runs/688116848383551",
+  "status": "SUCCESS",
+  "accelerator_type": "GPU_1xA10",
+  "requested_accelerators": 1,
+  "timeout_minutes": 5,
+  "training_started": false,
+  "existing_clusters": 0,
+  "existing_jobs_before_preflight": 0,
+  "dataset_candidate": {
+    "name": "CubiCasa5K",
+    "source": "https://zenodo.org/records/2613548",
+    "publisher": "https://github.com/CubiCasa/CubiCasa5k",
+    "license": "CC-BY-NC-4.0",
+    "archive_bytes": 5469495706,
+    "archive_md5": "0ce0b203d1e3c125b51087b219bd23b9",
+    "download_url": "https://zenodo.org/api/records/2613548/files/cubicasa5k.zip/content",
+    "downloaded": false,
+    "requires_annotation_conversion_and_validation": true
+  },
+  "previous_attempt": {
+    "checked_at": "2026-11-15T13:19:19Z",
+    "run_id": "257781238113368",
+    "status": "FAILED",
+    "error": "RESOURCE_EXHAUSTED: Cannot create max-num-nodes-gpu-1xa10 because it would exceed the configured limit of 0."
+  },
+  "gpu_name": "NVIDIA A10G",
+  "gpu_memory_mib": 23028,
+  "duration_seconds": 42
+}

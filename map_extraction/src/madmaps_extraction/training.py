@@ -11,6 +11,7 @@ from PIL import Image
 
 from .adapters import prompt
 from .contract import load_json, validate
+from .fast_extraction import PROFILE, fast_prompt, fast_target
 from .pipeline import write_json
 from .workbench import resolve_under
 
@@ -32,8 +33,9 @@ def dataset_summary(partitions):
 class VisionCollator:
     """TRL 0.21 needs explicit multimodal collation; supervise the answer only."""
 
-    def __init__(self, processor):
+    def __init__(self, processor, *, skip_logits=False):
         self.processor = processor
+        self.skip_logits = skip_logits
         self.processor.tokenizer.padding_side = "right"
 
     def __call__(self, examples):
@@ -66,27 +68,62 @@ class VisionCollator:
                 raise ValueError("Chat template prefix does not match training answer")
             labels[index, :length] = -100
         batch["labels"] = labels
+        if self.skip_logits:
+            batch["skip_logits"] = True
         return batch
 
 
-def load_reviewed_dataset(manifest_path):
+def load_reviewed_dataset(manifest_path, *, allow_public_annotations=False):
     path = Path(manifest_path).resolve()
     manifest = load_json(path)
-    groups, images, sources = {}, {}, {}
+    groups, images, sources, pixels = {}, {}, {}, {}
     partitions = {"train": [], "validation": [], "test": []}
     for row in manifest["examples"]:
         if row.get("synthetic", False):
             continue
         split, group = row["split"], row["group"]
-        if split not in partitions or not group or row.get("reviewed") is not True:
+        provenance = row.get("annotation_provenance", {})
+        public_annotation = (
+            allow_public_annotations
+            and row.get("reviewed") is False
+            and manifest.get("annotation_policy") == "public_dataset_auto_conversion"
+            and provenance.get("kind") == "public_dataset"
+            and all(
+                isinstance(provenance.get(key), str) and provenance[key].strip()
+                for key in (
+                    "dataset",
+                    "converter",
+                    "source_url",
+                    "license",
+                    "original_split",
+                )
+            )
+        )
+        if (
+            split not in partitions
+            or not group
+            or not (row.get("reviewed") is True or public_annotation)
+        ):
             raise ValueError(
-                "Every real example needs a review, source group, and valid split"
+                "Every real example needs a review, source group, and valid split; "
+                "public conversions require --allow-public-annotations and provenance"
             )
         image_path = resolve_under(path.parent, row["image"])
         target_path = resolve_under(path.parent, row["target"])
         digest = hashlib.sha256(image_path.read_bytes()).hexdigest()
         if row.get("image_sha256") != digest:
             raise ValueError("Reviewed image checksum mismatch")
+        if public_annotation:
+            annotation_path = resolve_under(path.parent, row["source_annotation"])
+            if (
+                hashlib.sha256(annotation_path.read_bytes()).hexdigest()
+                != row["source_sha256"]
+            ):
+                raise ValueError("Public source annotation checksum mismatch")
+            if hashlib.sha256(target_path.read_bytes()).hexdigest() != row.get(
+                "target_sha256"
+            ):
+                raise ValueError("Public target checksum mismatch")
         for index, key in (
             (groups, group),
             (images, digest),
@@ -101,6 +138,14 @@ def load_reviewed_dataset(manifest_path):
             raise ValueError("Duplicate training/validation image")
         with Image.open(image_path) as image:
             metadata = {"width": image.width, "height": image.height}
+            pixel_digest = hashlib.sha256(image.convert("RGB").tobytes()).hexdigest()
+        if public_annotation and row.get("image_pixel_sha256") != pixel_digest:
+            raise ValueError("Public image pixel checksum mismatch")
+        if pixel_digest in pixels:
+            raise ValueError(
+                "Duplicate decoded image or pixel leakage across dataset splits"
+            )
+        pixels[pixel_digest] = split
         target = validate(load_json(target_path), metadata)
         partitions[split].append(
             {
@@ -123,6 +168,19 @@ def main():
     )
     parser.add_argument("--manifest", required=True)
     parser.add_argument("--output")
+    parser.add_argument(
+        "--allow-public-annotations",
+        action="store_true",
+        help="Explicitly accept provenance-tracked public conversions without claiming human review",
+    )
+    parser.add_argument(
+        "--use-liger-kernel",
+        action="store_true",
+        help="Use optional Liger fused loss to avoid materializing full vocabulary logits",
+    )
+    parser.add_argument(
+        "--extraction-profile", choices=["full", "fast"], default="full"
+    )
     parser.add_argument("--model-id", default="Qwen/Qwen2.5-VL-3B-Instruct")
     parser.add_argument("--revision")
     parser.add_argument("--epochs", type=int, default=1)
@@ -146,7 +204,9 @@ def main():
         help="Qwen visual token budget; canonical label coordinates stay unchanged",
     )
     args = parser.parse_args()
-    partitions = load_reviewed_dataset(args.manifest)
+    partitions = load_reviewed_dataset(
+        args.manifest, allow_public_annotations=args.allow_public_annotations
+    )
     if args.validate_only:
         print(json.dumps(dataset_summary(partitions), indent=2))
         return
@@ -167,11 +227,12 @@ def main():
     output.mkdir(parents=True, exist_ok=False)
     # Heavy dependencies are optional so local review/export never requires a GPU.
     import torch
-    from datasets import Dataset
-    from datasets import Image as DatasetImage
     from peft import LoraConfig
     from transformers import AutoModelForImageTextToText, AutoProcessor, set_seed
     from trl import SFTConfig, SFTTrainer
+
+    from datasets import Dataset
+    from datasets import Image as DatasetImage
 
     if not torch.cuda.is_available():
         raise RuntimeError("Fine-tuning requires CUDA GPU compute")
@@ -196,13 +257,26 @@ def main():
                             "role": "user",
                             "content": [
                                 {"type": "image"},
-                                {"type": "text", "text": prompt(row["metadata"])},
+                                {
+                                    "type": "text",
+                                    "text": fast_prompt(row["metadata"])
+                                    if args.extraction_profile == "fast"
+                                    else prompt(row["metadata"]),
+                                },
                             ],
                         },
                         {
                             "role": "assistant",
                             "content": [
-                                {"type": "text", "text": json.dumps(row["target_json"])}
+                                {
+                                    "type": "text",
+                                    "text": json.dumps(
+                                        fast_target(row["target_json"]),
+                                        separators=(",", ":"),
+                                    )
+                                    if args.extraction_profile == "fast"
+                                    else json.dumps(row["target_json"]),
+                                }
                             ],
                         },
                     ],
@@ -222,6 +296,8 @@ def main():
         gradient_checkpointing=True,
         gradient_checkpointing_kwargs={"use_reentrant": False},
         max_length=None,
+        use_liger_kernel=args.use_liger_kernel,
+        prediction_loss_only=True,
         bf16=dtype == torch.bfloat16,
         fp16=dtype == torch.float16,
         eval_strategy="epoch",
@@ -239,7 +315,7 @@ def main():
         train_dataset=dataset(partitions["train"]),
         eval_dataset=dataset(partitions["validation"]),
         processing_class=processor,
-        data_collator=VisionCollator(processor),
+        data_collator=VisionCollator(processor, skip_logits=args.use_liger_kernel),
         peft_config=LoraConfig(
             r=args.rank,
             lora_alpha=args.rank * 2,
@@ -257,6 +333,17 @@ def main():
     merged.config.use_cache = True
     merged.save_pretrained(str(output / "merged"), safe_serialization=True)
     processor.save_pretrained(str(output / "merged"))
+    if args.extraction_profile == "fast":
+        for directory in ("adapter", "merged"):
+            write_json(
+                output / directory / "madmaps-generation.json",
+                {
+                    "profile": PROFILE,
+                    "max_pixels": args.max_pixels,
+                    "max_new_tokens": 4096,
+                    "walls_extracted": False,
+                },
+            )
     write_json(
         output / "training_result.json",
         {
@@ -268,7 +355,16 @@ def main():
             "train_examples": len(partitions["train"]),
             "validation_examples": len(partitions["validation"]),
             "held_out_test_examples": len(partitions["test"]),
+            "public_annotations_enabled": args.allow_public_annotations,
+            "use_liger_kernel": args.use_liger_kernel,
+            "manually_reviewed_examples": sum(
+                row.get("reviewed") is True
+                for rows in partitions.values()
+                for row in rows
+            ),
             "evaluation": evaluation,
+            "extraction_profile": args.extraction_profile,
+            "walls_supervised": args.extraction_profile != "fast",
             "epochs": args.epochs,
             "learning_rate": args.learning_rate,
             "rank": args.rank,
@@ -286,6 +382,7 @@ def main():
                     "datasets",
                     "accelerate",
                 )
+                + (("liger-kernel",) if args.use_liger_kernel else ())
             },
             "seed": 42,
             "promoted": False,

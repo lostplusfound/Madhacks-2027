@@ -1,4 +1,6 @@
 import 'dart:async';
+import '../navigation/place_maps.dart';
+import '../../screens/saved_place_map_screen.dart';
 import '../../client.dart';
 import 'package:madmaps_client/madmaps_client.dart' as api;
 import '../localization/shared_captures.dart';
@@ -23,9 +25,15 @@ import 'manual_route_steps.dart';
 enum ShellTab { explore, contribute, profile }
 
 class MadMapsShell extends StatefulWidget {
-  const MadMapsShell({super.key, required this.state, this.repository});
+  const MadMapsShell({
+    super.key,
+    required this.state,
+    this.repository,
+    this.placeMapsApi,
+  });
   final AppState state;
   final MapRepository? repository;
+  final PlaceMapsApi? placeMapsApi;
   @override
   State<MadMapsShell> createState() => _MadMapsShellState();
 }
@@ -33,6 +41,48 @@ class MadMapsShell extends StatefulWidget {
 class _MadMapsShellState extends State<MadMapsShell>
     with WidgetsBindingObserver {
   late final repository = widget.repository ?? ServerMapRepository();
+  late final catalog = CatalogMapRepository(repository);
+  late final placeMapsApi = widget.placeMapsApi ?? ServerpodPlaceMapsApi();
+  String? catalogError;
+  String? activePlaceMapId, selectedBuilding;
+  bool hasMapSelection = false;
+  Future<void> refreshPlaceMaps({bool selectSaved = false}) async {
+    if (widget.placeMapsApi == null && repository is! ServerMapRepository)
+      return;
+    try {
+      final maps = await placeMapsApi.list();
+      if (!mounted) return;
+      setState(() {
+        final changed = maps
+            .where(
+              (m) => !catalog.maps.any(
+                (old) => old.mapId == m.mapId && old.version == m.version,
+              ),
+            )
+            .lastOrNull;
+        catalog.maps = maps;
+        if ((selectSaved && changed != null) ||
+            (!hasMapSelection && maps.isNotEmpty)) {
+          final selected = changed ?? maps.last;
+          activePlaceMapId = selected.mapId;
+          selectedBuilding = selected.buildingName;
+          selectedPlace = null;
+          hasMapSelection = true;
+        }
+        if (activePlaceMapId != null &&
+            !maps.any((m) => m.mapId == activePlaceMapId)) {
+          activePlaceMapId = null;
+          selectedBuilding = null;
+          selectedPlace = null;
+        }
+        catalogError = null;
+      });
+    } catch (_) {
+      if (mounted)
+        setState(() => catalogError = 'Could not load uploaded maps.');
+    }
+  }
+
   final session = NavigationSession();
   final mapNavigator = GlobalKey<NavigatorState>();
   final viewport = FloorViewportController();
@@ -99,6 +149,7 @@ class _MadMapsShellState extends State<MadMapsShell>
           connectorError = issue;
           error = null;
         });
+        unawaited(refreshPlaceMaps());
       }
     } catch (e) {
       if (mounted && generation == loadGeneration)
@@ -253,7 +304,25 @@ class _MadMapsShellState extends State<MadMapsShell>
 
   void selectPreview(FloorLocation place, {bool directions = false}) {
     FocusManager.instance.primaryFocus?.unfocus();
+    if (place.placeMapId != null) {
+      setState(() {
+        activePlaceMapId = place.placeMapId;
+        selectedBuilding = place.buildingName;
+        selectedPlace = place.id;
+        hasMapSelection = true;
+        previewPlace = null;
+        previewStart = null;
+        previewDirections = false;
+        manualGuidance = false;
+        manualStepIndex = 0;
+        tab = ShellTab.explore;
+      });
+      return;
+    }
     setState(() {
+      activePlaceMapId = null;
+      selectedBuilding = place.buildingName;
+      hasMapSelection = true;
       displayedFloor = place.floor;
       selectedPlace = place.id;
       previewPlace = place;
@@ -648,8 +717,28 @@ class _MadMapsShellState extends State<MadMapsShell>
 
   Widget mapLanding() => ExploreScreen(
     key: ValueKey(clientRevision.value),
-    repository: repository,
-    places: floors.values.expand((g) => g.locations).toList(),
+    repository: catalog,
+    places: [
+      ...floors.values.expand((g) => g.locations),
+      ...catalog.destinations,
+    ],
+    selectedBuilding: selectedBuilding,
+    onBuildingChanged: selectBuilding,
+    catalogError: catalogError,
+    onReloadMaps: () => unawaited(refreshPlaceMaps()),
+    mapContent: activePlaceMapId == null
+        ? null
+        : SavedPlaceMapScreen(
+            key: ValueKey(
+              '${activePlaceMapId}-${catalog.maps.where((m) => m.mapId == activePlaceMapId).firstOrNull?.version}',
+            ),
+            embedded: true,
+            api: placeMapsApi,
+            mapId: activePlaceMapId!,
+            destinationId: selectedPlace,
+            onDestinationSelected: (id) => setState(() => selectedPlace = id),
+            onSaved: () => unawaited(refreshPlaceMaps(selectSaved: true)),
+          ),
     state: widget.state,
     floors: floors,
     displayedFloor: displayedFloor,
@@ -664,7 +753,9 @@ class _MadMapsShellState extends State<MadMapsShell>
       viewport.overview();
     },
     onLocate: opening ? null : openSession,
-    tripControls: previewPlace != null
+    tripControls: activePlaceMapId != null
+        ? null
+        : previewPlace != null
         ? previewControls()
         : session.destination == null
         ? null
@@ -681,9 +772,83 @@ class _MadMapsShellState extends State<MadMapsShell>
     connectorError: connectorError,
   );
 
+  void selectBuilding(String? name) {
+    setState(() {
+      selectedBuilding = name;
+      if (name == null) return;
+      hasMapSelection = true;
+      if (name == 'Morgridge Hall') {
+        activePlaceMapId = null;
+      } else {
+        final choices = catalog.maps.where((m) => m.buildingName == name);
+        if (!choices.any((m) => m.mapId == activePlaceMapId)) {
+          activePlaceMapId = choices.firstOrNull?.mapId;
+        }
+      }
+      selectedPlace = null;
+      previewPlace = null;
+      previewStart = null;
+      previewDirections = false;
+      manualGuidance = false;
+      manualStepIndex = 0;
+    });
+  }
+
+  Widget selectedMapTab() {
+    final active = catalog.maps
+        .where((m) => m.mapId == activePlaceMapId)
+        .firstOrNull;
+    return Column(
+      children: [
+        if (catalog.maps.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: DropdownButton<String>(
+              key: const Key('map-plan-selector'),
+              isExpanded: true,
+              value: active?.mapId ?? 'morgridge',
+              items: [
+                const DropdownMenuItem(
+                  value: 'morgridge',
+                  child: Text('Morgridge Hall'),
+                ),
+                for (final map in catalog.maps)
+                  DropdownMenuItem(
+                    value: map.mapId,
+                    child: Text('${map.buildingName} · ${map.floorLabel}'),
+                  ),
+              ],
+              onChanged: (id) {
+                if (id == null) return;
+                setState(() {
+                  hasMapSelection = true;
+                  activePlaceMapId = id == 'morgridge' ? null : id;
+                  selectedBuilding = id == 'morgridge'
+                      ? 'Morgridge Hall'
+                      : catalog.maps
+                            .firstWhere((m) => m.mapId == id)
+                            .buildingName;
+                  selectedPlace = null;
+                  previewPlace = null;
+                  previewStart = null;
+                  previewDirections = false;
+                  manualGuidance = false;
+                  manualStepIndex = 0;
+                });
+              },
+            ),
+          ),
+        Expanded(child: mapLanding()),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final places = floors.values.expand((g) => g.locations).toList();
+    final places = [
+      ...floors.values.expand((g) => g.locations),
+      ...catalog.destinations,
+    ];
     return Scaffold(
       resizeToAvoidBottomInset: false,
       body: SafeArea(
@@ -712,7 +877,7 @@ class _MadMapsShellState extends State<MadMapsShell>
                       onGenerateRoute: (_) => MaterialPageRoute<void>(
                         builder: (_) => AnimatedBuilder(
                           animation: Listenable.merge([widget.state, session]),
-                          builder: (_, _) => mapLanding(),
+                          builder: (_, _) => selectedMapTab(),
                         ),
                       ),
                     ),
@@ -721,6 +886,9 @@ class _MadMapsShellState extends State<MadMapsShell>
                       ? CaptureHome(floors: floors)
                       : const SizedBox.shrink(),
                   ProfileScreen(
+                    placeMapsApi: placeMapsApi,
+                    onMapsChanged: () =>
+                        unawaited(refreshPlaceMaps(selectSaved: true)),
                     state: widget.state,
                     onTools: openTools,
                     saved: SavedScreen(

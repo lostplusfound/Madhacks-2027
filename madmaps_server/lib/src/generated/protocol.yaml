@@ -59,5 +59,9 @@ mapReport:
   - reportEntity:
   - listMyReports:
   - withdrawReport:
+placeMap:
+  - saveMap:
+  - listMaps:
+  - getMap:
 greeting:
   - hello:

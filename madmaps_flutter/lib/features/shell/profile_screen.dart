@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../client.dart';
-import '../../screens/extraction_lab_screen.dart';
+import '../navigation/place_maps.dart';
+import '../../screens/room_amenity_map_screen.dart';
 import '../../screens/greetings_screen.dart';
 import 'app_state.dart';
 import 'shared_widgets.dart';
@@ -11,7 +12,11 @@ class ProfileScreen extends StatelessWidget {
     required this.state,
     required this.onTools,
     this.saved,
+    this.placeMapsApi,
+    this.onMapsChanged,
   });
+  final PlaceMapsApi? placeMapsApi;
+  final VoidCallback? onMapsChanged;
   final AppState state;
   final VoidCallback onTools;
   final Widget? saved;
@@ -87,14 +92,19 @@ class ProfileScreen extends StatelessWidget {
       ),
       ListTile(
         leading: const Icon(Icons.document_scanner_outlined),
-        title: const Text('Floor-plan extraction lab'),
+        title: const Text('Upload a new floor map'),
+        subtitle: const Text(
+          'Upload a floor plan, mark rooms and amenities, and add them to destination search.',
+        ),
         trailing: const Icon(Icons.chevron_right),
         onTap: () {
           reconnectClient();
           Navigator.push(
             context,
             MaterialPageRoute<void>(
-              builder: (context) => ExtractionLabScreen(
+              builder: (context) => RoomAmenityMapScreen(
+                placeMapsApi: placeMapsApi,
+                onSaved: onMapsChanged,
                 onConnectionCheck: () => Navigator.push(
                   context,
                   MaterialPageRoute<void>(

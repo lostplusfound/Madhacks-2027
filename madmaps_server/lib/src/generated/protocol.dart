@@ -22,6 +22,8 @@ import 'package:madmaps_server/src/generated/map_edge_input.dart' as _i2zbo8fc;
 import 'package:madmaps_server/src/generated/map_graph.dart' as _iuy2uhz7;
 import 'package:madmaps_server/src/generated/map_report.dart' as _iyphw3s3;
 import 'package:madmaps_server/src/generated/node.dart' as _iccguhj3;
+import 'package:madmaps_server/src/generated/place_map_summary.dart'
+    as _iyle25i0;
 import 'package:madmaps_server/src/generated/search_result.dart' as _iw7f3ebs;
 import 'package:serverpod/protocol.dart' as _isp;
 import 'package:serverpod/serverpod.dart' as _is;
@@ -53,6 +55,8 @@ import 'map_node_input.dart' as _i3qve637;
 import 'map_report.dart' as _iictijcz;
 import 'map_wall.dart' as _i064s9h8;
 import 'node.dart' as _i9tve71o;
+import 'place_map.dart' as _ix1zgdio;
+import 'place_map_summary.dart' as _ircy7gpu;
 import 'replace_graph_request.dart' as _iz7e8f0p;
 import 'report_reason.dart' as _ijgj7dn0;
 import 'report_status.dart' as _i8pcsu0p;
@@ -84,6 +88,8 @@ export 'map_node_input.dart';
 export 'map_report.dart';
 export 'map_wall.dart';
 export 'node.dart';
+export 'place_map.dart';
+export 'place_map_summary.dart';
 export 'replace_graph_request.dart';
 export 'report_reason.dart';
 export 'report_status.dart';
@@ -129,6 +135,8 @@ class Protocol extends _is.DatabaseSerializationManager
           _is.getType<_iictijcz.MapReport>,
           _is.getType<_i064s9h8.MapWall>,
           _is.getType<_i9tve71o.Nodes>,
+          _is.getType<_ix1zgdio.PlaceMap>,
+          _is.getType<_ircy7gpu.PlaceMapSummary>,
           _is.getType<_iz7e8f0p.ReplaceGraphRequest>,
           _is.getType<_ijgj7dn0.ReportReason>,
           _is.getType<_i8pcsu0p.ReportStatus>,
@@ -160,6 +168,8 @@ class Protocol extends _is.DatabaseSerializationManager
           _is.getType<_iictijcz.MapReport?>,
           _is.getType<_i064s9h8.MapWall?>,
           _is.getType<_i9tve71o.Nodes?>,
+          _is.getType<_ix1zgdio.PlaceMap?>,
+          _is.getType<_ircy7gpu.PlaceMapSummary?>,
           _is.getType<_iz7e8f0p.ReplaceGraphRequest?>,
           _is.getType<_ijgj7dn0.ReportReason?>,
           _is.getType<_i8pcsu0p.ReportStatus?>,
@@ -190,6 +200,7 @@ class Protocol extends _is.DatabaseSerializationManager
           _is.getType<List<_i2zbo8fc.MapEdgeInput>>,
           _is.getType<List<_iccguhj3.Nodes>>,
           _is.getType<List<_iyphw3s3.MapReport>>,
+          _is.getType<List<_iyle25i0.PlaceMapSummary>>,
         ],
         modules: const [
           _iais.Protocol.new,
@@ -221,6 +232,8 @@ class Protocol extends _is.DatabaseSerializationManager
           'MapReport',
           'MapWall',
           'Nodes',
+          'PlaceMap',
+          'PlaceMapSummary',
           'ReplaceGraphRequest',
           'ReportReason',
           'ReportStatus',
@@ -1569,6 +1582,76 @@ class Protocol extends _is.DatabaseSerializationManager
       ],
       managed: true,
     ),
+    _isp.TableDefinition(
+      name: 'place_map',
+      dartName: 'PlaceMap',
+      schema: 'public',
+      module: 'madmaps',
+      columns: [
+        _isp.ColumnDefinition(
+          name: 'id',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'serial',
+        ),
+        _isp.ColumnDefinition(
+          name: 'map_id',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _isp.ColumnDefinition(
+          name: 'building_name',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _isp.ColumnDefinition(
+          name: 'floor_label',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _isp.ColumnDefinition(
+          name: 'map_json',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _isp.ColumnDefinition(
+          name: 'version',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+          columnDefault: '1',
+        ),
+        _isp.ColumnDefinition(
+          name: 'updated_at',
+          columnType: _isp.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+          columnDefault: 'now',
+        ),
+      ],
+      foreignKeys: [],
+      indexes: [
+        _isp.IndexDefinition(
+          indexName: 'place_map__map_id__unique_idx',
+          tableSpace: null,
+          elements: [
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'map_id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: false,
+        ),
+      ],
+      managed: true,
+    ),
   ];
 
   static String? getClassNameFromObjectJson(dynamic data) =>
@@ -1666,6 +1749,12 @@ class Protocol extends _is.DatabaseSerializationManager
     }
     if (t == _i9tve71o.Nodes) {
       return _i9tve71o.Nodes.fromJson(data) as T;
+    }
+    if (t == _ix1zgdio.PlaceMap) {
+      return _ix1zgdio.PlaceMap.fromJson(data) as T;
+    }
+    if (t == _ircy7gpu.PlaceMapSummary) {
+      return _ircy7gpu.PlaceMapSummary.fromJson(data) as T;
     }
     if (t == _iz7e8f0p.ReplaceGraphRequest) {
       return _iz7e8f0p.ReplaceGraphRequest.fromJson(data) as T;
@@ -1768,6 +1857,13 @@ class Protocol extends _is.DatabaseSerializationManager
     }
     if (t == _is.getType<_i9tve71o.Nodes?>()) {
       return (data != null ? _i9tve71o.Nodes.fromJson(data) : null) as T;
+    }
+    if (t == _is.getType<_ix1zgdio.PlaceMap?>()) {
+      return (data != null ? _ix1zgdio.PlaceMap.fromJson(data) : null) as T;
+    }
+    if (t == _is.getType<_ircy7gpu.PlaceMapSummary?>()) {
+      return (data != null ? _ircy7gpu.PlaceMapSummary.fromJson(data) : null)
+          as T;
     }
     if (t == _is.getType<_iz7e8f0p.ReplaceGraphRequest?>()) {
       return (data != null
@@ -1921,6 +2017,12 @@ class Protocol extends _is.DatabaseSerializationManager
               .toList()
           as T;
     }
+    if (t == List<_iyle25i0.PlaceMapSummary>) {
+      return (data as List)
+              .map((e) => deserialize<_iyle25i0.PlaceMapSummary>(e))
+              .toList()
+          as T;
+    }
     final modules = deserializationMetadata.modulesForDeserialization(
       t,
       className: rawDataClassName,
@@ -1960,6 +2062,8 @@ class Protocol extends _is.DatabaseSerializationManager
       _iictijcz.MapReport => 'MapReport',
       _i064s9h8.MapWall => 'MapWall',
       _i9tve71o.Nodes => 'Nodes',
+      _ix1zgdio.PlaceMap => 'PlaceMap',
+      _ircy7gpu.PlaceMapSummary => 'PlaceMapSummary',
       _iz7e8f0p.ReplaceGraphRequest => 'ReplaceGraphRequest',
       _ijgj7dn0.ReportReason => 'ReportReason',
       _i8pcsu0p.ReportStatus => 'ReportStatus',
@@ -2029,6 +2133,10 @@ class Protocol extends _is.DatabaseSerializationManager
         return 'MapWall';
       case _i9tve71o.Nodes():
         return 'Nodes';
+      case _ix1zgdio.PlaceMap():
+        return 'PlaceMap';
+      case _ircy7gpu.PlaceMapSummary():
+        return 'PlaceMapSummary';
       case _iz7e8f0p.ReplaceGraphRequest():
         return 'ReplaceGraphRequest';
       case _ijgj7dn0.ReportReason():
@@ -2141,6 +2249,12 @@ class Protocol extends _is.DatabaseSerializationManager
     if (dataClassName == 'Nodes') {
       return deserialize<_i9tve71o.Nodes>(data['data']);
     }
+    if (dataClassName == 'PlaceMap') {
+      return deserialize<_ix1zgdio.PlaceMap>(data['data']);
+    }
+    if (dataClassName == 'PlaceMapSummary') {
+      return deserialize<_ircy7gpu.PlaceMapSummary>(data['data']);
+    }
     if (dataClassName == 'ReplaceGraphRequest') {
       return deserialize<_iz7e8f0p.ReplaceGraphRequest>(data['data']);
     }
@@ -2229,6 +2343,8 @@ class Protocol extends _is.DatabaseSerializationManager
         return _i064s9h8.MapWall.t;
       case _i9tve71o.Nodes:
         return _i9tve71o.Nodes.t;
+      case _ix1zgdio.PlaceMap:
+        return _ix1zgdio.PlaceMap.t;
     }
     return null;
   }

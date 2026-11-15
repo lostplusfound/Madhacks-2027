@@ -3,7 +3,10 @@ import 'package:madmaps_client/madmaps_client.dart';
 import 'package:serverpod_flutter/serverpod_flutter.dart';
 
 /// Edit this getter and hot reload to reconnect the running app.
-String get serverUrl => 'http://10.141.35.17:8080/';
+String get serverUrl => const String.fromEnvironment(
+  'SERVERPOD_API_URL',
+  defaultValue: 'http://10.141.35.17:8080/',
+);
 
 Client? _client;
 String? _connectedUrl;

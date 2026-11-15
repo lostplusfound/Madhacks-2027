@@ -36,7 +36,7 @@ class SavedScreen extends StatelessWidget {
       children: [
         const SectionHeading('Saved places'),
         const Text(
-          'Your shortcuts around Morgridge Hall. Hold a place to rename it.',
+          'Your shortcuts across buildings. Hold a place to rename it.',
         ),
         if (saved.isEmpty)
           const EmptyCard('Save a destination using its bookmark button.'),

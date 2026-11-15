@@ -1,0 +1,230 @@
+{
+  "run_id": "355972322118525",
+  "run_url": "https://dbc-be616652-c982.cloud.databricks.com/jobs/runs/355972322118525",
+  "pipeline_status": "complete",
+  "model": "Qwen/Qwen2.5-VL-3B-Instruct",
+  "revision": "66285546d2b821cf421d4f5eb2576359d3770cd3",
+  "train_examples": 64,
+  "validation_examples": 8,
+  "held_out_test_examples": 8,
+  "epochs": 1,
+  "optimizer_steps": 16,
+  "validation_loss": 0.4055795669555664,
+  "elapsed_training_process_seconds": 241.54740960200013,
+  "peak_allocated_gpu_gib": 10.008919715881348,
+  "smoke_passed": true,
+  "use_liger_kernel": true,
+  "baseline_valid_predictions": 0,
+  "candidate_valid_predictions": 0,
+  "candidate_prediction_count": 8,
+  "candidate_failure_rate": 1.0,
+  "candidate_failure_types": {
+    "JSONDecodeError": 4,
+    "ValidationError": 4
+  },
+  "quality_gate_passed": false,
+  "promoted": false,
+  "artifact_directory": "/Volumes/workspace/default/madmaps_training/training/cubicasa5k-20261115-trial-02-liger",
+  "adapter_directory": "/Volumes/workspace/default/madmaps_training/training/cubicasa5k-20261115-trial-02-liger/candidate/adapter",
+  "merged_model_directory": "/Volumes/workspace/default/madmaps_training/training/cubicasa5k-20261115-trial-02-liger/candidate/merged",
+  "model_files": {
+    "adapter": [
+      {
+        "file_size": 5220,
+        "is_directory": false,
+        "last_modified": 1794752505000,
+        "name": "README.md",
+        "path": "/Volumes/workspace/default/madmaps_training/training/cubicasa5k-20261115-trial-02-liger/candidate/adapter/README.md"
+      },
+      {
+        "file_size": 862,
+        "is_directory": false,
+        "last_modified": 1794752507000,
+        "name": "adapter_config.json",
+        "path": "/Volumes/workspace/default/madmaps_training/training/cubicasa5k-20261115-trial-02-liger/candidate/adapter/adapter_config.json"
+      },
+      {
+        "file_size": 14766952,
+        "is_directory": false,
+        "last_modified": 1794752506000,
+        "name": "adapter_model.safetensors",
+        "path": "/Volumes/workspace/default/madmaps_training/training/cubicasa5k-20261115-trial-02-liger/candidate/adapter/adapter_model.safetensors"
+      },
+      {
+        "file_size": 605,
+        "is_directory": false,
+        "last_modified": 1794752512000,
+        "name": "added_tokens.json",
+        "path": "/Volumes/workspace/default/madmaps_training/training/cubicasa5k-20261115-trial-02-liger/candidate/adapter/added_tokens.json"
+      },
+      {
+        "file_size": 1017,
+        "is_directory": false,
+        "last_modified": 1794752514000,
+        "name": "chat_template.jinja",
+        "path": "/Volumes/workspace/default/madmaps_training/training/cubicasa5k-20261115-trial-02-liger/candidate/adapter/chat_template.jinja"
+      },
+      {
+        "file_size": 1671853,
+        "is_directory": false,
+        "last_modified": 1794752512000,
+        "name": "merges.txt",
+        "path": "/Volumes/workspace/default/madmaps_training/training/cubicasa5k-20261115-trial-02-liger/candidate/adapter/merges.txt"
+      },
+      {
+        "file_size": 789,
+        "is_directory": false,
+        "last_modified": 1794752511000,
+        "name": "preprocessor_config.json",
+        "path": "/Volumes/workspace/default/madmaps_training/training/cubicasa5k-20261115-trial-02-liger/candidate/adapter/preprocessor_config.json"
+      },
+      {
+        "file_size": 613,
+        "is_directory": false,
+        "last_modified": 1794752512000,
+        "name": "special_tokens_map.json",
+        "path": "/Volumes/workspace/default/madmaps_training/training/cubicasa5k-20261115-trial-02-liger/candidate/adapter/special_tokens_map.json"
+      },
+      {
+        "file_size": 11422064,
+        "is_directory": false,
+        "last_modified": 1794752512000,
+        "name": "tokenizer.json",
+        "path": "/Volumes/workspace/default/madmaps_training/training/cubicasa5k-20261115-trial-02-liger/candidate/adapter/tokenizer.json"
+      },
+      {
+        "file_size": 4754,
+        "is_directory": false,
+        "last_modified": 1794752511000,
+        "name": "tokenizer_config.json",
+        "path": "/Volumes/workspace/default/madmaps_training/training/cubicasa5k-20261115-trial-02-liger/candidate/adapter/tokenizer_config.json"
+      },
+      {
+        "file_size": 6353,
+        "is_directory": false,
+        "last_modified": 1794752511000,
+        "name": "training_args.bin",
+        "path": "/Volumes/workspace/default/madmaps_training/training/cubicasa5k-20261115-trial-02-liger/candidate/adapter/training_args.bin"
+      },
+      {
+        "file_size": 905,
+        "is_directory": false,
+        "last_modified": 1794752513000,
+        "name": "video_preprocessor_config.json",
+        "path": "/Volumes/workspace/default/madmaps_training/training/cubicasa5k-20261115-trial-02-liger/candidate/adapter/video_preprocessor_config.json"
+      },
+      {
+        "file_size": 2776833,
+        "is_directory": false,
+        "last_modified": 1794752512000,
+        "name": "vocab.json",
+        "path": "/Volumes/workspace/default/madmaps_training/training/cubicasa5k-20261115-trial-02-liger/candidate/adapter/vocab.json"
+      }
+    ],
+    "merged": [
+      {
+        "file_size": 605,
+        "is_directory": false,
+        "last_modified": 1794752533000,
+        "name": "added_tokens.json",
+        "path": "/Volumes/workspace/default/madmaps_training/training/cubicasa5k-20261115-trial-02-liger/candidate/merged/added_tokens.json"
+      },
+      {
+        "file_size": 1017,
+        "is_directory": false,
+        "last_modified": 1794752536000,
+        "name": "chat_template.jinja",
+        "path": "/Volumes/workspace/default/madmaps_training/training/cubicasa5k-20261115-trial-02-liger/candidate/merged/chat_template.jinja"
+      },
+      {
+        "file_size": 3412,
+        "is_directory": false,
+        "last_modified": 1794752514000,
+        "name": "config.json",
+        "path": "/Volumes/workspace/default/madmaps_training/training/cubicasa5k-20261115-trial-02-liger/candidate/merged/config.json"
+      },
+      {
+        "file_size": 214,
+        "is_directory": false,
+        "last_modified": 1794752514000,
+        "name": "generation_config.json",
+        "path": "/Volumes/workspace/default/madmaps_training/training/cubicasa5k-20261115-trial-02-liger/candidate/merged/generation_config.json"
+      },
+      {
+        "file_size": 1671853,
+        "is_directory": false,
+        "last_modified": 1794752534000,
+        "name": "merges.txt",
+        "path": "/Volumes/workspace/default/madmaps_training/training/cubicasa5k-20261115-trial-02-liger/candidate/merged/merges.txt"
+      },
+      {
+        "file_size": 4997750760,
+        "is_directory": false,
+        "last_modified": 1794752524000,
+        "name": "model-00001-of-00002.safetensors",
+        "path": "/Volumes/workspace/default/madmaps_training/training/cubicasa5k-20261115-trial-02-liger/candidate/merged/model-00001-of-00002.safetensors"
+      },
+      {
+        "file_size": 2511587184,
+        "is_directory": false,
+        "last_modified": 1794752531000,
+        "name": "model-00002-of-00002.safetensors",
+        "path": "/Volumes/workspace/default/madmaps_training/training/cubicasa5k-20261115-trial-02-liger/candidate/merged/model-00002-of-00002.safetensors"
+      },
+      {
+        "file_size": 65484,
+        "is_directory": false,
+        "last_modified": 1794752532000,
+        "name": "model.safetensors.index.json",
+        "path": "/Volumes/workspace/default/madmaps_training/training/cubicasa5k-20261115-trial-02-liger/candidate/merged/model.safetensors.index.json"
+      },
+      {
+        "file_size": 789,
+        "is_directory": false,
+        "last_modified": 1794752532000,
+        "name": "preprocessor_config.json",
+        "path": "/Volumes/workspace/default/madmaps_training/training/cubicasa5k-20261115-trial-02-liger/candidate/merged/preprocessor_config.json"
+      },
+      {
+        "file_size": 613,
+        "is_directory": false,
+        "last_modified": 1794752533000,
+        "name": "special_tokens_map.json",
+        "path": "/Volumes/workspace/default/madmaps_training/training/cubicasa5k-20261115-trial-02-liger/candidate/merged/special_tokens_map.json"
+      },
+      {
+        "file_size": 11422064,
+        "is_directory": false,
+        "last_modified": 1794752535000,
+        "name": "tokenizer.json",
+        "path": "/Volumes/workspace/default/madmaps_training/training/cubicasa5k-20261115-trial-02-liger/candidate/merged/tokenizer.json"
+      },
+      {
+        "file_size": 4754,
+        "is_directory": false,
+        "last_modified": 1794752533000,
+        "name": "tokenizer_config.json",
+        "path": "/Volumes/workspace/default/madmaps_training/training/cubicasa5k-20261115-trial-02-liger/candidate/merged/tokenizer_config.json"
+      },
+      {
+        "file_size": 905,
+        "is_directory": false,
+        "last_modified": 1794752536000,
+        "name": "video_preprocessor_config.json",
+        "path": "/Volumes/workspace/default/madmaps_training/training/cubicasa5k-20261115-trial-02-liger/candidate/merged/video_preprocessor_config.json"
+      },
+      {
+        "file_size": 2776833,
+        "is_directory": false,
+        "last_modified": 1794752534000,
+        "name": "vocab.json",
+        "path": "/Volumes/workspace/default/madmaps_training/training/cubicasa5k-20261115-trial-02-liger/candidate/merged/vocab.json"
+      }
+    ]
+  },
+  "observed_failure_patterns": [
+    "Truncated JSON after repeated coordinate generation",
+    "Unsupported room category values in complete JSON"
+  ],
+  "model_files_verified_present": true
+}

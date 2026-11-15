@@ -36,6 +36,9 @@ import 'package:madmaps_server/src/generated/map_graph_snapshot.dart'
 import 'package:madmaps_server/src/generated/map_node_input.dart' as _iw7xgnop;
 import 'package:madmaps_server/src/generated/map_report.dart' as _iyphw3s3;
 import 'package:madmaps_server/src/generated/node.dart' as _iccguhj3;
+import 'package:madmaps_server/src/generated/place_map.dart' as _i5pcim9h;
+import 'package:madmaps_server/src/generated/place_map_summary.dart'
+    as _iyle25i0;
 import 'package:madmaps_server/src/generated/replace_graph_request.dart'
     as _iz03jq17;
 import 'package:madmaps_server/src/generated/report_reason.dart' as _i2l2jj9m;
@@ -201,6 +204,8 @@ class TestEndpoints {
 
   late final _MapReportEndpoint mapReport;
 
+  late final _PlaceMapEndpoint placeMap;
+
   late final _GreetingEndpoint greeting;
 }
 
@@ -248,6 +253,10 @@ class _InternalTestEndpoints extends TestEndpoints
       serializationManager,
     );
     mapReport = _MapReportEndpoint(
+      endpoints,
+      serializationManager,
+    );
+    placeMap = _PlaceMapEndpoint(
       endpoints,
       serializationManager,
     );
@@ -2117,6 +2126,119 @@ class _MapReportEndpoint {
                   _localCallContext.arguments,
                 )
                 as _ida.Future<_iyphw3s3.MapReport>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+}
+
+class _PlaceMapEndpoint {
+  _PlaceMapEndpoint(
+    this._endpointDispatch,
+    this._serializationManager,
+  );
+
+  final _is.EndpointDispatch _endpointDispatch;
+
+  final _is.SerializationManager _serializationManager;
+
+  _ida.Future<_i5pcim9h.PlaceMap> saveMap(
+    _ist.TestSessionBuilder sessionBuilder,
+    String content,
+    String buildingName,
+    String floorLabel,
+    String? mapId,
+    int? expectedVersion,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'placeMap',
+            method: 'saveMap',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'placeMap',
+          methodName: 'saveMap',
+          parameters: _ist.testObjectToJson({
+            'content': content,
+            'buildingName': buildingName,
+            'floorLabel': floorLabel,
+            'mapId': mapId,
+            'expectedVersion': expectedVersion,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_i5pcim9h.PlaceMap>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<List<_iyle25i0.PlaceMapSummary>> listMaps(
+    _ist.TestSessionBuilder sessionBuilder,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'placeMap',
+            method: 'listMaps',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'placeMap',
+          methodName: 'listMaps',
+          parameters: _ist.testObjectToJson({}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<List<_iyle25i0.PlaceMapSummary>>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<_i5pcim9h.PlaceMap> getMap(
+    _ist.TestSessionBuilder sessionBuilder,
+    String mapId,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'placeMap',
+            method: 'getMap',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'placeMap',
+          methodName: 'getMap',
+          parameters: _ist.testObjectToJson({'mapId': mapId}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_i5pcim9h.PlaceMap>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();

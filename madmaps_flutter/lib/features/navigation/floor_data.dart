@@ -130,9 +130,21 @@ class FloorEdge {
 }
 
 class FloorLocation {
-  FloorLocation(this.id, this.label, this.aliases, this.node, {this.floor = 1});
+  FloorLocation(
+    this.id,
+    this.label,
+    this.aliases,
+    this.node, {
+    this.floor = 1,
+    this.buildingName = 'Morgridge Hall',
+    this.placeMapId,
+    this.mapFloorLabel,
+  });
+  final String buildingName;
+  final String? placeMapId, mapFloorLabel;
   final int floor;
-  String get floorLabel => floor == 0 ? 'Basement' : 'Floor $floor';
+  String get floorLabel =>
+      mapFloorLabel ?? (floor == 0 ? 'Basement' : 'Floor $floor');
   final String id, label, aliases;
   final String? node;
 }

@@ -5,10 +5,9 @@ from pathlib import Path
 
 import mlflow
 from huggingface_hub import snapshot_download
+from madmaps_extraction.vlm import FloorPlanVLM
 from mlflow.models import ModelSignature
 from mlflow.types import ColSpec, Schema
-
-from madmaps_extraction.vlm import FloorPlanVLM
 
 
 def main():
@@ -50,6 +49,10 @@ def main():
             "pandas",
         )
     ]
+    if Path(weights, "madmaps-generation.json").is_file():
+        requirements.extend(
+            f"{name}=={version(name)}" for name in ("xgrammar", "jsonschema", "shapely")
+        )
     with mlflow.start_run():
         model = mlflow.pyfunc.log_model(
             name="floorplan-vlm",

@@ -1,0 +1,7 @@
+class: PlaceMapSummary
+fields:
+  mapId: String
+  buildingName: String
+  floorLabel: String
+  placesJson: String
+  version: int

@@ -1,0 +1,25 @@
+{
+  "run_id": "1095519663735379",
+  "run_url": "https://dbc-be616652-c982.cloud.databricks.com/jobs/runs/1095519663735379",
+  "status": "SUCCESS",
+  "profile": "fast-map-v1",
+  "walls_generated": false,
+  "walls_evaluated": false,
+  "features": [
+    "rooms",
+    "amenities",
+    "doors",
+    "walkable_areas"
+  ],
+  "epochs": 3,
+  "training_examples": 64,
+  "pilot_examples": 2,
+  "max_new_tokens": 4096,
+  "timeout_minutes": 30,
+  "artifact_directory": "/Volumes/workspace/default/madmaps_training/training/cubicasa5k-20261115-trial-03-fast",
+  "quality_gate_passed": false,
+  "promoted": false,
+  "training_completed": true,
+  "pilot_passed": false,
+  "pilot_valid_predictions": 1
+}

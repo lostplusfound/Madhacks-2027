@@ -35,6 +35,9 @@ import 'package:madmaps_client/src/protocol/map_graph_snapshot.dart'
 import 'package:madmaps_client/src/protocol/map_node_input.dart' as _iknlbgoc;
 import 'package:madmaps_client/src/protocol/map_report.dart' as _i5b93lv5;
 import 'package:madmaps_client/src/protocol/node.dart' as _i6rsjj6d;
+import 'package:madmaps_client/src/protocol/place_map.dart' as _ie7no8k7;
+import 'package:madmaps_client/src/protocol/place_map_summary.dart'
+    as _iv0t8d6t;
 import 'package:madmaps_client/src/protocol/replace_graph_request.dart'
     as _iwd56web;
 import 'package:madmaps_client/src/protocol/report_reason.dart' as _i6ynwlr2;
@@ -862,6 +865,47 @@ class EndpointMapReport extends _isc.EndpointRef {
 }
 
 /// {@category Endpoint}
+class EndpointPlaceMap extends _isc.EndpointRef {
+  EndpointPlaceMap(_isc.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'placeMap';
+
+  /// The local prototype shares maps explicitly saved by a human reviewer.
+  _ida.Future<_ie7no8k7.PlaceMap> saveMap(
+    String content,
+    String buildingName,
+    String floorLabel,
+    String? mapId,
+    int? expectedVersion,
+  ) => caller.callServerEndpoint<_ie7no8k7.PlaceMap>(
+    'placeMap',
+    'saveMap',
+    {
+      'content': content,
+      'buildingName': buildingName,
+      'floorLabel': floorLabel,
+      'mapId': mapId,
+      'expectedVersion': expectedVersion,
+    },
+  );
+
+  _ida.Future<List<_iv0t8d6t.PlaceMapSummary>> listMaps() =>
+      caller.callServerEndpoint<List<_iv0t8d6t.PlaceMapSummary>>(
+        'placeMap',
+        'listMaps',
+        {},
+      );
+
+  _ida.Future<_ie7no8k7.PlaceMap> getMap(String mapId) =>
+      caller.callServerEndpoint<_ie7no8k7.PlaceMap>(
+        'placeMap',
+        'getMap',
+        {'mapId': mapId},
+      );
+}
+
+/// {@category Endpoint}
 class EndpointGreeting extends _isc.EndpointRef {
   EndpointGreeting(_isc.EndpointCaller caller) : super(caller);
 
@@ -924,6 +968,7 @@ class Client extends _isc.ServerpodClientShared {
     mapGraph = EndpointMapGraph(this);
     mapNode = EndpointMapNode(this);
     mapReport = EndpointMapReport(this);
+    placeMap = EndpointPlaceMap(this);
     greeting = EndpointGreeting(this);
     modules = Modules(this);
   }
@@ -948,6 +993,8 @@ class Client extends _isc.ServerpodClientShared {
 
   late final EndpointMapReport mapReport;
 
+  late final EndpointPlaceMap placeMap;
+
   late final EndpointGreeting greeting;
 
   late final Modules modules;
@@ -964,6 +1011,7 @@ class Client extends _isc.ServerpodClientShared {
     'mapGraph': mapGraph,
     'mapNode': mapNode,
     'mapReport': mapReport,
+    'placeMap': placeMap,
     'greeting': greeting,
   };
 

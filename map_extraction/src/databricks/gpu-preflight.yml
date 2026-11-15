@@ -1,0 +1,9 @@
+experiment_name: madmaps-vlm-gpu-preflight
+compute:
+  num_accelerators: 1
+  accelerator_type: GPU_1xA10
+environment:
+  version: databricks_ai_v6
+command: nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
+timeout_minutes: 5
+max_retries: 0

@@ -1,0 +1,9 @@
+class: PlaceMap
+table: place_map
+fields:
+  mapId: String, column=map_id, unique
+  buildingName: String, column=building_name
+  floorLabel: String, column=floor_label
+  mapJson: String, column=map_json
+  version: int, default=1
+  updatedAt: DateTime, default=now, column=updated_at

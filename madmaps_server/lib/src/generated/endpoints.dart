@@ -40,6 +40,7 @@ import '../endpoints/map_edge_endpoint.dart' as _itjzzzju;
 import '../endpoints/map_graph_endpoint.dart' as _i00fwvij;
 import '../endpoints/map_node_endpoint.dart' as _ibynlq0k;
 import '../endpoints/map_report_endpoint.dart' as _idqb48bj;
+import '../endpoints/place_map_endpoint.dart' as _i0v2ehhw;
 import '../greetings/greeting_endpoint.dart' as _il624ik7;
 
 class Endpoints extends _is.EndpointDispatch {
@@ -113,6 +114,12 @@ class Endpoints extends _is.EndpointDispatch {
         ..initialize(
           server,
           'mapReport',
+          null,
+        ),
+      'placeMap': _i0v2ehhw.PlaceMapEndpoint()
+        ..initialize(
+          server,
+          'placeMap',
           null,
         ),
       'greeting': _il624ik7.GreetingEndpoint()
@@ -1483,6 +1490,84 @@ class Endpoints extends _is.EndpointDispatch {
                   .withdrawReport(
                     session,
                     params['reportId'],
+                  ),
+        ),
+      },
+    );
+    connectors['placeMap'] = _is.EndpointConnector(
+      name: 'placeMap',
+      endpoint: endpoints['placeMap']!,
+      methodConnectors: {
+        'saveMap': _is.MethodConnector(
+          name: 'saveMap',
+          params: {
+            'content': _is.ParameterDescription(
+              name: 'content',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'buildingName': _is.ParameterDescription(
+              name: 'buildingName',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'floorLabel': _is.ParameterDescription(
+              name: 'floorLabel',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'mapId': _is.ParameterDescription(
+              name: 'mapId',
+              type: _is.getType<String?>(),
+              nullable: true,
+            ),
+            'expectedVersion': _is.ParameterDescription(
+              name: 'expectedVersion',
+              type: _is.getType<int?>(),
+              nullable: true,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['placeMap'] as _i0v2ehhw.PlaceMapEndpoint).saveMap(
+                    session,
+                    params['content'],
+                    params['buildingName'],
+                    params['floorLabel'],
+                    params['mapId'],
+                    params['expectedVersion'],
+                  ),
+        ),
+        'listMaps': _is.MethodConnector(
+          name: 'listMaps',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async => (endpoints['placeMap'] as _i0v2ehhw.PlaceMapEndpoint)
+                  .listMaps(session),
+        ),
+        'getMap': _is.MethodConnector(
+          name: 'getMap',
+          params: {
+            'mapId': _is.ParameterDescription(
+              name: 'mapId',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['placeMap'] as _i0v2ehhw.PlaceMapEndpoint).getMap(
+                    session,
+                    params['mapId'],
                   ),
         ),
       },
