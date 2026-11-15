@@ -20,9 +20,16 @@ class MorgridgeGraphData {
       rootBundle.loadString('assets/graph/locations.csv'),
       rootBundle.loadString('assets/graph/nodes.csv'),
       rootBundle.loadString('assets/graph/edges.csv'),
+      rootBundle.loadString('assets/floor1/locations.csv'),
+      rootBundle.loadString('assets/floor1/nodes.csv'),
+      rootBundle.loadString('assets/floor1/edges.csv'),
     ]);
     final locations = <String, _GraphLocation>{};
     for (final row in _csv(values[0]).skip(1)) {
+      final item = _GraphLocation.fromRow(row);
+      locations[item.id] = item;
+    }
+    for (final row in _csv(values[3]).skip(1)) {
       final item = _GraphLocation.fromRow(row);
       locations[item.id] = item;
     }
@@ -31,8 +38,19 @@ class MorgridgeGraphData {
       final item = _GraphNode.fromRow(row);
       nodes[item.id] = item;
     }
+    for (final row in _csv(values[4]).skip(1)) {
+      final item = _GraphNode.fromRow(row);
+      nodes[item.id] = item;
+    }
     final edges = <String, List<_GraphEdge>>{};
     for (final row in _csv(values[2]).skip(1)) {
+      final edge = _GraphEdge.fromRow(row);
+      edges.putIfAbsent(edge.from, () => []).add(edge);
+      if (edge.bidirectional) {
+        edges.putIfAbsent(edge.to, () => []).add(edge.reversed);
+      }
+    }
+    for (final row in _csv(values[5]).skip(1)) {
       final edge = _GraphEdge.fromRow(row);
       edges.putIfAbsent(edge.from, () => []).add(edge);
       if (edge.bidirectional) {
@@ -82,13 +100,18 @@ class MorgridgeGraphData {
       for (final token in query.split(RegExp(r'[^a-z0-9]+'))) {
         if (token.length > 1 && words.contains(token)) score += token.length;
       }
-      if (query.contains('elevator') && location.category == 'elevator')
+      if (query.contains('elevator') && location.category == 'elevator') {
         score += 40;
-      if (query.contains('restroom') && location.category == 'restroom')
+      }
+      if (query.contains('restroom') && location.category == 'restroom') {
         score += 40;
-      if (query.contains('stairs') && location.category == 'stairs')
+      }
+      if (query.contains('stairs') && location.category == 'stairs') {
         score += 40;
-      if (query.contains('exit') && location.category == 'exit') score += 30;
+      }
+      if (query.contains('exit') && location.category == 'exit') {
+        score += 30;
+      }
       if (score > bestScore) {
         bestScore = score;
         best = location;

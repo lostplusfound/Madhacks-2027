@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:material_ui/material_ui.dart';
 
 import '../data/morgridge_mock_data.dart';
@@ -14,6 +16,8 @@ class FloorPlanCanvas extends StatelessWidget {
     required this.destination,
     required this.onPlaceTap,
     this.displayName = _identityName,
+    this.routeStep = 0,
+    this.walking = false,
   });
 
   final int floor;
@@ -24,6 +28,8 @@ class FloorPlanCanvas extends StatelessWidget {
   final Place? destination;
   final ValueChanged<Place> onPlaceTap;
   final String Function(Place) displayName;
+  final int routeStep;
+  final bool walking;
 
   static String _identityName(Place place) => place.name;
 
@@ -31,9 +37,21 @@ class FloorPlanCanvas extends StatelessWidget {
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       final size = Size(constraints.maxWidth, constraints.maxHeight);
+      final floorPlaces = places
+          .where((place) => place.floor == floor)
+          .toList();
       return Stack(
         fit: StackFit.expand,
         children: [
+          if (floor == 1)
+            const Positioned.fill(
+              child: IgnorePointer(
+                child: Image(
+                  image: AssetImage('assets/floor1/plan.png'),
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
           CustomPaint(
             painter: _FloorPlanPainter(
               floor: floor,
@@ -41,26 +59,39 @@ class FloorPlanCanvas extends StatelessWidget {
               route: route,
               origin: origin,
               destination: destination,
+              routeStep: routeStep,
+              walking: walking,
             ),
           ),
-          for (final place in places.where((place) => place.floor == floor))
+          for (final entry in floorPlaces.indexed)
             Positioned(
-              left: size.width * place.point.dx - 16,
-              top: size.height * place.point.dy - 16,
+              left:
+                  size.width *
+                      _spreadPoint(entry.$2, entry.$1, floorPlaces).dx -
+                  16,
+              top:
+                  size.height *
+                      _spreadPoint(entry.$2, entry.$1, floorPlaces).dy -
+                  16,
               child: Semantics(
                 button: true,
                 label:
-                    '${displayName(place)}, ${place.room}, floor ${place.floor}, ${place.hours.label}',
+                    '${displayName(entry.$2) == entry.$2.name ? entry.$2.name : '${displayName(entry.$2)} · ${entry.$2.name}'}, floor ${entry.$2.floor}, ${entry.$2.hours.label}',
                 child: Tooltip(
-                  message: '${place.name} · ${place.room}',
+                  message: displayName(entry.$2) == entry.$2.name
+                      ? entry.$2.name
+                      : '${displayName(entry.$2)} · ${entry.$2.name}',
                   child: InkWell(
                     customBorder: const CircleBorder(),
-                    onTap: () => onPlaceTap(place),
+                    onTap: () => onPlaceTap(entry.$2),
+                    // Tooltip is the touch equivalent of desktop hover.
+                    // A long press deliberately avoids a modal dialog.
+                    onLongPress: () {},
                     child: Container(
                       width: 32,
                       height: 32,
                       decoration: BoxDecoration(
-                        color: place.color,
+                        color: entry.$2.color,
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 2.5),
                         boxShadow: [
@@ -71,7 +102,7 @@ class FloorPlanCanvas extends StatelessWidget {
                           ),
                         ],
                       ),
-                      child: Icon(place.icon, size: 16, color: Colors.white),
+                      child: Icon(entry.$2.icon, size: 16, color: Colors.white),
                     ),
                   ),
                 ),
@@ -81,6 +112,17 @@ class FloorPlanCanvas extends StatelessWidget {
       );
     },
   );
+
+  Offset _spreadPoint(Place place, int index, List<Place> all) {
+    final nearby = [
+      for (var i = 0; i < all.length; i++)
+        if ((all[i].point - place.point).distance < .028) i,
+    ];
+    if (nearby.length < 2) return place.point;
+    final rank = nearby.indexOf(index);
+    final angle = rank * 6.283185307 / nearby.length;
+    return place.point + Offset(.018 * math.cos(angle), .018 * math.sin(angle));
+  }
 }
 
 class _FloorPlanPainter extends CustomPainter {
@@ -90,6 +132,8 @@ class _FloorPlanPainter extends CustomPainter {
     required this.route,
     required this.origin,
     required this.destination,
+    required this.routeStep,
+    required this.walking,
   });
 
   final int floor;
@@ -97,13 +141,15 @@ class _FloorPlanPainter extends CustomPainter {
   final RouteOption? route;
   final LocationFix? origin;
   final Place? destination;
+  final int routeStep;
+  final bool walking;
 
   @override
   void paint(Canvas canvas, Size size) {
     final background = highContrast
         ? const Color(0xfff2f3ee)
         : const Color(0xffefeee9);
-    canvas.drawRect(Offset.zero & size, Paint()..color = background);
+    if (floor != 1) canvas.drawRect(Offset.zero & size, Paint()..color = background);
     Offset point(double x, double y) => Offset(size.width * x, size.height * y);
 
     final boundary = _boundary(size, point);
@@ -116,6 +162,10 @@ class _FloorPlanPainter extends CustomPainter {
       ..strokeWidth = highContrast ? 2.4 : 1.5
       ..style = PaintingStyle.stroke;
     final roomPaint = Paint()..color = Colors.white;
+    final openBelowPaint = Paint()
+      ..color = highContrast
+          ? const Color(0xffb9c7d3)
+          : const Color(0xffdce5ea);
     final loungePaint = Paint()
       ..color = highContrast
           ? const Color(0xff59677c)
@@ -130,7 +180,7 @@ class _FloorPlanPainter extends CustomPainter {
           : const Color(0xffe2bd78);
 
     canvas.save();
-    canvas.clipPath(boundary);
+    if (floor != 1) canvas.clipPath(boundary);
 
     if (floor == 2) {
       _room(
@@ -178,7 +228,7 @@ class _FloorPlanPainter extends CustomPainter {
           point(.54, .62),
           point(.38, .59),
         ],
-        roomPaint,
+        openBelowPaint,
         linePaint,
       );
       _room(
@@ -223,7 +273,7 @@ class _FloorPlanPainter extends CustomPainter {
       _label(canvas, '2532', point(.24, .9), size.width * .035);
       _label(canvas, '2522', point(.32, .9), size.width * .035);
       _label(canvas, '2516', point(.49, .9), size.width * .035);
-    } else if (floor == 1) {
+    } else if (floor == -1) {
       _room(
         canvas,
         [
@@ -296,25 +346,37 @@ class _FloorPlanPainter extends CustomPainter {
         final pixel = point(waypoint.dx, waypoint.dy);
         routePath.lineTo(pixel.dx, pixel.dy);
       }
+      final routeColor = highContrast ? const Color(0xffdb6d00) : routeCobalt;
       canvas.drawPath(
         routePath,
         Paint()
-          ..color = (highContrast ? const Color(0xffdb6d00) : routeCobalt)
-              .withValues(alpha: .2)
-          ..strokeWidth = size.width * .035
-          ..style = PaintingStyle.stroke
-          ..strokeCap = StrokeCap.round
-          ..strokeJoin = StrokeJoin.round,
-      );
-      canvas.drawPath(
-        routePath,
-        Paint()
-          ..color = highContrast ? const Color(0xffdb6d00) : routeCobalt
+          ..color = walking ? routeColor.withValues(alpha: .38) : routeColor
           ..strokeWidth = size.width * .012
           ..style = PaintingStyle.stroke
           ..strokeCap = StrokeCap.round
           ..strokeJoin = StrokeJoin.round,
       );
+      if (walking) {
+        final count = routeStep.clamp(1, routePoints.length) as int;
+        if (count > 1) {
+          final done = Path();
+          final firstDone = point(routePoints.first.dx, routePoints.first.dy);
+          done.moveTo(firstDone.dx, firstDone.dy);
+          for (final waypoint in routePoints.skip(1).take(count - 1)) {
+            final pixel = point(waypoint.dx, waypoint.dy);
+            done.lineTo(pixel.dx, pixel.dy);
+          }
+          canvas.drawPath(
+            done,
+            Paint()
+              ..color = routeColor
+              ..strokeWidth = size.width * .014
+              ..style = PaintingStyle.stroke
+              ..strokeCap = StrokeCap.round
+              ..strokeJoin = StrokeJoin.round,
+          );
+        }
+      }
       if (origin != null && origin!.floor == floor) {
         _marker(
           canvas,
@@ -341,10 +403,12 @@ class _FloorPlanPainter extends CustomPainter {
     }
 
     canvas.restore();
-    canvas.drawPath(
-      boundary,
-      linePaint..strokeWidth = highContrast ? 3.4 : 2.2,
-    );
+    if (floor != 1) {
+      canvas.drawPath(
+        boundary,
+        linePaint..strokeWidth = highContrast ? 3.4 : 2.2,
+      );
+    }
   }
 
   Path _boundary(Size size, Offset Function(double, double) p) {
@@ -450,5 +514,7 @@ class _FloorPlanPainter extends CustomPainter {
       oldDelegate.highContrast != highContrast ||
       oldDelegate.route != route ||
       oldDelegate.origin != origin ||
-      oldDelegate.destination != destination;
+      oldDelegate.destination != destination ||
+      oldDelegate.routeStep != routeStep ||
+      oldDelegate.walking != walking;
 }

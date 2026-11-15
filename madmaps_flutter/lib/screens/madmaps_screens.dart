@@ -26,8 +26,20 @@ class _MadMapsShellState extends State<MadMapsShell> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('You have arrived.'),
+            SnackBar(
+              backgroundColor: state.highContrast
+                  ? const Color(0xff005f73)
+                  : brandCrimson,
+              content: const Row(
+                children: [
+                  Icon(Icons.celebration_rounded, color: Colors.white),
+                  SizedBox(width: 10),
+                  Text(
+                    'You have arrived!',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ],
+              ),
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -40,25 +52,36 @@ class _MadMapsShellState extends State<MadMapsShell> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            IndexedStack(
-              index: tab,
-              children: [
-                HomeScreen(
-                  state: state,
-                  onChoose: _chooseDestination,
-                  onOpenTab: _openTab,
-                ),
-                MapScreen(
-                  state: state,
-                  onPlaceTap: _showPlace,
-                  onCheckIn: _openCheckIn,
-                  onScan: _openScanner,
-                  onDescribe: _openDescription,
-                  onReport: _reportIssue,
-                ),
-                SavedScreen(state: state, onChoose: _chooseDestination),
-                ProfileScreen(state: state),
-              ],
+            TweenAnimationBuilder<double>(
+              key: ValueKey(tab),
+              duration: const Duration(milliseconds: 220),
+              tween: Tween(begin: .86, end: 1),
+              builder: (context, value, child) =>
+                  Opacity(opacity: value, child: child),
+              child: IndexedStack(
+                index: tab,
+                children: [
+                  HomeScreen(
+                    state: state,
+                    onChoose: _chooseDestination,
+                    onOpenTab: _openTab,
+                  ),
+                  MapScreen(
+                    state: state,
+                    onPlaceTap: _showPlace,
+                    onCheckIn: _openCheckIn,
+                    onScan: _openScanner,
+                    onDescribe: _openDescription,
+                    onReport: _reportIssue,
+                  ),
+                  SavedScreen(
+                    state: state,
+                    onChoose: _chooseDestination,
+                    onPlaceTap: _showPlace,
+                  ),
+                  ProfileScreen(state: state),
+                ],
+              ),
             ),
             if (state.floorPromptPending)
               Positioned(
@@ -209,8 +232,10 @@ class _MadMapsShellState extends State<MadMapsShell> {
 
   void _openTab(int value) => setState(() => tab = value);
 
-  void _chooseDestination(Place place) {
+  Future<void> _chooseDestination(Place place) async {
     state.setDestination(place);
+    await Future<void>.delayed(const Duration(milliseconds: 240));
+    if (!mounted) return;
     _openTab(1);
     if (state.currentLocation == null) unawaited(_openCheckIn());
   }
@@ -281,7 +306,7 @@ class _MadMapsShellState extends State<MadMapsShell> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'Camera demo is turned off. Use location description or enable the demo in Profile.',
+              'Camera demo is turned off. Use location description instead.',
             ),
             behavior: SnackBarBehavior.floating,
           ),
@@ -535,7 +560,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   onTap: () => widget.onChoose(
                     widget.state.places.firstWhere(
                       (place) =>
-                          place.category == 'Amenity' && place.floor == 2,
+                          place.category == 'Restroom' && place.floor == 2,
                     ),
                   ),
                 ),
@@ -729,15 +754,24 @@ class MapScreen extends StatelessWidget {
                   child: Stack(
                     children: [
                       Positioned.fill(
-                        child: FloorPlanCanvas(
-                          floor: state.floor,
-                          highContrast: state.highContrast,
-                          places: state.places,
-                          route: route,
-                          origin: state.currentLocation,
-                          destination: state.destination,
-                          onPlaceTap: onPlaceTap,
-                          displayName: state.displayName,
+                        child: InteractiveViewer(
+                          minScale: .75,
+                          maxScale: 3,
+                          boundaryMargin: const EdgeInsets.all(80),
+                          child: FloorPlanCanvas(
+                            floor: state.floor,
+                            highContrast: state.highContrast,
+                            places: state.destination == null
+                                ? state.places
+                                : const [],
+                            route: route,
+                            origin: state.currentLocation,
+                            destination: state.destination,
+                            onPlaceTap: onPlaceTap,
+                            displayName: state.displayName,
+                            routeStep: state.stepIndex,
+                            walking: state.isWalking,
+                          ),
                         ),
                       ),
                       if (!state.walkStarted)
@@ -762,7 +796,15 @@ class MapScreen extends StatelessWidget {
                         Positioned(
                           left: 12,
                           top: 12,
-                          child: _MapLegend(highContrast: state.highContrast),
+                          child: _MapLegend(
+                            highContrast: state.highContrast,
+                            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                behavior: SnackBarBehavior.floating,
+                                content: const Text('Select a location to view more information and set it as the destination.'),
+                              ),
+                            ),
+                          ),
                         ),
                     ],
                   ),
@@ -772,14 +814,34 @@ class MapScreen extends StatelessWidget {
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(18, 12, 18, 16),
-                child: route == null
-                    ? _MapBrowsePanel(onCheckIn: onCheckIn, state: state)
-                    : _NavigationPanel(
-                        state: state,
-                        onScan: onScan,
-                        onDescribe: onDescribe,
-                        onReport: onReport,
-                      ),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 260),
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0, .04),
+                        end: Offset.zero,
+                      ).animate(animation),
+                      child: child,
+                    ),
+                  ),
+                  child: route == null
+                      ? _MapBrowsePanel(
+                          key: const ValueKey('browse'),
+                          onCheckIn: onCheckIn,
+                          state: state,
+                        )
+                      : _NavigationPanel(
+                          key: ValueKey(
+                            'route-${state.walkStarted}-${state.arrived}',
+                          ),
+                          state: state,
+                          onScan: onScan,
+                          onDescribe: onDescribe,
+                          onReport: onReport,
+                        ),
+                ),
               ),
             ),
           ],
@@ -790,9 +852,15 @@ class MapScreen extends StatelessWidget {
 }
 
 class SavedScreen extends StatelessWidget {
-  const SavedScreen({super.key, required this.state, required this.onChoose});
+  const SavedScreen({
+    super.key,
+    required this.state,
+    required this.onChoose,
+    required this.onPlaceTap,
+  });
   final MadMapsState state;
   final ValueChanged<Place> onChoose;
+  final ValueChanged<Place> onPlaceTap;
 
   @override
   Widget build(BuildContext context) {
@@ -836,10 +904,24 @@ class SavedScreen extends StatelessWidget {
               _SavedPlaceCard(
                 place: place,
                 onChoose: () => onChoose(place),
+                onTap: () => onPlaceTap(place),
                 onRemove: () => state.removeSaved(place.name),
                 displayName: state.displayName(place),
                 onRename: (name) => state.renameSavedPlace(place.name, name),
               ),
+          const SizedBox(height: 16),
+          const Text('SUGGESTED', style: TextStyle(fontSize: 10, letterSpacing: 1.4, color: Color(0xff68747b), fontWeight: FontWeight.w800)),
+          const SizedBox(height: 8),
+          for (final place in state.places.where((place) => !state.savedPlaces.contains(place.name)).take(3))
+            _SavedPlaceCard(
+              place: place,
+              displayName: state.displayName(place),
+              onTap: () => onPlaceTap(place),
+              onChoose: () => onChoose(place),
+              onRemove: () {},
+              onRename: (_) {},
+              suggested: true,
+            ),
         ],
       ),
     );
@@ -867,7 +949,7 @@ class ProfileScreen extends StatelessWidget {
         ),
         const SizedBox(height: 3),
         const Text(
-          'Personal info',
+          'Personal Preferences',
           style: TextStyle(fontSize: 23, fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 8),
@@ -891,35 +973,92 @@ class ProfileScreen extends StatelessWidget {
           onChanged: state.setBlindMode,
         ),
         _ProfileToggle(
-          icon: Icons.contrast_rounded,
-          title: 'High contrast map',
-          subtitle: 'Strengthen map and text contrast',
-          value: state.highContrast,
-          onChanged: state.setHighContrast,
-        ),
-        _ProfileToggle(
           icon: Icons.volume_up_outlined,
           title: 'Spoken directions',
           subtitle: 'Read each navigation step aloud',
           value: state.voiceGuidance,
           onChanged: state.setVoiceGuidance,
         ),
-        const SizedBox(height: 10),
-        SegmentedButton<bool>(
-          segments: const [
-            ButtonSegment(value: true, label: Text('Feet')),
-            ButtonSegment(value: false, label: Text('Meters')),
-          ],
-          selected: {state.useFeet},
-          showSelectedIcon: false,
-          onSelectionChanged: (value) => state.setUseFeet(value.first),
+        _ProfileToggle(
+          icon: Icons.contrast_rounded,
+          title: 'High contrast map',
+          subtitle: 'Strengthen map and text contrast',
+          value: state.highContrast,
+          onChanged: state.setHighContrast,
         ),
-        const SizedBox(height: 6),
-        const Text(
-          'Distance units',
-          style: TextStyle(fontSize: 12, color: Color(0xff68747b)),
+        Container(
+          margin: const EdgeInsets.only(top: 2),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(17),
+            border: Border.all(color: const Color(0xffe4e8e5)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.straighten_rounded,
+                    color: state.useFeet ? brandCrimson : routeCobalt,
+                  ),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Distance units',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        Text(
+                          'Choose how route distances are shown',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Color(0xff68747b),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 150,
+                    child: SegmentedButton<bool>(
+                      segments: const [
+                        ButtonSegment(value: true, label: Text('Feet')),
+                        ButtonSegment(value: false, label: Text('Meters')),
+                      ],
+                      selected: {state.useFeet},
+                      showSelectedIcon: false,
+                      style: ButtonStyle(
+                        backgroundColor: WidgetStateProperty.resolveWith(
+                          (states) => states.contains(WidgetState.selected)
+                              ? (state.useFeet ? brandCrimson : routeCobalt)
+                              : const Color(0xfff1f3f1),
+                        ),
+                        foregroundColor: WidgetStateProperty.resolveWith(
+                          (states) => states.contains(WidgetState.selected)
+                              ? Colors.white
+                              : deepInk,
+                        ),
+                      ),
+                      onSelectionChanged: (value) =>
+                          state.setUseFeet(value.first),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        if (false)
+        if (state.cameraPromptSeen &&
+            state.simulatedCameraAllowed &&
+            !state.simulatedCameraAllowed)
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -1527,6 +1666,7 @@ class PlaceDetailSheet extends StatelessWidget {
 
 class _NavigationPanel extends StatelessWidget {
   const _NavigationPanel({
+    super.key,
     required this.state,
     required this.onScan,
     required this.onDescribe,
@@ -1729,6 +1869,7 @@ class _NavigationPanel extends StatelessWidget {
               label: const Text('Describe where you are'),
             ),
           ),
+        if (state.walkStarted) const SizedBox(height: 14),
         if (state.walkStarted)
           OutlinedButton.icon(
             onPressed: onReport,
@@ -1738,9 +1879,18 @@ class _NavigationPanel extends StatelessWidget {
         const SizedBox(height: 2),
         Align(
           alignment: Alignment.centerRight,
-          child: TextButton(
-            onPressed: state.endNavigation,
-            child: const Text('End route'),
+          child: Wrap(
+            spacing: 4,
+            children: [
+              TextButton(
+                onPressed: state.clearDestination,
+                child: const Text('Clear choice'),
+              ),
+              TextButton(
+                onPressed: state.endNavigation,
+                child: const Text('End route'),
+              ),
+            ],
           ),
         ),
       ],
@@ -1829,7 +1979,11 @@ class _RouteOptionRow extends StatelessWidget {
 }
 
 class _MapBrowsePanel extends StatelessWidget {
-  const _MapBrowsePanel({required this.state, required this.onCheckIn});
+  const _MapBrowsePanel({
+    super.key,
+    required this.state,
+    required this.onCheckIn,
+  });
   final MadMapsState state;
   final VoidCallback onCheckIn;
 
@@ -1861,10 +2015,14 @@ class _MapBrowsePanel extends StatelessWidget {
 }
 
 class _MapLegend extends StatelessWidget {
-  const _MapLegend({required this.highContrast});
+  const _MapLegend({required this.highContrast, required this.onTap});
   final bool highContrast;
+  final VoidCallback onTap;
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(12),
+    child: Container(
     padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
     decoration: BoxDecoration(
       color: Colors.white.withValues(alpha: .94),
@@ -1887,6 +2045,7 @@ class _MapLegend extends StatelessWidget {
           style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700),
         ),
       ],
+    ),
     ),
   );
 }
@@ -2130,12 +2289,16 @@ class _SavedPlaceCard extends StatelessWidget {
     required this.onChoose,
     required this.onRemove,
     required this.onRename,
+    this.onTap,
+    this.suggested = false,
   });
   final Place place;
   final String displayName;
   final VoidCallback onChoose;
   final VoidCallback onRemove;
   final ValueChanged<String> onRename;
+  final VoidCallback? onTap;
+  final bool suggested;
   @override
   Widget build(BuildContext context) => Card(
     margin: const EdgeInsets.only(bottom: 10),
@@ -2146,6 +2309,7 @@ class _SavedPlaceCard extends StatelessWidget {
       side: const BorderSide(color: Color(0xffe4e8e5)),
     ),
     child: ListTile(
+      onTap: onTap,
       contentPadding: const EdgeInsets.fromLTRB(13, 7, 4, 7),
       leading: Container(
         width: 42,
@@ -2169,7 +2333,7 @@ class _SavedPlaceCard extends StatelessWidget {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          PopupMenuButton<String>(
+          if (!suggested) PopupMenuButton<String>(
             tooltip: 'Saved location options',
             onSelected: (value) {
               if (value == 'rename') {
@@ -2388,13 +2552,6 @@ class _SheetFrame extends StatelessWidget {
       ),
     ),
   );
-}
-
-Place? _placeByName(String name) {
-  for (final place in morgridgePlaces) {
-    if (place.name == name) return place;
-  }
-  return null;
 }
 
 LocationFix resolveFallbackDescription(String description) {

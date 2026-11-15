@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -96,7 +95,7 @@ class MadMapsState extends ChangeNotifier {
     final selectedFloor = text.contains('first') || text.contains('floor 1')
         ? 1
         : 2;
-    if (text.contains('elevator'))
+    if (text.contains('elevator')) {
       return LocationFix(
         label: 'By the elevator · Floor $selectedFloor',
         floor: selectedFloor,
@@ -104,12 +103,14 @@ class MadMapsState extends ChangeNotifier {
             ? const Offset(.48, .63)
             : const Offset(.55, .53),
       );
-    if (text.contains('learning') || text.contains('study'))
+    }
+    if (text.contains('learning') || text.contains('study')) {
       return const LocationFix(
         label: 'Outside the Learning Center',
         floor: 2,
         point: Offset(.47, .24),
       );
+    }
     return LocationFix(
       label: 'Main hall · Floor $selectedFloor',
       floor: selectedFloor,
@@ -190,6 +191,8 @@ class MadMapsState extends ChangeNotifier {
   void toggleSaved(Place place) {
     if (savedPlaces.contains(place.name)) {
       savedPlaces.remove(place.name);
+      savedAliases.remove(place.name);
+      _saveAliases();
     } else {
       savedPlaces.insert(0, place.name);
     }
@@ -387,6 +390,24 @@ class MadMapsState extends ChangeNotifier {
     floorPromptPending = false;
     floorPromptTarget = null;
     _tts.stop();
+    notifyListeners();
+  }
+
+  /// Clears a destination while preserving the user's current location.
+  void clearDestination() {
+    _walkTimer?.cancel();
+    destination = null;
+    routes = const [];
+    routeIndex = 0;
+    stepIndex = 0;
+    isNavigating = false;
+    isWalking = false;
+    walkStarted = false;
+    arrived = false;
+    floorPromptPending = false;
+    floorPromptTarget = null;
+    _tts.stop();
+    if (currentLocation != null) floor = currentLocation!.floor;
     notifyListeners();
   }
 

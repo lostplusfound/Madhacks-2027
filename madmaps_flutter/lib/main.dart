@@ -36,6 +36,9 @@ class _MadMapsAppState extends State<MadMapsApp> {
               ? const Color(0xff005f73)
               : brandCrimson,
           surface: Colors.white,
+          primary: state.highContrast ? const Color(0xff005f73) : brandCrimson,
+          secondary: state.highContrast ? const Color(0xffe07a00) : routeCobalt,
+          onSurface: state.highContrast ? const Color(0xff102a43) : deepInk,
         ),
         textTheme: const TextTheme(
           bodyMedium: TextStyle(fontFamily: 'Arial'),
