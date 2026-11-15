@@ -12,12 +12,15 @@ import '../navigation/building_routing.dart';
 import '../navigation/map_repository.dart';
 import '../navigation/interactive_floor_map.dart';
 import 'app_state.dart';
-import 'home_screen.dart';
+import 'explore_screen.dart';
 import 'saved_screen.dart';
 import 'profile_screen.dart';
 import 'navigation_session.dart';
 import 'shared_widgets.dart';
 import 'route_planner_screen.dart';
+import 'manual_route_steps.dart';
+
+enum ShellTab { explore, contribute, profile }
 
 class MadMapsShell extends StatefulWidget {
   const MadMapsShell({super.key, required this.state, this.repository});
@@ -51,7 +54,7 @@ class _MadMapsShellState extends State<MadMapsShell>
 
   String? selectedPlace;
   String? error;
-  int tab = 0;
+  ShellTab tab = ShellTab.explore;
   bool opening = false;
   String? lastAnnouncement;
   int spokenRevision = -1;
@@ -87,6 +90,7 @@ class _MadMapsShellState extends State<MadMapsShell>
       }
       if (!mounted || generation != loadGeneration) return;
       session.updateMaps(loaded, catalog);
+      viewport.overview();
       if (mounted) {
         setState(() {
           graph = result;
@@ -167,51 +171,349 @@ class _MadMapsShellState extends State<MadMapsShell>
     }
   }
 
-  void choose(FloorLocation place) {
+  FloorLocation? previewPlace, previewStart;
+  bool previewDirections = false;
+  bool manualGuidance = false;
+  int manualStepIndex = 0;
+
+  List<ManualRouteStep> get previewSteps {
+    final route = previewRoute;
+    return route == null
+        ? []
+        : manualRouteSteps(
+            route,
+            floors,
+            widget.state.label(previewPlace!),
+            widget.state.distance,
+          );
+  }
+
+  List<Offset> get previewPath {
+    final route = previewRoute;
+    if (route == null) return const [];
+    final steps = previewSteps;
+    final selectedStep = manualGuidance && steps.isNotEmpty
+        ? steps[manualStepIndex.clamp(0, steps.length - 1)]
+        : null;
+    return [
+      for (var i = 0; i < route.legs.length; i++)
+        if (route.legs[i].floor == displayedFloor)
+          ...route.legs[i].points.sublist(
+            selectedStep != null && selectedStep.legIndex == i
+                ? selectedStep.pointIndex
+                : 0,
+          ),
+    ];
+  }
+
+  void advanceManualStep(int index) {
+    final route = previewRoute;
+    final steps = previewSteps;
+    if (route == null || index < 0 || index >= steps.length) return;
+    setState(() {
+      manualStepIndex = index;
+      displayedFloor = route.legs[steps[index].legIndex].floor;
+    });
+    viewport.overview();
+  }
+
+  void startLiveGuidance() {
+    session.choose(previewPlace!);
+    setState(() {
+      previewPlace = null;
+      previewStart = null;
+      previewDirections = false;
+      manualGuidance = false;
+      manualStepIndex = 0;
+    });
+    unawaited(openSession());
+  }
+
+  BuildingRoute? get previewRoute {
+    final start = previewStart, end = previewPlace;
+    if (!previewDirections ||
+        start == null ||
+        end == null ||
+        start.node == null)
+      return null;
+    final g = floors[start.floor]!;
+    return planBuildingRoute(
+      floors: floors,
+      connectors: connectors,
+      startFloor: start.floor,
+      start: g.nodes[start.node]!.point,
+      startNode: start.node,
+      destination: end,
+      avoidStairs: session.avoidStairs,
+      travelMode: session.travelMode,
+    );
+  }
+
+  void choose(FloorLocation place) => selectPreview(place, directions: true);
+
+  void selectPreview(FloorLocation place, {bool directions = false}) {
+    FocusManager.instance.primaryFocus?.unfocus();
     setState(() {
       displayedFloor = place.floor;
       selectedPlace = place.id;
-      tab = 1;
+      previewPlace = place;
+      previewStart = null;
+      manualGuidance = false;
+      manualStepIndex = 0;
+      previewDirections = directions;
+      tab = ShellTab.explore;
     });
     viewport.overview();
-    unawaited(planRoute(place));
   }
 
-  Future<void> planRoute([FloorLocation? place]) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (plannerContext) => RoutePlannerScreen(
-          floors: floors,
-          connectors: connectors,
-          state: widget.state,
-          destination: place,
-          initialAvoidStairs: session.avoidStairs,
-          initialTravelMode: session.travelMode,
-          onTravelModeChanged: session.setTravelMode,
-          onLocalize: (destination, avoidStairs) {
-            Navigator.pop(plannerContext);
-            session.setAvoidStairs(avoidStairs);
-            session.choose(destination);
-            setState(() {
-              tab = 1;
-              displayedFloor = 1;
-            });
-            unawaited(openSession());
-          },
+  void closePreview() {
+    setState(() {
+      previewPlace = null;
+      previewStart = null;
+      previewDirections = false;
+      manualGuidance = false;
+      manualStepIndex = 0;
+      selectedPlace = null;
+    });
+    viewport.overview();
+  }
+
+  Future<void> pickPreviewStart() async {
+    final place = await pickRoutePlace(
+      context,
+      floors.values.expand((g) => g.locations).toList(),
+      'Choose start',
+    );
+    if (!mounted || place == null) return;
+    setState(() {
+      previewStart = place;
+      manualGuidance = false;
+      manualStepIndex = 0;
+      displayedFloor = place.floor;
+    });
+    viewport.overview();
+  }
+
+  Widget previewHeader() => Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      ListTile(
+        dense: true,
+        leading: const Icon(Icons.my_location, color: routeCobalt),
+        title: Text(
+          previewStart == null
+              ? 'Your location'
+              : widget.state.label(previewStart!),
+        ),
+        subtitle: const Text('Choose starting point'),
+        onTap: pickPreviewStart,
+        trailing: IconButton(
+          tooltip: 'Close directions',
+          onPressed: closePreview,
+          icon: const Icon(Icons.close),
         ),
       ),
+      const Divider(height: 1, indent: 56),
+      ListTile(
+        dense: true,
+        leading: const Icon(Icons.place, color: brandCrimson),
+        title: Text(widget.state.label(previewPlace!)),
+        subtitle: Text(previewPlace!.floorLabel),
+      ),
+    ],
+  );
+
+  Widget previewControls() {
+    final place = previewPlace!;
+    final route = previewRoute;
+    final steps = previewSteps;
+    final stepIndex = steps.isEmpty
+        ? 0
+        : manualStepIndex.clamp(0, steps.length - 1);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                previewDirections ? 'Walking directions' : place.floorLabel,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+            IconButton(
+              tooltip: 'Close place',
+              onPressed: closePreview,
+              icon: const Icon(Icons.close),
+            ),
+          ],
+        ),
+        if (!previewDirections) ...[
+          TextButton.icon(
+            onPressed: () => widget.state.toggleSaved(place.id),
+            icon: Icon(
+              widget.state.saved.contains(place.id)
+                  ? Icons.bookmark
+                  : Icons.bookmark_border,
+            ),
+            label: Text(
+              widget.state.saved.contains(place.id)
+                  ? 'Remove saved place'
+                  : 'Save place',
+            ),
+          ),
+          FilledButton.icon(
+            onPressed: place.node == null
+                ? null
+                : () {
+                    setState(() => previewDirections = true);
+                    viewport.overview();
+                  },
+            icon: const Icon(Icons.directions_walk),
+            label: const Text('Navigate'),
+          ),
+          if (place.node == null)
+            const Text('This destination has no mapped entrance yet.'),
+        ] else ...[
+          if (!manualGuidance)
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Avoid stairs'),
+              value: session.avoidStairs,
+              onChanged: (value) {
+                manualGuidance = false;
+                manualStepIndex = 0;
+                session.setAvoidStairs(value);
+                viewport.overview();
+              },
+            ),
+          if (!manualGuidance)
+            FloorTravelPicker(
+              value: session.travelMode,
+              avoidStairs: session.avoidStairs,
+              onChanged: (value) {
+                manualGuidance = false;
+                manualStepIndex = 0;
+                session.setTravelMode(value);
+                viewport.overview();
+              },
+            ),
+          if (previewStart == null)
+            const Text(
+              'Find your location to start live guidance, or choose a starting point above to preview a route.',
+            )
+          else if (route == null)
+            const Text(
+              'No connected route is available with these preferences.',
+            )
+          else ...[
+            Text(
+              '${widget.state.distance(route.meters)} - about ${(route.seconds / 60).ceil()} min (estimated)',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            if (manualGuidance && steps.isNotEmpty)
+              Card(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'Step ${stepIndex + 1} of ${steps.length}',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        steps[stepIndex].instruction,
+                        key: const ValueKey('manual-instruction'),
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          IconButton(
+                            key: const ValueKey('inline-previous-step'),
+                            tooltip: 'Previous step',
+                            onPressed: stepIndex == 0
+                                ? null
+                                : () => advanceManualStep(stepIndex - 1),
+                            icon: const Icon(Icons.arrow_back),
+                          ),
+                          IconButton(
+                            key: const ValueKey('inline-next-step'),
+                            tooltip: 'Next step',
+                            onPressed: stepIndex == steps.length - 1
+                                ? null
+                                : () => advanceManualStep(stepIndex + 1),
+                            icon: const Icon(Icons.arrow_forward),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            const Text(
+              'Follow these steps manually. Your location and arrival are not tracked.',
+            ),
+          ],
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed: opening || (previewStart != null && route == null)
+                ? null
+                : () {
+                    if (previewStart == null) {
+                      startLiveGuidance();
+                      return;
+                    }
+                    if (manualGuidance) {
+                      closePreview();
+                      return;
+                    }
+                    setState(() => manualGuidance = true);
+                    advanceManualStep(0);
+                  },
+            icon: const Icon(Icons.navigation_outlined),
+            label: Text(
+              opening
+                  ? 'Opening...'
+                  : previewStart == null
+                  ? 'Start'
+                  : manualGuidance
+                  ? 'Finish directions'
+                  : 'Start step-by-step',
+            ),
+          ),
+          if (manualGuidance)
+            TextButton(
+              onPressed: () => setState(() {
+                manualGuidance = false;
+                manualStepIndex = 0;
+              }),
+              child: const Text('Route options'),
+            ),
+          if (previewStart != null)
+            TextButton.icon(
+              onPressed: opening ? null : startLiveGuidance,
+              icon: const Icon(Icons.camera_alt_outlined),
+              label: const Text('Use live guidance'),
+            ),
+        ],
+      ],
     );
   }
 
   Future<void> openTools() async {
-    setState(() => tab = 2);
+    setState(() => tab = ShellTab.contribute);
   }
 
   Future<void> openSession() async {
     if (opening || session.attached) return;
     setState(() {
       opening = true;
-      tab = 1;
+      tab = ShellTab.explore;
     });
     try {
       final store = MapStore();
@@ -238,7 +540,7 @@ class _MadMapsShellState extends State<MadMapsShell>
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const Text(
-                    'Choose a floor in Community and capture two known points, or download shared scans. Your destination will stay selected.',
+                    'Choose a floor in Contribute and capture two known points, or download shared scans. Your destination will stay selected.',
                   ),
                   const SizedBox(height: 16),
                   FilledButton(
@@ -281,164 +583,109 @@ class _MadMapsShellState extends State<MadMapsShell>
     }
   }
 
-  Widget mapLanding([int floorNumber = 1]) {
-    final g = floors[floorNumber];
-    if (g == null) return const Center(child: CircularProgressIndicator());
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Morgridge Hall',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-              ),
-              Chip(label: Text(g.floorLabel)),
-              IconButton(
-                tooltip: 'Map help',
-                icon: const Icon(Icons.help_outline),
-                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Tap a room or marker for details. Pinch to zoom and rotate; drag to pan.',
-                    ),
-                  ),
-                ),
-              ),
-              IconButton(
-                tooltip: 'Show whole floor',
-                icon: const Icon(Icons.center_focus_strong),
-                onPressed: viewport.overview,
-              ),
-              IconButton(
-                tooltip: 'Mapping tools',
-                onPressed: openTools,
-                icon: const Icon(Icons.edit_location_alt_outlined),
-              ),
-            ],
-          ),
+  Widget tripControls() => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      if (displayedFloor != 1)
+        TextButton.icon(
+          onPressed: () => setState(() => displayedFloor = 1),
+          icon: const Icon(Icons.navigation_outlined),
+          label: const Text('Return to navigation'),
         ),
-        Expanded(
-          child: InteractiveFloorMap(
-            key: ValueKey(g.floor),
-            graph: g,
-            selectedLocation: selectedPlace,
-            highContrast: widget.state.contrast,
-            setup: FloorSetup(),
-            controller: viewport,
-            position: null,
-            heading: null,
-            route: const [],
-            fullRoute: const [],
-            onLocation: (place) {
-              setState(() => selectedPlace = place.id);
-              showPlaceDetails(
-                context,
-                place,
-                widget.state,
-                () => choose(place),
-              );
-            },
+      Text(
+        session.destination == null
+            ? 'Explore Morgridge Hall'
+            : widget.state.label(session.destination!),
+        style: Theme.of(context).textTheme.titleMedium,
+      ),
+      Text(
+        connectorError ??
+            'Locate with shared or saved AR anchors to start live guidance.',
+      ),
+      const SizedBox(height: 12),
+      SwitchListTile(
+        contentPadding: EdgeInsets.zero,
+        title: const Text('Avoid stairs'),
+        secondary: PopupMenuButton<FloorTravelMode>(
+          tooltip: 'Between floors',
+          enabled: !session.avoidStairs,
+          initialValue: session.travelMode,
+          icon: Icon(
+            session.avoidStairs ||
+                    session.travelMode == FloorTravelMode.elevator
+                ? Icons.elevator
+                : Icons.stairs,
           ),
-        ),
-        SafeArea(
-          top: false,
-          child: AnimatedSwitcher(
-            duration: MediaQuery.disableAnimationsOf(context)
-                ? Duration.zero
-                : const Duration(milliseconds: 260),
-            transitionBuilder: (child, animation) => FadeTransition(
-              opacity: animation,
-              child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(0, .04),
-                  end: Offset.zero,
-                ).animate(animation),
-                child: child,
-              ),
+          onSelected: session.setTravelMode,
+          itemBuilder: (_) => const [
+            PopupMenuItem(
+              value: FloorTravelMode.elevator,
+              child: Text('Elevator'),
             ),
-            child: Card(
-              key: ValueKey('$floorNumber-${session.destination?.id}'),
-              margin: const EdgeInsets.all(16),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      session.destination == null
-                          ? 'Explore ${g.floorLabel}'
-                          : widget.state.label(session.destination!),
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    Text(
-                      connectorError ??
-                          'Locate with shared or saved AR anchors to start live guidance.',
-                    ),
-                    const SizedBox(height: 12),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Avoid stairs'),
-                      secondary: PopupMenuButton<FloorTravelMode>(
-                        tooltip: 'Between floors',
-                        enabled: !session.avoidStairs,
-                        initialValue: session.travelMode,
-                        icon: Icon(
-                          session.avoidStairs ||
-                                  session.travelMode == FloorTravelMode.elevator
-                              ? Icons.elevator
-                              : Icons.stairs,
-                        ),
-                        onSelected: session.setTravelMode,
-                        itemBuilder: (_) => const [
-                          PopupMenuItem(
-                            value: FloorTravelMode.elevator,
-                            child: Text('Elevator'),
-                          ),
-                          PopupMenuItem(
-                            value: FloorTravelMode.stairs,
-                            child: Text('Stairs'),
-                          ),
-                        ],
-                      ),
-                      value: session.avoidStairs,
-                      onChanged: session.setAvoidStairs,
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: () => planRoute(session.destination),
-                      icon: const Icon(Icons.alt_route),
-                      label: const Text('Plan a route'),
-                    ),
-                    FilledButton.icon(
-                      onPressed: opening ? null : openSession,
-                      icon: const Icon(Icons.camera_alt_outlined),
-                      label: Text(
-                        opening ? 'Opening...' : 'Find my location',
-                      ),
-                    ),
-                    if (session.destination != null)
-                      TextButton(
-                        onPressed: session.cancel,
-                        child: Text(session.arrived ? 'Finish' : 'Cancel'),
-                      ),
-                  ],
-                ),
-              ),
+            PopupMenuItem(
+              value: FloorTravelMode.stairs,
+              child: Text('Stairs'),
             ),
-          ),
+          ],
         ),
-      ],
-    );
-  }
+        value: session.avoidStairs,
+        onChanged: session.setAvoidStairs,
+      ),
+      FilledButton.icon(
+        onPressed: opening ? null : openSession,
+        icon: const Icon(Icons.camera_alt_outlined),
+        label: Text(
+          opening ? 'Opening...' : 'Find my location',
+        ),
+      ),
+      if (session.destination != null)
+        TextButton(
+          onPressed: session.cancel,
+          child: Text(session.arrived ? 'Finish' : 'Cancel'),
+        ),
+    ],
+  );
+
+  Widget mapLanding() => ExploreScreen(
+    key: ValueKey(clientRevision.value),
+    repository: repository,
+    places: floors.values.expand((g) => g.locations).toList(),
+    state: widget.state,
+    floors: floors,
+    displayedFloor: displayedFloor,
+    selectedPlace: selectedPlace,
+    viewport: viewport,
+    onChoose: selectPreview,
+    onFloor: (floor) {
+      setState(() {
+        displayedFloor = floor;
+        selectedPlace = null;
+      });
+      viewport.overview();
+    },
+    onLocate: opening ? null : openSession,
+    tripControls: previewPlace != null
+        ? previewControls()
+        : session.destination == null
+        ? null
+        : tripControls(),
+    panelTitle: previewPlace == null ? null : widget.state.label(previewPlace!),
+    directionsHeader: previewDirections && previewPlace != null
+        ? previewHeader()
+        : null,
+    onDismissPlace: previewPlace == null ? null : closePreview,
+    previewPath: previewPath,
+    previewPosition: manualGuidance && previewPath.isNotEmpty
+        ? previewPath.first
+        : null,
+    connectorError: connectorError,
+  );
 
   @override
   Widget build(BuildContext context) {
     final places = floors.values.expand((g) => g.locations).toList();
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: SafeArea(
         bottom: false,
         child: error != null
@@ -454,86 +701,23 @@ class _MadMapsShellState extends State<MadMapsShell>
             : graph == null
             ? const Center(child: CircularProgressIndicator())
             : IndexedStack(
-                index: tab,
+                index: tab.index,
                 children: [
-                  HomeScreen(
-                    key: ValueKey(clientRevision.value),
-                    repository: repository,
-                    places: places,
-                    state: widget.state,
-                    onChoose: choose,
-                    onMap: () => setState(() => tab = 1),
-                    onProfile: () => setState(() => tab = 3),
-                  ),
-                  Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Row(
-                          children: [
-                            const Text('Floor: '),
-                            DropdownButton<int>(
-                              value: displayedFloor,
-                              items: [
-                                for (final f in [0, 1, 2, 3])
-                                  if (floors.containsKey(f))
-                                    DropdownMenuItem(
-                                      value: f,
-                                      child: Text(floors[f]!.floorLabel),
-                                    ),
-                              ],
-                              onChanged: (f) {
-                                if (f != null) {
-                                  setState(() {
-                                    displayedFloor = f;
-                                    selectedPlace = null;
-                                  });
-                                  viewport.overview();
-                                }
-                              },
-                            ),
-                            const Spacer(),
-                            if (session.destination != null &&
-                                displayedFloor != 1)
-                              TextButton(
-                                onPressed: () =>
-                                    setState(() => displayedFloor = 1),
-                                child: const Text('Return to navigation'),
-                              ),
-                          ],
+                  NavigatorPopHandler<void>(
+                    enabled: tab == ShellTab.explore,
+                    onPopWithResult: (_) =>
+                        mapNavigator.currentState!.maybePop(),
+                    child: Navigator(
+                      key: mapNavigator,
+                      onGenerateRoute: (_) => MaterialPageRoute<void>(
+                        builder: (_) => AnimatedBuilder(
+                          animation: Listenable.merge([widget.state, session]),
+                          builder: (_, _) => mapLanding(),
                         ),
                       ),
-                      Expanded(
-                        child: IndexedStack(
-                          index: displayedFloor == 1 ? 0 : 1,
-                          children: [
-                            NavigatorPopHandler<void>(
-                              enabled: tab == 1 && displayedFloor == 1,
-                              onPopWithResult: (_) =>
-                                  mapNavigator.currentState!.pop(),
-                              child: Navigator(
-                                key: mapNavigator,
-                                onGenerateRoute: (_) => MaterialPageRoute<void>(
-                                  builder: (_) => AnimatedBuilder(
-                                    animation: Listenable.merge([
-                                      widget.state,
-                                      session,
-                                    ]),
-                                    builder: (_, _) => mapLanding(),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            if (displayedFloor != 1)
-                              mapLanding(displayedFloor)
-                            else
-                              const SizedBox.shrink(),
-                          ],
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                  tab == 2
+                  tab == ShellTab.contribute
                       ? CaptureHome(floors: floors)
                       : const SizedBox.shrink(),
                   ProfileScreen(
@@ -560,7 +744,7 @@ class _MadMapsShellState extends State<MadMapsShell>
               padding: const EdgeInsets.all(8),
               child: Text(widget.state.storageError!),
             ),
-          if (session.destination != null && tab != 1)
+          if (session.destination != null && tab != ShellTab.explore)
             Material(
               color: const Color(0xffe8f1f7),
               child: ListTile(
@@ -571,31 +755,27 @@ class _MadMapsShellState extends State<MadMapsShell>
                 ),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => setState(() {
-                  tab = 1;
+                  tab = ShellTab.explore;
                   displayedFloor = 1;
                 }),
               ),
             ),
           NavigationBar(
-            selectedIndex: tab,
-            onDestinationSelected: (v) => setState(() => tab = v),
+            selectedIndex: tab.index,
+            onDestinationSelected: (v) =>
+                setState(() => tab = ShellTab.values[v]),
             backgroundColor: Colors.white,
             indicatorColor: brandCrimson.withValues(alpha: .1),
             destinations: const [
               NavigationDestination(
-                icon: Icon(Icons.home_outlined),
-                selectedIcon: Icon(Icons.home, color: brandCrimson),
-                label: 'Home',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.map_outlined),
-                selectedIcon: Icon(Icons.map, color: brandCrimson),
-                label: 'Map',
+                icon: Icon(Icons.explore_outlined),
+                selectedIcon: Icon(Icons.explore, color: brandCrimson),
+                label: 'Explore',
               ),
               NavigationDestination(
                 icon: Icon(Icons.people_outline),
                 selectedIcon: Icon(Icons.people, color: brandCrimson),
-                label: 'Community',
+                label: 'Contribute',
               ),
               NavigationDestination(
                 icon: Icon(Icons.person_outline),

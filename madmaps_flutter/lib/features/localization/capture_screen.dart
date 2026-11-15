@@ -72,7 +72,7 @@ class _CaptureHomeState extends State<CaptureHome> {
           if (importMessage != null) scans = await captures.load(value);
         } catch (e) {
           seedError =
-              'Floor 1 import pending; your local points are preserved. Refresh Community to retry: $e';
+              'Floor 1 import pending; your local points are preserved. Refresh Contribute to retry: $e';
         } finally {
           importing = false;
         }
@@ -106,7 +106,7 @@ class _CaptureHomeState extends State<CaptureHome> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: const Text('Community'),
+      title: const Text('Contribute'),
       actions: [
         IconButton(
           onPressed: retry,
@@ -118,6 +118,11 @@ class _CaptureHomeState extends State<CaptureHome> {
     body: ListView(
       padding: const EdgeInsets.all(20),
       children: [
+        Text(
+          'Help Badgers find their way',
+          style: Theme.of(context).textTheme.headlineSmall,
+        ),
+        const SizedBox(height: 8),
         const Text(
           'Manage points saved on this phone and shared community scans. Existing local maps stay on this phone unless you share a compatible scan.',
         ),
@@ -263,7 +268,7 @@ class _SharedPointEditorState extends State<SharedPointEditor> {
     try {
       expected = await SharedCaptures().originalJson(map.id);
     } catch (e) {
-      error = 'Refresh Community before editing: $e';
+      error = 'Refresh Contribute before editing: $e';
     } finally {
       if (mounted) setState(() => busy = false);
     }
@@ -321,8 +326,8 @@ class _SharedPointEditorState extends State<SharedPointEditor> {
         setState(() {
           conflict = e is api.MapApiException && e.code == 'captureConflict';
           error = conflict
-              ? 'Someone changed this scan. Discard this pending edit and refresh Community before trying again.'
-              : 'Edit saved for retry in Community. $e';
+              ? 'Someone changed this scan. Discard this pending edit and refresh Contribute before trying again.'
+              : 'Edit saved for retry in Contribute. $e';
         });
     } finally {
       if (mounted) setState(() => busy = false);
@@ -345,6 +350,9 @@ class _SharedPointEditorState extends State<SharedPointEditor> {
             setup: map.floor,
             showGraph: false,
             showLabels: false,
+            anchorLabels: {
+              for (final anchor in map.anchors) anchor.id: anchor.name,
+            },
           ),
         ),
         if (error != null) Text(error!),
@@ -726,7 +734,7 @@ class _GuidedCaptureScreenState extends State<GuidedCaptureScreen>
       if (mounted)
         setState(
           () => error =
-              'Upload failed. Retry here or from Community. If this scan changed, return to Community and refresh before editing again: $e',
+              'Upload failed. Retry here or from Contribute. If this scan changed, return to Contribute and refresh before editing again: $e',
         );
     } finally {
       if (mounted) setState(() => busy = false);

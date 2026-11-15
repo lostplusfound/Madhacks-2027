@@ -7,7 +7,8 @@ import 'package:madmaps_client/madmaps_client.dart' as api;
 import 'package:madmaps/features/navigation/floor_data.dart';
 import 'package:madmaps/features/navigation/map_repository.dart';
 import 'package:madmaps/features/shell/app_state.dart';
-import 'package:madmaps/features/shell/home_screen.dart';
+import 'package:madmaps/features/shell/explore_screen.dart';
+import 'package:madmaps/features/navigation/interactive_floor_map.dart';
 import 'package:madmaps/main.dart';
 
 api.MapGraphSnapshot fixture([int floorNumber = 1]) {
@@ -227,18 +228,24 @@ void main() {
   testWidgets('late search replies cannot replace newer results', (
     tester,
   ) async {
+    final viewport = FloorViewportController();
+    addTearDown(viewport.dispose);
     final repository = PendingRepository(adaptSnapshot(fixture()));
     final state = AppState(null);
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: HomeScreen(
+          body: ExploreScreen(
             repository: repository,
             places: repository.graph.locations,
             state: state,
             onChoose: (_) {},
-            onMap: () {},
-            onProfile: () {},
+            floors: {1: repository.graph},
+            displayedFloor: 1,
+            selectedPlace: null,
+            viewport: viewport,
+            onFloor: (_) {},
+            onLocate: () {},
           ),
         ),
       ),
@@ -327,18 +334,20 @@ void main() {
         MyApp(state: AppState(null), repository: repository),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Where are you headed?'), findsNothing);
+      expect(find.text('MadMaps'), findsNothing);
       expect(find.text('Retry'), findsOneWidget);
       repository.unavailable = false;
       await tester.tap(find.text('Retry'));
       await tester.pumpAndSettle();
-      expect(find.text('Where are you headed?'), findsOneWidget);
+      expect(find.text('MadMaps'), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
     },
   );
   testWidgets(
     'connection loss reports failure while loaded destinations and aliases remain usable',
     (tester) async {
+      final viewport = FloorViewportController();
+      addTearDown(viewport.dispose);
       final repository = MemoryRepository(adaptSnapshot(fixture()))
         ..unavailable = true;
       final state = AppState(null)..aliases['f1-cafe'] = 'My coffee';
@@ -346,13 +355,17 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: HomeScreen(
+            body: ExploreScreen(
               repository: repository,
               places: repository.graph.locations,
               state: state,
               onChoose: (p) => chosen = p.id,
-              onMap: () {},
-              onProfile: () {},
+              floors: {1: repository.graph},
+              displayedFloor: 1,
+              selectedPlace: null,
+              viewport: viewport,
+              onFloor: (_) {},
+              onLocate: () {},
             ),
           ),
         ),

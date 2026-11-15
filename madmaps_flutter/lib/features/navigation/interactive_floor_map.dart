@@ -174,9 +174,21 @@ class _InteractiveFloorMapState extends State<InteractiveFloorMap>
   void fit() {
     final points = widget.fullRoute.isNotEmpty
         ? [...widget.fullRoute, if (widget.position != null) widget.position!]
-        : widget.graph.nodes.keys
-              .map((id) => widget.graph.point(id, widget.setup))
-              .toList();
+        : <Offset>[
+            if (widget.controller.mode == FloorFollowMode.free) ...[
+              for (final room in widget.graph.rooms) ...room.points,
+              if (widget.graph.rooms.isEmpty) ...[
+                Offset.zero,
+                Offset(
+                  widget.graph.imageSize.width,
+                  widget.graph.imageSize.height,
+                ),
+              ],
+            ],
+            ...widget.graph.nodes.keys
+                .map((id) => widget.graph.point(id, widget.setup))
+                .toList(),
+          ];
     if (points.isEmpty) return;
     var left = points.first.dx,
         right = left,
@@ -202,8 +214,10 @@ class _InteractiveFloorMapState extends State<InteractiveFloorMap>
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, bounds) {
       final firstLayout = viewport == Size.zero;
+      final resized = viewport != bounds.biggest;
       viewport = bounds.biggest;
       if (firstLayout ||
+          (resized && widget.controller.mode == FloorFollowMode.free) ||
           overviewRevision != widget.controller.overviewRevision) {
         overviewRevision = widget.controller.overviewRevision;
         fit();
@@ -408,7 +422,9 @@ class _InteractiveFloorMapState extends State<InteractiveFloorMap>
               child: Container(
                 padding: const EdgeInsets.all(5),
                 decoration: BoxDecoration(
-                  color: selected ? Colors.blue : Colors.white,
+                  color: selected
+                      ? Theme.of(context).colorScheme.primary
+                      : Colors.white,
                   shape: BoxShape.circle,
                   boxShadow: const [
                     BoxShadow(color: Colors.black26, blurRadius: 3),
@@ -418,13 +434,17 @@ class _InteractiveFloorMapState extends State<InteractiveFloorMap>
                     ? Icon(
                         icon,
                         size: 20,
-                        color: selected ? Colors.white : Colors.indigo,
+                        color: selected
+                            ? Colors.white
+                            : Theme.of(context).colorScheme.primary,
                       )
                     : Text(
                         '${group.length}',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: selected ? Colors.white : Colors.indigo,
+                          color: selected
+                              ? Colors.white
+                              : Theme.of(context).colorScheme.primary,
                         ),
                       ),
               ),

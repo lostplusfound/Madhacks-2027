@@ -8,16 +8,23 @@ be shared through Serverpod; see [navigation and capture](docs/ALL_FLOOR_NAVIGAT
 Cloud Anchor hosting/resolution uses Google directly. The visitor shell requires
 a successful Serverpod map load; already-loaded maps remain usable in memory.
 
-The visitor UI now provides Home search, Map, Community and Profile tabs, using real
-floor-1 navigation. See [Swara UI integration and feature differences](docs/SWARA_UI_INTEGRATION.md).
-Home includes available backend category shortcuts; Saved places under Profile supports bookmarks and aliases;
+The visitor UI provides a map-first Explore screen, Contribute and Profile tabs,
+using real indoor navigation. Explore combines search, amenity filters and a
+draggable destination sheet with the floor map. Search results appear below the
+search bar, and destination details and walking previews stay on the map. The
+default pull-up sheet contains saved places and recents; map overview fits all
+room polygons and map points. Its UW-inspired theme bundles
+Red Hat Display/Text fonts for offline use. See [Swara UI integration and feature differences](docs/SWARA_UI_INTEGRATION.md).
+Explore includes Bathrooms, Study spaces, Exits and Elevators filters; Saved places under Profile supports bookmarks and aliases;
 Profile offers units, high contrast, spoken directions, and **Manage AR maps and
-calibration**. Set up two anchors and Floor 1 calibration there, return to Map,
+calibration**. Set up two anchors and Floor 1 calibration there, return to Explore,
 then select **Find my location**. A missing-setup prompt retains the destination.
-Community provides shared AR point creation and editing. **Plan a route** lets
-visitors choose start and end places for manual instructions across floors.
+Contribute provides shared AR point creation and editing. **Navigate** opens an inline walking preview where visitors can choose a
+starting point for directions across floors.
 The default start, **Current location**, requires visual localization; selecting
-a named start provides directions without the camera, with optional live guidance.
+a named start provides **Start step-by-step**, with Previous/Next instructions
+and automatic floor changes. Manual steps do not track position or arrival;
+**Use live guidance** starts optional visual localization.
 Tab changes retain the active session; Cancel clears the trip, and Back closes it.
 Basement and floors 1?3 support browsing, room selection, search, and saved places.
 All four floors support graph routing through stairs and elevators. See [current navigation and capture](docs/ALL_FLOOR_NAVIGATION.md). See [map/UI integration](docs/MAPS_UI_RECOVERY.md).
