@@ -136,11 +136,11 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Navigate'));
       await tester.pumpAndSettle();
-      expect(find.text('Set up Floor 1'), findsOneWidget);
+      expect(find.text('Scan a floor to enable live guidance'), findsOneWidget);
       expect(find.text('Open mapping tools'), findsOneWidget);
       await tester.tap(find.text('Open mapping tools'));
       await tester.pumpAndSettle();
-      expect(find.text('Create map'), findsOneWidget);
+      expect(find.text('Map with AR'), findsOneWidget);
       await tester.pageBack();
       await tester.pumpAndSettle();
       expect(find.text('My room'), findsOneWidget);

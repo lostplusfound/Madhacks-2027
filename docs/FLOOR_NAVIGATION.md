@@ -1,5 +1,7 @@
 # First-floor navigation
 
+Current behavior: [all-floor routing and shared AR capture](ALL_FLOOR_NAVIGATION.md). Floor-1-only statements below describe the earlier implementation.
+
 ## Current integration
 
 Floor 1 combines the corrected 1632 by 1056 Morgridge Hall image, bundled CSV

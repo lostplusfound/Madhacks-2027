@@ -11,8 +11,10 @@
 // ignore_for_file: dead_code, unnecessary_type_check
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
+import 'package:madmaps_client/src/protocol/ar_capture.dart' as _i1pvqriv;
 import 'package:madmaps_client/src/protocol/building.dart' as _ixxicett;
 import 'package:madmaps_client/src/protocol/edge.dart' as _i71va5xw;
+import 'package:madmaps_client/src/protocol/floor_connector.dart' as _ik47qssa;
 import 'package:madmaps_client/src/protocol/location_category.dart'
     as _iosiyc7r;
 import 'package:madmaps_client/src/protocol/locations.dart' as _iwfkkrvw;
@@ -26,11 +28,13 @@ import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
 import 'package:serverpod_auth_idp_client/serverpod_auth_idp_client.dart'
     as _iaic;
 import 'package:serverpod_client/serverpod_client.dart' as _isc;
+import 'ar_capture.dart' as _i16jxfx1;
 import 'building.dart' as _icdi8t76;
 import 'create_graph_request.dart' as _ihh4bgnv;
 import 'edge.dart' as _ilmyslsx;
 import 'edge_type.dart' as _iv43g6lk;
 import 'floor.dart' as _ibt68ans;
+import 'floor_connector.dart' as _it6qy5v4;
 import 'floor_input.dart' as _i647gghf;
 import 'graph_patch_request.dart' as _iv9rsso3;
 import 'graph_read_result.dart' as _iu1utyem;
@@ -55,11 +59,13 @@ import 'report_target_type.dart' as _iyydfyiu;
 import 'search_result.dart' as _ifcih7a1;
 import 'wall_input.dart' as _icks2m2l;
 import 'wall_point.dart' as _inoptxl6;
+export 'ar_capture.dart';
 export 'building.dart';
 export 'create_graph_request.dart';
 export 'edge.dart';
 export 'edge_type.dart';
 export 'floor.dart';
+export 'floor_connector.dart';
 export 'floor_input.dart';
 export 'graph_patch_request.dart';
 export 'graph_read_result.dart';
@@ -99,11 +105,13 @@ class Protocol extends _isc.SerializationManager
       _isc.ProtocolDeserialization.cached(
         this,
         types: const [
+          _isc.getType<_i16jxfx1.ArCapture>,
           _isc.getType<_icdi8t76.Building>,
           _isc.getType<_ihh4bgnv.CreateGraphRequest>,
           _isc.getType<_ilmyslsx.Edge>,
           _isc.getType<_iv43g6lk.EdgeType>,
           _isc.getType<_ibt68ans.Floor>,
+          _isc.getType<_it6qy5v4.FloorConnector>,
           _isc.getType<_i647gghf.FloorInput>,
           _isc.getType<_iv9rsso3.GraphPatchRequest>,
           _isc.getType<_iu1utyem.GraphReadResult>,
@@ -128,11 +136,13 @@ class Protocol extends _isc.SerializationManager
           _isc.getType<_ifcih7a1.SearchResult>,
           _isc.getType<_icks2m2l.WallInput>,
           _isc.getType<_inoptxl6.WallPoint>,
+          _isc.getType<_i16jxfx1.ArCapture?>,
           _isc.getType<_icdi8t76.Building?>,
           _isc.getType<_ihh4bgnv.CreateGraphRequest?>,
           _isc.getType<_ilmyslsx.Edge?>,
           _isc.getType<_iv43g6lk.EdgeType?>,
           _isc.getType<_ibt68ans.Floor?>,
+          _isc.getType<_it6qy5v4.FloorConnector?>,
           _isc.getType<_i647gghf.FloorInput?>,
           _isc.getType<_iv9rsso3.GraphPatchRequest?>,
           _isc.getType<_iu1utyem.GraphReadResult?>,
@@ -170,6 +180,8 @@ class Protocol extends _isc.SerializationManager
           _isc.getType<List<_iy2kpyso.Locations>>,
           _isc.getType<List<_inoptxl6.WallPoint>>,
           _isc.getType<List<_ixxicett.Building>>,
+          _isc.getType<List<_ik47qssa.FloorConnector>>,
+          _isc.getType<List<_i1pvqriv.ArCapture>>,
           _isc.getType<List<_iwfkkrvw.Locations>>,
           _isc.getType<List<_i56rwuj1.SearchResult>>,
           _isc.getType<List<_iosiyc7r.LocationCategory>>,
@@ -184,11 +196,13 @@ class Protocol extends _isc.SerializationManager
           _iacc.Protocol.new,
         ],
         classNames: const [
+          'ArCapture',
           'Building',
           'CreateGraphRequest',
           'Edge',
           'EdgeType',
           'Floor',
+          'FloorConnector',
           'FloorInput',
           'GraphPatchRequest',
           'GraphReadResult',
@@ -240,6 +254,9 @@ class Protocol extends _isc.SerializationManager
       }
     }
 
+    if (t == _i16jxfx1.ArCapture) {
+      return _i16jxfx1.ArCapture.fromJson(data) as T;
+    }
     if (t == _icdi8t76.Building) {
       return _icdi8t76.Building.fromJson(data) as T;
     }
@@ -254,6 +271,9 @@ class Protocol extends _isc.SerializationManager
     }
     if (t == _ibt68ans.Floor) {
       return _ibt68ans.Floor.fromJson(data) as T;
+    }
+    if (t == _it6qy5v4.FloorConnector) {
+      return _it6qy5v4.FloorConnector.fromJson(data) as T;
     }
     if (t == _i647gghf.FloorInput) {
       return _i647gghf.FloorInput.fromJson(data) as T;
@@ -327,6 +347,9 @@ class Protocol extends _isc.SerializationManager
     if (t == _inoptxl6.WallPoint) {
       return _inoptxl6.WallPoint.fromJson(data) as T;
     }
+    if (t == _isc.getType<_i16jxfx1.ArCapture?>()) {
+      return (data != null ? _i16jxfx1.ArCapture.fromJson(data) : null) as T;
+    }
     if (t == _isc.getType<_icdi8t76.Building?>()) {
       return (data != null ? _icdi8t76.Building.fromJson(data) : null) as T;
     }
@@ -342,6 +365,10 @@ class Protocol extends _isc.SerializationManager
     }
     if (t == _isc.getType<_ibt68ans.Floor?>()) {
       return (data != null ? _ibt68ans.Floor.fromJson(data) : null) as T;
+    }
+    if (t == _isc.getType<_it6qy5v4.FloorConnector?>()) {
+      return (data != null ? _it6qy5v4.FloorConnector.fromJson(data) : null)
+          as T;
     }
     if (t == _isc.getType<_i647gghf.FloorInput?>()) {
       return (data != null ? _i647gghf.FloorInput.fromJson(data) : null) as T;
@@ -497,6 +524,18 @@ class Protocol extends _isc.SerializationManager
               .toList()
           as T;
     }
+    if (t == List<_ik47qssa.FloorConnector>) {
+      return (data as List)
+              .map((e) => deserialize<_ik47qssa.FloorConnector>(e))
+              .toList()
+          as T;
+    }
+    if (t == List<_i1pvqriv.ArCapture>) {
+      return (data as List)
+              .map((e) => deserialize<_i1pvqriv.ArCapture>(e))
+              .toList()
+          as T;
+    }
     if (t == List<_iwfkkrvw.Locations>) {
       return (data as List)
               .map((e) => deserialize<_iwfkkrvw.Locations>(e))
@@ -556,11 +595,13 @@ class Protocol extends _isc.SerializationManager
 
   static String? getClassNameForType(Type type) {
     return switch (type) {
+      _i16jxfx1.ArCapture => 'ArCapture',
       _icdi8t76.Building => 'Building',
       _ihh4bgnv.CreateGraphRequest => 'CreateGraphRequest',
       _ilmyslsx.Edge => 'Edge',
       _iv43g6lk.EdgeType => 'EdgeType',
       _ibt68ans.Floor => 'Floor',
+      _it6qy5v4.FloorConnector => 'FloorConnector',
       _i647gghf.FloorInput => 'FloorInput',
       _iv9rsso3.GraphPatchRequest => 'GraphPatchRequest',
       _iu1utyem.GraphReadResult => 'GraphReadResult',
@@ -599,6 +640,8 @@ class Protocol extends _isc.SerializationManager
     }
 
     switch (data) {
+      case _i16jxfx1.ArCapture():
+        return 'ArCapture';
       case _icdi8t76.Building():
         return 'Building';
       case _ihh4bgnv.CreateGraphRequest():
@@ -609,6 +652,8 @@ class Protocol extends _isc.SerializationManager
         return 'EdgeType';
       case _ibt68ans.Floor():
         return 'Floor';
+      case _it6qy5v4.FloorConnector():
+        return 'FloorConnector';
       case _i647gghf.FloorInput():
         return 'FloorInput';
       case _iv9rsso3.GraphPatchRequest():
@@ -679,6 +724,9 @@ class Protocol extends _isc.SerializationManager
     if (dataClassName is! String) {
       return super.deserializeByClassName(data);
     }
+    if (dataClassName == 'ArCapture') {
+      return deserialize<_i16jxfx1.ArCapture>(data['data']);
+    }
     if (dataClassName == 'Building') {
       return deserialize<_icdi8t76.Building>(data['data']);
     }
@@ -693,6 +741,9 @@ class Protocol extends _isc.SerializationManager
     }
     if (dataClassName == 'Floor') {
       return deserialize<_ibt68ans.Floor>(data['data']);
+    }
+    if (dataClassName == 'FloorConnector') {
+      return deserialize<_it6qy5v4.FloorConnector>(data['data']);
     }
     if (dataClassName == 'FloorInput') {
       return deserialize<_i647gghf.FloorInput>(data['data']);

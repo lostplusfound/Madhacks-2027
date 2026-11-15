@@ -81,7 +81,7 @@ class _NavigationPanelState extends State<NavigationPanel> {
                 style: Theme.of(sheet).textTheme.headlineSmall,
               ),
               const SizedBox(height: 8),
-              const Text('Floor 1'),
+              Text(widget.graph.floorLabel),
               const SizedBox(height: 16),
               FilledButton.icon(
                 icon: const Icon(Icons.directions_walk),
@@ -221,7 +221,7 @@ class _NavigationPanelState extends State<NavigationPanel> {
             right: 16,
             child: Text(
               c == null
-                  ? 'Calibrate two anchors in Floor 1 setup'
+                  ? 'Calibrate two anchors in floor setup'
                   : position == null || w.estimated || w.busy
                   ? w.message
                   : g.phase == NavigationPhase.returningToRoute
@@ -280,7 +280,7 @@ class _NavigationPanelState extends State<NavigationPanel> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        w.destination ?? 'Explore Floor 1',
+                        w.destination ?? 'Explore ${w.graph.floorLabel}',
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       if (w.destination != null)
@@ -289,7 +289,7 @@ class _NavigationPanelState extends State<NavigationPanel> {
                               ? g.status
                               : g.arrived
                               ? 'Near entrance (estimated)'
-                              : '${duration.inSeconds < 60 ? 'Less than 1 min' : '${(duration.inSeconds / 60).ceil()} min'} • ${distance(g.remainingMeters!)} • ETA $eta',
+                              : '${duration.inSeconds < 60 ? 'Less than 1 min' : '${(duration.inSeconds / 60).ceil()} min'} • ${distance(g.tripMeters!)} • ETA $eta',
                           maxLines: 2,
                         ),
                       const SizedBox(height: 8),

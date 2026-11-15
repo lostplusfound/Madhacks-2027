@@ -20,7 +20,10 @@ api.MapGraphSnapshot fixture([int floorNumber = 1]) {
           as Map<String, dynamic>;
   final r = data['request'] as Map<String, dynamic>;
   return api.MapGraphSnapshot(
-    walls: [],
+    walls: [
+      for (final w in r['walls'])
+        api.WallInput.fromJson(w as Map<String, dynamic>),
+    ],
     graph: api.MapGraph(
       graphId: r['graphId'],
       buildingId: 1,

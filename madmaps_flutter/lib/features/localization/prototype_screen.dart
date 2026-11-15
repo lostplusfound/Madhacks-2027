@@ -18,6 +18,8 @@ import '../navigation/floor_data.dart';
 import '../navigation/map_repository.dart';
 import '../navigation/floor_screen.dart';
 import '../navigation/routing.dart';
+import '../navigation/building_routing.dart';
+import 'package:madmaps_client/madmaps_client.dart' as api;
 import '../navigation/navigation_panel.dart';
 import 'package:vector_math/vector_math_64.dart' show Vector3;
 
@@ -210,6 +212,8 @@ class MapSessionScreen extends StatefulWidget {
     this.session,
     this.appState,
     this.graph,
+    this.floors = const {},
+    this.connectors = const [],
     required this.save,
   });
 
@@ -218,6 +222,8 @@ class MapSessionScreen extends StatefulWidget {
   final NavigationSession? session;
   final AppState? appState;
   final FloorGraph? graph;
+  final Map<int, FloorGraph> floors;
+  final List<api.FloorConnector> connectors;
   final AnchorMap? map;
   final List<AnchorMap> maps;
   final Future<void> Function() save;
@@ -227,6 +233,14 @@ class MapSessionScreen extends StatefulWidget {
 
 class _MapSessionScreenState extends State<MapSessionScreen>
     with WidgetsBindingObserver {
+  Map<int, FloorGraph> get availableFloors =>
+      widget.session?.floors.isNotEmpty == true
+      ? widget.session!.floors
+      : widget.floors;
+  List<api.FloorConnector> get availableConnectors =>
+      widget.session?.floors.isNotEmpty == true
+      ? widget.session!.connectors
+      : widget.connectors;
   late final ArAdapter ar;
   late final LocalizationController localization;
   ARPlaneAnchor? nativeDraft;
@@ -237,11 +251,48 @@ class _MapSessionScreenState extends State<MapSessionScreen>
   AnchorMap? _recoveryMap;
   bool _autoDiscovery = false;
   Timer? _discoveryRetry;
-  List<AnchorMap> get catalog => _recoveryMap != null
-      ? [_recoveryMap!]
-      : widget.maps.isEmpty
-      ? [map]
-      : widget.maps;
+  int? discoveryFloor;
+  api.FloorConnector? transition;
+  BuildingRoute? buildingRoute;
+  bool transitionScheduled = false;
+  List<AnchorMap> get catalog {
+    final maps = widget.maps.isEmpty ? [_recoveryMap ?? map] : widget.maps;
+    if (discoveryFloor != null)
+      return maps.where((m) => m.floor.floorNumber == discoveryFloor).toList();
+    if (transition == null) return maps;
+    return maps
+        .where((m) => m.floor.floorNumber != transition!.fromFloor)
+        .toList()
+      ..sort(
+        (a, b) => (a.floor.floorNumber == transition!.toFloor ? 0 : 1)
+            .compareTo(b.floor.floorNumber == transition!.toFloor ? 0 : 1),
+      );
+  }
+
+  Future<void> discoverOnFloor(int floor) async {
+    discoveryFloor = floor;
+    await discover();
+  }
+
+  Future<void> beginTransition(api.FloorConnector connector) async {
+    if (!mounted || transition != null || widget.session?.destination == null)
+      return;
+    transition = connector;
+    discoveryFloor = null;
+    localization.invalidate();
+    _autoDiscovery = true;
+    _recoveryMap = null;
+    guidance.reset();
+    guidance.target = null;
+    appliedMap = null;
+    navigationMapId = null;
+    identified = false;
+    updateState(
+      () => discoveryMessage =
+          'Take ${connector.label} to ${connector.toFloor == 0 ? 'Basement' : 'Floor ${connector.toFloor}'}. Scan after exiting; guidance resumes when the floor is identified.',
+    );
+    queueDiscovery(Duration.zero);
+  }
 
   void queueDiscovery([Duration delay = LocalizationTuning.refreshAfter]) {
     _discoveryRetry?.cancel();
@@ -323,24 +374,40 @@ class _MapSessionScreenState extends State<MapSessionScreen>
       if (match == null) {
         throw StateError('Resolved anchor is not in this catalog');
       }
-      await localization.adopt(
-        match.map,
-        match.anchor,
-        resolved,
-        match.alignment(resolved.transformation),
-      );
+      final window = AlignmentWindow();
+      Matrix4? stable;
+      for (var sampleIndex = 0; sampleIndex < 30; sampleIndex++) {
+        if (!mounted || !active || current != generation) {
+          await ar.release(resolved);
+          return;
+        }
+        final frame = await ar.captureFrame([resolved.name]);
+        final sample = frame?.anchors[resolved.name];
+        if (frame != null && frame.tracking && sample?.tracking == true) {
+          stable = window.add(frame.timestamp, match.alignment(sample!.pose));
+          if (stable != null) break;
+        }
+        await Future<void>.delayed(const Duration(milliseconds: 80));
+      }
+      if (stable == null) {
+        await ar.release(resolved);
+        throw StateError('Anchor alignment was unstable; scan again');
+      }
+      map = match.map;
+      floorGraph = availableFloors[map.floor.floorNumber] ?? floorGraph;
+      navigationMapId = null;
+      appliedMap = null;
+      buildingRoute = null;
+      guidance.target = null;
+      guidance.reset();
+      await localization.adopt(match.map, match.anchor, resolved, stable);
       if (!mounted || !active || current != generation) return;
       updateState(() {
-        if (map.id != match.map.id) {
-          destination = null;
-          roomName = null;
-          guidance.target = null;
-          guidance.reset();
-          navigationMapId = null;
-        }
-        map = match.map;
+        transition = null;
+        widget.session?.currentFloor = map.floor.floorNumber;
+        discoveryFloor = null;
+        transitionScheduled = false;
         _recoveryMap = match.map;
-        mapFromSession = match.alignment(resolved.transformation);
         identified = true;
         discoveryMessage = null;
       });
@@ -384,7 +451,10 @@ class _MapSessionScreenState extends State<MapSessionScreen>
 
   Future<void> loadFloor() async {
     try {
-      final graph = widget.graph ?? await ServerMapRepository().load();
+      final graph =
+          availableFloors[map.floor.floorNumber] ??
+          widget.graph ??
+          await ServerMapRepository().load();
       if (mounted) setState(() => floorGraph = graph);
     } catch (e) {
       if (mounted) setState(() => floorError = 'Map data unavailable: $e');
@@ -412,7 +482,10 @@ class _MapSessionScreenState extends State<MapSessionScreen>
   int appliedRevision = -1;
   String? appliedMap;
   void requestChanged() {
-    if (mounted && widget.session?.revision != appliedRevision) setState(() {});
+    if (mounted && widget.session?.revision != appliedRevision)
+      setState(() {
+        floorGraph = availableFloors[map.floor.floorNumber] ?? floorGraph;
+      });
   }
 
   void cancelTrip() {
@@ -420,6 +493,9 @@ class _MapSessionScreenState extends State<MapSessionScreen>
     updateState(() {
       roomName = null;
       destination = null;
+      transition = null;
+      buildingRoute = null;
+      transitionScheduled = false;
       guidance.target = null;
       guidance.reset();
     });
@@ -456,7 +532,7 @@ class _MapSessionScreenState extends State<MapSessionScreen>
               children: [
                 const ListTile(
                   title: Text('Floor 1 destinations • draft'),
-                  subtitle: Text('Other floors are not supported yet.'),
+                  subtitle: Text('Routes use mapped stairs and elevators.'),
                 ),
                 Padding(
                   padding: const EdgeInsets.all(12),
@@ -470,11 +546,17 @@ class _MapSessionScreenState extends State<MapSessionScreen>
                 Expanded(
                   child: ListView(
                     children: [
-                      for (final l in floorGraph!.locations.where(
-                        (l) => '${l.label} ${l.aliases} ${l.id}'
-                            .toLowerCase()
-                            .contains(search),
-                      ))
+                      for (final l
+                          in (availableFloors.isEmpty
+                                  ? floorGraph!.locations
+                                  : availableFloors.values.expand(
+                                      (g) => g.locations,
+                                    ))
+                              .where(
+                                (l) => '${l.label} ${l.aliases} ${l.id}'
+                                    .toLowerCase()
+                                    .contains(search),
+                              ))
                         ListTile(
                           title: Text(l.label),
                           subtitle: Text(
@@ -507,26 +589,87 @@ class _MapSessionScreenState extends State<MapSessionScreen>
   void updateGuidance() {
     final session = widget.session;
     final requested = session?.destination;
+    if (transition != null) {
+      guidance.arrived = false;
+      guidance.remainingMeters = null;
+      guidance.status =
+          'Take ${transition!.label} to ${transition!.toFloor == 0 ? 'Basement' : 'Floor ${transition!.toFloor}'}. Scan surroundings after exiting.';
+      if (session != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && transition != null)
+            session.update(guidance, tracking: true);
+        });
+      }
+      return;
+    }
     if (session != null &&
         requested != null &&
         floorGraph != null &&
-        map.floor.enabled &&
+        camera != null &&
         map.floor.calibration(map) != null &&
         (appliedRevision != session.revision || appliedMap != map.id)) {
       appliedRevision = session.revision;
       appliedMap = map.id;
-      final node = map.floor.locationNodes[requested.id] ?? requested.node;
       destination = null;
       roomName = widget.appState?.label(requested) ?? requested.label;
       navigationMapId = map.id;
-      guidance.select(node ?? '');
+      guidance.avoidStairs = session.avoidStairs;
+      if (availableFloors.isNotEmpty) {
+        final setups = <int, FloorSetup>{map.floor.floorNumber: map.floor};
+        final scales = <int, double>{};
+        for (final candidate in catalog) {
+          final calibration = candidate.floor.calibration(candidate);
+          if (calibration != null)
+            scales.putIfAbsent(
+              candidate.floor.floorNumber,
+              () => 1 / calibration.scale,
+            );
+        }
+        scales[map.floor.floorNumber] = 1 / map.floor.calibration(map)!.scale;
+        final pose = camera!;
+        buildingRoute = planBuildingRoute(
+          floors: availableFloors,
+          connectors: availableConnectors,
+          startFloor: map.floor.floorNumber,
+          start: map.floor
+              .calibration(map)!
+              .toImage(Offset(pose.entry(0, 3), pose.entry(2, 3))),
+          destination: requested,
+          setups: setups,
+          measuredScales: scales,
+          avoidStairs: session.avoidStairs,
+        );
+        final leg = buildingRoute?.legs.first;
+        guidance.select(leg?.targetNode ?? '');
+        if (leg != null) {
+          guidance.route = NavigationRoute(
+            leg.points,
+            leg.meters * map.floor.calibration(map)!.scale,
+            'building-route',
+            0,
+          );
+          guidance.result = RouteResult.success(guidance.route!);
+        }
+      } else {
+        guidance.select(
+          map.floor.locationNodes[requested.id] ?? requested.node ?? '',
+        );
+      }
     }
-    if (navigationMapId != null && navigationMapId != map.id) {
-      guidance.target = null;
-      guidance.reset();
-      roomName = null;
-      destination = null;
-    }
+    guidance.remainingBeyondLegMeters =
+        buildingRoute?.legs
+            .skip(1)
+            .fold<double>(0, (sum, leg) => sum + leg.meters) ??
+        0;
+    guidance.remainingTransfers = Duration(
+      seconds:
+          (buildingRoute?.legs.fold<double>(
+                    0,
+                    (sum, leg) => sum + (leg.exit?.seconds ?? 0),
+                  ) ??
+                  0)
+              .ceil(),
+    );
     final graph = floorGraph;
     if (graph == null) return;
     final calibration = map.floor.calibration(map), pose = camera;
@@ -542,6 +685,34 @@ class _MapSessionScreenState extends State<MapSessionScreen>
       DateTime.now(),
       relocalized: relocalized,
     );
+    if (requested != null &&
+        availableFloors.isNotEmpty &&
+        buildingRoute == null &&
+        camera != null) {
+      guidance.remainingMeters = null;
+      guidance.status = session?.avoidStairs == true
+          ? 'No mapped route without stairs is available.'
+          : 'No connected route is available to this floor or entrance.';
+    }
+    final exit = buildingRoute?.legs.first.exit;
+    if (exit != null && guidance.arrived) {
+      guidance.arrived = false;
+      guidance.status =
+          'Take ${exit.label} to ${exit.toFloor == 0 ? 'Basement' : 'Floor ${exit.toFloor}'}';
+      guidance.maneuver = guidance.status;
+      if (!transitionScheduled) {
+        transitionScheduled = true;
+        final revision = session?.revision;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted &&
+              session?.revision == revision &&
+              session?.destination != null)
+            unawaited(beginTransition(exit));
+          else
+            transitionScheduled = false;
+        });
+      }
+    }
     if (requested != null &&
         (map.floor.locationNodes[requested.id] ?? requested.node) == null) {
       guidance.status =
@@ -707,7 +878,7 @@ class _MapSessionScreenState extends State<MapSessionScreen>
       return;
     }
     await runOperation(
-      'Saving anchor to cloud? Keep the area in view.',
+      'Saving anchor to cloud. Keep the area in view.',
       () async {
         if (!active || tappedGeneration != generation) {
           throw StateError('Session interrupted; localize again');
@@ -1008,6 +1179,45 @@ class _MapSessionScreenState extends State<MapSessionScreen>
       appBar: AppBar(
         title: Text(identified ? map.name : 'Find my location'),
         actions: [
+          if (widget.session != null)
+            IconButton(
+              tooltip: widget.session!.avoidStairs
+                  ? 'Allow stairs'
+                  : 'Avoid stairs',
+              icon: Icon(
+                widget.session!.avoidStairs ? Icons.elevator : Icons.stairs,
+              ),
+              onPressed: () =>
+                  widget.session!.setAvoidStairs(!widget.session!.avoidStairs),
+            ),
+          if (availableFloors.isNotEmpty)
+            PopupMenuButton<int>(
+              tooltip: 'Locate on another floor',
+              icon: const Icon(Icons.layers_outlined),
+              itemBuilder: (_) => [
+                for (final g in availableFloors.values)
+                  PopupMenuItem(value: g.floor, child: Text(g.floorLabel)),
+              ],
+              onSelected: (floor) {
+                localization.invalidate();
+                final candidates = widget.maps
+                    .where((m) => m.floor.floorNumber == floor)
+                    .toList();
+                if (candidates.isEmpty) {
+                  updateState(
+                    () => discoveryMessage =
+                        'No shared scans for that floor. Capture two points in Map with AR.',
+                  );
+                  return;
+                }
+                _recoveryMap = candidates.first;
+                transition = null;
+                buildingRoute = null;
+                appliedMap = null;
+                // This only selects discovery candidates; a resolved anchor confirms location.
+                unawaited(discoverOnFloor(floor));
+              },
+            ),
           if (mapFirst)
             PopupMenuButton<String>(
               tooltip: 'Mapping tools',
@@ -1030,7 +1240,7 @@ class _MapSessionScreenState extends State<MapSessionScreen>
             ),
           if (identified || map.floor.enabled)
             IconButton(
-              tooltip: 'Floor 1 setup',
+              tooltip: 'Floor setup',
               icon: const Icon(Icons.edit_location_alt),
               onPressed: busy || draftPose != null ? null : openFloorSetup,
             ),

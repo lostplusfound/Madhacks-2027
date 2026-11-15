@@ -12,10 +12,12 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _ida;
 import 'package:http/http.dart' as _i85jenna;
+import 'package:madmaps_client/src/protocol/ar_capture.dart' as _i1pvqriv;
 import 'package:madmaps_client/src/protocol/building.dart' as _ixxicett;
 import 'package:madmaps_client/src/protocol/create_graph_request.dart'
     as _ik7sj57u;
 import 'package:madmaps_client/src/protocol/edge.dart' as _i71va5xw;
+import 'package:madmaps_client/src/protocol/floor_connector.dart' as _ik47qssa;
 import 'package:madmaps_client/src/protocol/graph_patch_request.dart'
     as _iq2332iw;
 import 'package:madmaps_client/src/protocol/graph_read_result.dart'
@@ -84,6 +86,43 @@ class EndpointBuilding extends _isc.EndpointRef {
       'limit': limit,
       'offset': offset,
     },
+  );
+}
+
+/// {@category Endpoint}
+class EndpointBuildingMap extends _isc.EndpointRef {
+  EndpointBuildingMap(_isc.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'buildingMap';
+
+  _ida.Future<List<_ik47qssa.FloorConnector>> listConnectors(
+    String buildingId,
+  ) => caller.callServerEndpoint<List<_ik47qssa.FloorConnector>>(
+    'buildingMap',
+    'listConnectors',
+    {'buildingId': buildingId},
+  );
+
+  _ida.Future<List<_i1pvqriv.ArCapture>> listCaptures(
+    String graphId,
+    int graphVersion,
+  ) => caller.callServerEndpoint<List<_i1pvqriv.ArCapture>>(
+    'buildingMap',
+    'listCaptures',
+    {
+      'graphId': graphId,
+      'graphVersion': graphVersion,
+    },
+  );
+
+  /// Prototype contributions are public immediately; no graph-edit rights granted.
+  _ida.Future<_i1pvqriv.ArCapture> publishCapture(
+    _i1pvqriv.ArCapture capture,
+  ) => caller.callServerEndpoint<_i1pvqriv.ArCapture>(
+    'buildingMap',
+    'publishCapture',
+    {'capture': capture},
   );
 }
 
@@ -822,6 +861,7 @@ class Client extends _isc.ServerpodClientShared {
          httpClientOverride: httpClientOverride,
        ) {
     building = EndpointBuilding(this);
+    buildingMap = EndpointBuildingMap(this);
     emailIdp = EndpointEmailIdp(this);
     location = EndpointLocation(this);
     locationSearch = EndpointLocationSearch(this);
@@ -834,6 +874,8 @@ class Client extends _isc.ServerpodClientShared {
   }
 
   late final EndpointBuilding building;
+
+  late final EndpointBuildingMap buildingMap;
 
   late final EndpointEmailIdp emailIdp;
 
@@ -856,6 +898,7 @@ class Client extends _isc.ServerpodClientShared {
   @override
   Map<String, _isc.EndpointRef> get endpointRefLookup => {
     'building': building,
+    'buildingMap': buildingMap,
     'emailIdp': emailIdp,
     'location': location,
     'locationSearch': locationSearch,

@@ -41,6 +41,7 @@ class FloorCalibration {
 /// Optional local additions; the original AR map frame never changes.
 class FloorSetup {
   bool enabled = false;
+  int floorNumber = 1;
   final Map<String, Offset> anchorPoints = {}, nodePoints = {};
   final Map<String, String> locationNodes = {}, anchorNodes = {};
   final List<String> calibrationIds = [];
@@ -66,6 +67,7 @@ class FloorSetup {
 
   Map<String, dynamic> toJson() => {
     'enabled': enabled,
+    'floorNumber': floorNumber,
     'anchors': anchorPoints.map((k, v) => MapEntry(k, [v.dx, v.dy])),
     'nodes': nodePoints.map((k, v) => MapEntry(k, [v.dx, v.dy])),
     'locations': locationNodes,
@@ -76,6 +78,7 @@ class FloorSetup {
     final s = FloorSetup();
     if (j == null) return s;
     s.enabled = j['enabled'] == true;
+    s.floorNumber = j['floorNumber'] as int? ?? 1;
     for (final entry in [
       ('anchors', s.anchorPoints),
       ('nodes', s.nodePoints),
@@ -174,8 +177,18 @@ class FloorGraph {
     this.floor = 1,
     this.imageSize = floorImageSize,
     this.rooms = const [],
+    this.barriers = const [],
+    this.graphId = '',
+    this.version = 1,
+    this.metersPerPixel = .1,
   });
   final int floor;
+  final String graphId;
+  final int version;
+
+  /// Floor-plan estimate until an AR capture provides a measured scale.
+  final double metersPerPixel;
+  final List<List<Offset>> barriers;
   final Size imageSize;
   final List<RoomPolygon> rooms;
   String get imageAsset =>
@@ -188,6 +201,10 @@ class FloorGraph {
     floor: floor,
     imageSize: imageSize,
     rooms: shapes,
+    barriers: barriers,
+    graphId: graphId,
+    version: version,
+    metersPerPixel: metersPerPixel,
   );
   FloorLocation? roomAt(Offset point) {
     final hits = rooms.where((r) => r.path.contains(point)).toList()
@@ -228,11 +245,34 @@ class FloorGraph {
   final Map<String, FloorNode> nodes;
   final List<FloorEdge> edges;
   final List<FloorLocation> locations;
-  static Future<FloorGraph> load() async => parse(
-    await rootBundle.loadString('assets/floor1/nodes.csv'),
-    await rootBundle.loadString('assets/floor1/edges.csv'),
-    await rootBundle.loadString('assets/floor1/locations.csv'),
-  );
+  static Future<FloorGraph> load() async {
+    final graph = parse(
+      await rootBundle.loadString('assets/floor1/nodes.csv'),
+      await rootBundle.loadString('assets/floor1/edges.csv'),
+      await rootBundle.loadString('assets/floor1/locations.csv'),
+    );
+    final walls =
+        jsonDecode(await rootBundle.loadString('assets/floor1/barriers.json'))
+            as List;
+    return FloorGraph(
+      graph.nodes,
+      graph.edges,
+      graph.locations,
+      graphId: 'morgridge-floor1',
+      metersPerPixel: .11,
+      barriers: [
+        for (final wall in walls)
+          [
+            for (final point in wall['vertices'])
+              Offset(
+                (point['x'] as num).toDouble(),
+                (point['y'] as num).toDouble(),
+              ),
+          ],
+      ],
+    );
+  }
+
   static FloorGraph parse(String ns, String es, String ls) {
     final nodes = <String, FloorNode>{}, allFloors = <String, String>{};
     for (final r in readCsv(ns).skip(1)) {
@@ -290,6 +330,16 @@ class FloorGraph {
     return FloorGraph(nodes, edges, locations);
   }
 
+  bool permits(Offset a, Offset b) =>
+      !barriers.any((polygon) => segmentHitsPolygon(a, b, polygon));
+
+  Iterable<FloorEdge> walkEdges(FloorSetup setup, {bool avoidStairs = false}) =>
+      edges.where(
+        (e) =>
+            (!avoidStairs || !['stairs', 'escalator'].contains(e.type)) &&
+            permits(point(e.from, setup), point(e.to, setup)),
+      );
+
   Offset point(String id, FloorSetup setup) =>
       setup.nodePoints[id] ?? nodes[id]!.point;
   double cost(FloorEdge e, FloorSetup s) =>
@@ -340,4 +390,34 @@ class RoomPolygon {
       throw const FormatException('Empty polygon');
     return room;
   }
+}
+
+/// Includes boundary contact, so smoothing/snapping cannot cut a wall corner.
+bool segmentHitsPolygon(Offset a, Offset b, List<Offset> polygon) {
+  if (polygon.length < 3) return false;
+  if ((Path()..addPolygon(polygon, true)).contains(a) ||
+      (Path()..addPolygon(polygon, true)).contains(b))
+    return true;
+  double cross(Offset u, Offset v, Offset w) =>
+      (v.dx - u.dx) * (w.dy - u.dy) - (v.dy - u.dy) * (w.dx - u.dx);
+  bool on(Offset u, Offset v, Offset p) =>
+      cross(u, v, p).abs() < 1e-7 &&
+      p.dx >= math.min(u.dx, v.dx) - 1e-7 &&
+      p.dx <= math.max(u.dx, v.dx) + 1e-7 &&
+      p.dy >= math.min(u.dy, v.dy) - 1e-7 &&
+      p.dy <= math.max(u.dy, v.dy) + 1e-7;
+  for (var i = 0; i < polygon.length; i++) {
+    final c = polygon[i], d = polygon[(i + 1) % polygon.length];
+    final x = cross(a, b, c),
+        y = cross(a, b, d),
+        z = cross(c, d, a),
+        w = cross(c, d, b);
+    if ((x * y < 0 && z * w < 0) ||
+        on(a, b, c) ||
+        on(a, b, d) ||
+        on(c, d, a) ||
+        on(c, d, b))
+      return true;
+  }
+  return false;
 }

@@ -22,6 +22,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Local Serverpod CLI preparation failed.' }
     dart $localCli --no-analytics runner start --no-docker --no-flutter
     if ($LASTEXITCODE -ne 0) { throw 'Serverpod runner startup failed.' }
+    dart run bin/apply_map_corrections.dart
+    if ($LASTEXITCODE -ne 0) { throw 'Map corrections conflicted with existing edits.' }
     dart run bin/seed_all_floors.dart
     if ($LASTEXITCODE -ne 0) { throw 'Floor seed verification failed.' }
     Write-Host 'Backend ready. Streaming logs; launch Flutter separately on your phone.'

@@ -10,6 +10,7 @@
 // ignore_for_file: invalid_use_of_internal_member
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
+import 'package:madmaps_server/src/generated/ar_capture.dart' as _ifbpi8hm;
 import 'package:madmaps_server/src/generated/create_graph_request.dart'
     as _ied1q2d5;
 import 'package:madmaps_server/src/generated/graph_patch_request.dart'
@@ -30,6 +31,7 @@ import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
 import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
     as _iais;
 import '../endpoints/building_endpoint.dart' as _iirhd8cp;
+import '../endpoints/building_map_endpoint.dart' as _i1x4rfk8;
 import '../endpoints/email_idp_endpoint.dart' as _ilutrrxn;
 import '../endpoints/location_endpoint.dart' as _iu1rtxjg;
 import '../endpoints/location_search_endpoint.dart' as _ii6rip9e;
@@ -56,6 +58,12 @@ class Endpoints extends _is.EndpointDispatch {
         ..initialize(
           server,
           'building',
+          null,
+        ),
+      'buildingMap': _i1x4rfk8.BuildingMapEndpoint()
+        ..initialize(
+          server,
+          'buildingMap',
           null,
         ),
       'emailIdp': _ilutrrxn.EmailIdpEndpoint()
@@ -185,6 +193,78 @@ class Endpoints extends _is.EndpointDispatch {
                     params['limit'],
                     params['offset'],
                   ),
+        ),
+      },
+    );
+    connectors['buildingMap'] = _is.EndpointConnector(
+      name: 'buildingMap',
+      endpoint: endpoints['buildingMap']!,
+      methodConnectors: {
+        'listConnectors': _is.MethodConnector(
+          name: 'listConnectors',
+          params: {
+            'buildingId': _is.ParameterDescription(
+              name: 'buildingId',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['buildingMap'] as _i1x4rfk8.BuildingMapEndpoint)
+                      .listConnectors(
+                        session,
+                        params['buildingId'],
+                      ),
+        ),
+        'listCaptures': _is.MethodConnector(
+          name: 'listCaptures',
+          params: {
+            'graphId': _is.ParameterDescription(
+              name: 'graphId',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+            'graphVersion': _is.ParameterDescription(
+              name: 'graphVersion',
+              type: _is.getType<int>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['buildingMap'] as _i1x4rfk8.BuildingMapEndpoint)
+                      .listCaptures(
+                        session,
+                        params['graphId'],
+                        params['graphVersion'],
+                      ),
+        ),
+        'publishCapture': _is.MethodConnector(
+          name: 'publishCapture',
+          params: {
+            'capture': _is.ParameterDescription(
+              name: 'capture',
+              type: _is.getType<_ifbpi8hm.ArCapture>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['buildingMap'] as _i1x4rfk8.BuildingMapEndpoint)
+                      .publishCapture(
+                        session,
+                        params['capture'],
+                      ),
         ),
       },
     );

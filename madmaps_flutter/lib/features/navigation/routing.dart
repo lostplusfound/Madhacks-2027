@@ -72,6 +72,7 @@ RouteResult findRoute(
   String? target,
   double pixelsPerMeter, {
   bool allowDistantAttachment = false,
+  bool avoidStairs = false,
 }) {
   if (target == null) {
     return RouteResult.failure(RouteFailure.unmappedDestination);
@@ -82,14 +83,14 @@ RouteResult findRoute(
   final adjacency = <String, List<(String, double)>>{};
   void link(String a, String b, double cost) =>
       adjacency.putIfAbsent(a, () => []).add((b, cost));
-  for (final e in graph.edges) {
+  for (final e in graph.walkEdges(setup, avoidStairs: avoidStairs)) {
     link(e.from, e.to, graph.cost(e, setup));
     if (e.bidirectional) link(e.to, e.from, graph.cost(e, setup));
   }
   NavigationRoute? best;
   var nearestPixels = double.infinity;
   String? nearestEdge;
-  for (final edge in graph.edges) {
+  for (final edge in graph.walkEdges(setup, avoidStairs: avoidStairs)) {
     // Approaches are real walk edges too, including University exit -> hallway.
     final a = graph.point(edge.from, setup), b = graph.point(edge.to, setup);
     final attachments = [
@@ -97,6 +98,7 @@ RouteResult findRoute(
       if (allowDistantAttachment && !edge.bidirectional) ...[a, b],
     ];
     for (final snapped in attachments) {
+      if (!graph.permits(start, snapped)) continue;
       final distance = (start - snapped).distance;
       if (distance < nearestPixels) {
         nearestPixels = distance;
@@ -190,6 +192,7 @@ enum NavigationPhase {
 class GuidanceState {
   GuidanceState({this.onDiagnostic});
   final void Function(String)? onDiagnostic;
+  bool avoidStairs = false;
   String? target;
   NavigationRoute? route;
   RouteResult? result;
@@ -202,6 +205,11 @@ class GuidanceState {
   /// Virtual compass aim point; not a vertex that the pedestrian must visit.
   Offset? next;
   double? remainingMeters;
+  double remainingBeyondLegMeters = 0;
+  Duration remainingTransfers = Duration.zero;
+  double? get tripMeters => remainingMeters == null
+      ? null
+      : remainingMeters! + remainingBeyondLegMeters;
   String maneuver = 'Continue';
   double? maneuverMeters;
   bool arrived = false;
@@ -226,7 +234,7 @@ class GuidanceState {
       : NavigationPhase.navigating;
   Duration? get estimatedDuration => remainingMeters == null
       ? null
-      : Duration(seconds: (remainingMeters! / 1.2).ceil());
+      : Duration(seconds: (tripMeters! / 1.2).ceil()) + remainingTransfers;
   String? _diagnosticKey;
   void select(String id) {
     target = id;
@@ -269,7 +277,14 @@ class GuidanceState {
     Offset position,
     double scale,
   ) {
-    result = findRoute(graph, setup, position, target, scale);
+    result = findRoute(
+      graph,
+      setup,
+      position,
+      target,
+      scale,
+      avoidStairs: avoidStairs,
+    );
     if ((route == null && result!.failure == RouteFailure.noNearbyEdge) ||
         result!.failure == RouteFailure.disconnected) {
       result = findRoute(
@@ -279,6 +294,7 @@ class GuidanceState {
         target,
         scale,
         allowDistantAttachment: true,
+        avoidStairs: avoidStairs,
       );
     }
     if (result!.route == null) {

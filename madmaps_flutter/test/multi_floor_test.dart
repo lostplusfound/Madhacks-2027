@@ -219,9 +219,9 @@ void main() {
         await tester.pumpAndSettle();
         expect(
           find.text('Navigation available on Floor 1 only'),
-          findsOneWidget,
+          findsNothing,
         );
-        expect(find.text('Find my location'), findsNothing);
+        expect(find.text('Find my location'), findsOneWidget);
         expect(session.destination, same(destination));
         expect(shell.mapNavigator.currentState, same(navigator));
         final map = tester.widget<InteractiveFloorMap>(

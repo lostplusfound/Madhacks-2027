@@ -150,6 +150,7 @@ class LocalizationController extends ChangeNotifier {
   ) async {
     final previous = nativeReference;
     referenceTracking = false;
+    camera = null;
     map = selectedMap;
     reference = saved;
     nativeReference = native;

@@ -15,7 +15,7 @@ Future<void> seedFloors(List<String> args, List<int> floors) async {
       await seedFloor(pod, floor);
     }
   } finally {
-    await pod.shutdown();
+    await pod.shutdown(exitProcess: false);
   }
 }
 
@@ -78,7 +78,21 @@ void verifySeed(
       );
   }
 
-  check(snapshot.walls.isEmpty);
+  check(snapshot.walls.length == (request.walls ?? []).length);
+  for (final wall in request.walls ?? <WallInput>[]) {
+    final actual = snapshot.walls
+        .where((w) => w.wallId == wall.wallId)
+        .firstOrNull;
+    check(actual != null && actual.vertices.length == wall.vertices.length);
+    if (actual != null) {
+      for (var i = 0; i < wall.vertices.length; i++) {
+        check(
+          actual.vertices[i].x == wall.vertices[i].x &&
+              actual.vertices[i].y == wall.vertices[i].y,
+        );
+      }
+    }
+  }
   check(
     snapshot.building.buildingId == request.buildingId &&
         snapshot.graph.name == request.name,

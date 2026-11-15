@@ -11,8 +11,10 @@
 // ignore_for_file: dead_code, unnecessary_type_check
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
+import 'package:madmaps_server/src/generated/ar_capture.dart' as _ifbpi8hm;
 import 'package:madmaps_server/src/generated/building.dart' as _immk5i13;
 import 'package:madmaps_server/src/generated/edge.dart' as _iyt7s8vt;
+import 'package:madmaps_server/src/generated/floor_connector.dart' as _i1k428cv;
 import 'package:madmaps_server/src/generated/location_category.dart'
     as _ine5rn9y;
 import 'package:madmaps_server/src/generated/locations.dart' as _idkqo2s3;
@@ -27,11 +29,13 @@ import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
     as _iacs;
 import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
     as _iais;
+import 'ar_capture.dart' as _i16jxfx1;
 import 'building.dart' as _icdi8t76;
 import 'create_graph_request.dart' as _ihh4bgnv;
 import 'edge.dart' as _ilmyslsx;
 import 'edge_type.dart' as _iv43g6lk;
 import 'floor.dart' as _ibt68ans;
+import 'floor_connector.dart' as _it6qy5v4;
 import 'floor_input.dart' as _i647gghf;
 import 'graph_patch_request.dart' as _iv9rsso3;
 import 'graph_read_result.dart' as _iu1utyem;
@@ -56,11 +60,13 @@ import 'report_target_type.dart' as _iyydfyiu;
 import 'search_result.dart' as _ifcih7a1;
 import 'wall_input.dart' as _icks2m2l;
 import 'wall_point.dart' as _inoptxl6;
+export 'ar_capture.dart';
 export 'building.dart';
 export 'create_graph_request.dart';
 export 'edge.dart';
 export 'edge_type.dart';
 export 'floor.dart';
+export 'floor_connector.dart';
 export 'floor_input.dart';
 export 'graph_patch_request.dart';
 export 'graph_read_result.dart';
@@ -99,11 +105,13 @@ class Protocol extends _is.DatabaseSerializationManager
       _is.ProtocolDeserialization.cached(
         this,
         types: const [
+          _is.getType<_i16jxfx1.ArCapture>,
           _is.getType<_icdi8t76.Building>,
           _is.getType<_ihh4bgnv.CreateGraphRequest>,
           _is.getType<_ilmyslsx.Edge>,
           _is.getType<_iv43g6lk.EdgeType>,
           _is.getType<_ibt68ans.Floor>,
+          _is.getType<_it6qy5v4.FloorConnector>,
           _is.getType<_i647gghf.FloorInput>,
           _is.getType<_iv9rsso3.GraphPatchRequest>,
           _is.getType<_iu1utyem.GraphReadResult>,
@@ -128,11 +136,13 @@ class Protocol extends _is.DatabaseSerializationManager
           _is.getType<_ifcih7a1.SearchResult>,
           _is.getType<_icks2m2l.WallInput>,
           _is.getType<_inoptxl6.WallPoint>,
+          _is.getType<_i16jxfx1.ArCapture?>,
           _is.getType<_icdi8t76.Building?>,
           _is.getType<_ihh4bgnv.CreateGraphRequest?>,
           _is.getType<_ilmyslsx.Edge?>,
           _is.getType<_iv43g6lk.EdgeType?>,
           _is.getType<_ibt68ans.Floor?>,
+          _is.getType<_it6qy5v4.FloorConnector?>,
           _is.getType<_i647gghf.FloorInput?>,
           _is.getType<_iv9rsso3.GraphPatchRequest?>,
           _is.getType<_iu1utyem.GraphReadResult?>,
@@ -170,6 +180,8 @@ class Protocol extends _is.DatabaseSerializationManager
           _is.getType<List<_iy2kpyso.Locations>>,
           _is.getType<List<_inoptxl6.WallPoint>>,
           _is.getType<List<_immk5i13.Building>>,
+          _is.getType<List<_i1k428cv.FloorConnector>>,
+          _is.getType<List<_ifbpi8hm.ArCapture>>,
           _is.getType<List<_idkqo2s3.Locations>>,
           _is.getType<List<_iw7f3ebs.SearchResult>>,
           _is.getType<List<_ine5rn9y.LocationCategory>>,
@@ -185,11 +197,13 @@ class Protocol extends _is.DatabaseSerializationManager
           _isp.Protocol.new,
         ],
         classNames: const [
+          'ArCapture',
           'Building',
           'CreateGraphRequest',
           'Edge',
           'EdgeType',
           'Floor',
+          'FloorConnector',
           'FloorInput',
           'GraphPatchRequest',
           'GraphReadResult',
@@ -225,6 +239,94 @@ class Protocol extends _is.DatabaseSerializationManager
   ];
 
   static List<_isp.TableDefinition> get _ownTableDefinitions => [
+    _isp.TableDefinition(
+      name: 'ar_capture',
+      dartName: 'ArCapture',
+      schema: 'public',
+      module: 'madmaps',
+      columns: [
+        _isp.ColumnDefinition(
+          name: 'id',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'serial',
+        ),
+        _isp.ColumnDefinition(
+          name: 'captureId',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _isp.ColumnDefinition(
+          name: 'graphId',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _isp.ColumnDefinition(
+          name: 'graphVersion',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _isp.ColumnDefinition(
+          name: 'floorNumber',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _isp.ColumnDefinition(
+          name: 'anchorMapJson',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _isp.ColumnDefinition(
+          name: 'expiresAt',
+          columnType: _isp.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+        ),
+        _isp.ColumnDefinition(
+          name: 'createdAt',
+          columnType: _isp.ColumnType.timestampWithoutTimeZone,
+          isNullable: false,
+          dartType: 'DateTime',
+          columnDefault: 'now',
+        ),
+      ],
+      foreignKeys: [],
+      indexes: [
+        _isp.IndexDefinition(
+          indexName: 'ar_capture_public_idx',
+          tableSpace: null,
+          elements: [
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'captureId',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: false,
+        ),
+        _isp.IndexDefinition(
+          indexName: 'ar_capture_graph_idx',
+          tableSpace: null,
+          elements: [
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'graphId',
+            ),
+          ],
+          type: 'btree',
+          isUnique: false,
+          isPrimary: false,
+        ),
+      ],
+      managed: true,
+    ),
     _isp.TableDefinition(
       name: 'building',
       dartName: 'Building',
@@ -637,6 +739,118 @@ class Protocol extends _is.DatabaseSerializationManager
             _isp.IndexElementDefinition(
               type: _isp.IndexElementDefinitionType.column,
               definition: 'floor_number',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: false,
+        ),
+      ],
+      managed: true,
+    ),
+    _isp.TableDefinition(
+      name: 'floor_connector',
+      dartName: 'FloorConnector',
+      schema: 'public',
+      module: 'madmaps',
+      columns: [
+        _isp.ColumnDefinition(
+          name: 'id',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'serial',
+        ),
+        _isp.ColumnDefinition(
+          name: 'connectorId',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _isp.ColumnDefinition(
+          name: 'buildingId',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _isp.ColumnDefinition(
+          name: 'label',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _isp.ColumnDefinition(
+          name: 'fromGraphId',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _isp.ColumnDefinition(
+          name: 'fromFloor',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _isp.ColumnDefinition(
+          name: 'fromNodeId',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _isp.ColumnDefinition(
+          name: 'toGraphId',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _isp.ColumnDefinition(
+          name: 'toFloor',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _isp.ColumnDefinition(
+          name: 'toNodeId',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _isp.ColumnDefinition(
+          name: 'type',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'protocol:EdgeType',
+        ),
+        _isp.ColumnDefinition(
+          name: 'seconds',
+          columnType: _isp.ColumnType.doublePrecision,
+          isNullable: false,
+          dartType: 'double',
+        ),
+        _isp.ColumnDefinition(
+          name: 'bidirectional',
+          columnType: _isp.ColumnType.boolean,
+          isNullable: false,
+          dartType: 'bool',
+          columnDefault: 'true',
+        ),
+        _isp.ColumnDefinition(
+          name: 'active',
+          columnType: _isp.ColumnType.boolean,
+          isNullable: false,
+          dartType: 'bool',
+          columnDefault: 'true',
+        ),
+      ],
+      foreignKeys: [],
+      indexes: [
+        _isp.IndexDefinition(
+          indexName: 'floor_connector_public_idx',
+          tableSpace: null,
+          elements: [
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'connectorId',
             ),
           ],
           type: 'btree',
@@ -1381,6 +1595,9 @@ class Protocol extends _is.DatabaseSerializationManager
       }
     }
 
+    if (t == _i16jxfx1.ArCapture) {
+      return _i16jxfx1.ArCapture.fromJson(data) as T;
+    }
     if (t == _icdi8t76.Building) {
       return _icdi8t76.Building.fromJson(data) as T;
     }
@@ -1395,6 +1612,9 @@ class Protocol extends _is.DatabaseSerializationManager
     }
     if (t == _ibt68ans.Floor) {
       return _ibt68ans.Floor.fromJson(data) as T;
+    }
+    if (t == _it6qy5v4.FloorConnector) {
+      return _it6qy5v4.FloorConnector.fromJson(data) as T;
     }
     if (t == _i647gghf.FloorInput) {
       return _i647gghf.FloorInput.fromJson(data) as T;
@@ -1468,6 +1688,9 @@ class Protocol extends _is.DatabaseSerializationManager
     if (t == _inoptxl6.WallPoint) {
       return _inoptxl6.WallPoint.fromJson(data) as T;
     }
+    if (t == _is.getType<_i16jxfx1.ArCapture?>()) {
+      return (data != null ? _i16jxfx1.ArCapture.fromJson(data) : null) as T;
+    }
     if (t == _is.getType<_icdi8t76.Building?>()) {
       return (data != null ? _icdi8t76.Building.fromJson(data) : null) as T;
     }
@@ -1483,6 +1706,10 @@ class Protocol extends _is.DatabaseSerializationManager
     }
     if (t == _is.getType<_ibt68ans.Floor?>()) {
       return (data != null ? _ibt68ans.Floor.fromJson(data) : null) as T;
+    }
+    if (t == _is.getType<_it6qy5v4.FloorConnector?>()) {
+      return (data != null ? _it6qy5v4.FloorConnector.fromJson(data) : null)
+          as T;
     }
     if (t == _is.getType<_i647gghf.FloorInput?>()) {
       return (data != null ? _i647gghf.FloorInput.fromJson(data) : null) as T;
@@ -1638,6 +1865,18 @@ class Protocol extends _is.DatabaseSerializationManager
               .toList()
           as T;
     }
+    if (t == List<_i1k428cv.FloorConnector>) {
+      return (data as List)
+              .map((e) => deserialize<_i1k428cv.FloorConnector>(e))
+              .toList()
+          as T;
+    }
+    if (t == List<_ifbpi8hm.ArCapture>) {
+      return (data as List)
+              .map((e) => deserialize<_ifbpi8hm.ArCapture>(e))
+              .toList()
+          as T;
+    }
     if (t == List<_idkqo2s3.Locations>) {
       return (data as List)
               .map((e) => deserialize<_idkqo2s3.Locations>(e))
@@ -1697,11 +1936,13 @@ class Protocol extends _is.DatabaseSerializationManager
 
   static String? getClassNameForType(Type type) {
     return switch (type) {
+      _i16jxfx1.ArCapture => 'ArCapture',
       _icdi8t76.Building => 'Building',
       _ihh4bgnv.CreateGraphRequest => 'CreateGraphRequest',
       _ilmyslsx.Edge => 'Edge',
       _iv43g6lk.EdgeType => 'EdgeType',
       _ibt68ans.Floor => 'Floor',
+      _it6qy5v4.FloorConnector => 'FloorConnector',
       _i647gghf.FloorInput => 'FloorInput',
       _iv9rsso3.GraphPatchRequest => 'GraphPatchRequest',
       _iu1utyem.GraphReadResult => 'GraphReadResult',
@@ -1740,6 +1981,8 @@ class Protocol extends _is.DatabaseSerializationManager
     }
 
     switch (data) {
+      case _i16jxfx1.ArCapture():
+        return 'ArCapture';
       case _icdi8t76.Building():
         return 'Building';
       case _ihh4bgnv.CreateGraphRequest():
@@ -1750,6 +1993,8 @@ class Protocol extends _is.DatabaseSerializationManager
         return 'EdgeType';
       case _ibt68ans.Floor():
         return 'Floor';
+      case _it6qy5v4.FloorConnector():
+        return 'FloorConnector';
       case _i647gghf.FloorInput():
         return 'FloorInput';
       case _iv9rsso3.GraphPatchRequest():
@@ -1824,6 +2069,9 @@ class Protocol extends _is.DatabaseSerializationManager
     if (dataClassName is! String) {
       return super.deserializeByClassName(data);
     }
+    if (dataClassName == 'ArCapture') {
+      return deserialize<_i16jxfx1.ArCapture>(data['data']);
+    }
     if (dataClassName == 'Building') {
       return deserialize<_icdi8t76.Building>(data['data']);
     }
@@ -1838,6 +2086,9 @@ class Protocol extends _is.DatabaseSerializationManager
     }
     if (dataClassName == 'Floor') {
       return deserialize<_ibt68ans.Floor>(data['data']);
+    }
+    if (dataClassName == 'FloorConnector') {
+      return deserialize<_it6qy5v4.FloorConnector>(data['data']);
     }
     if (dataClassName == 'FloorInput') {
       return deserialize<_i647gghf.FloorInput>(data['data']);
@@ -1958,12 +2209,16 @@ class Protocol extends _is.DatabaseSerializationManager
       }
     }
     switch (t) {
+      case _i16jxfx1.ArCapture:
+        return _i16jxfx1.ArCapture.t;
       case _icdi8t76.Building:
         return _icdi8t76.Building.t;
       case _ilmyslsx.Edge:
         return _ilmyslsx.Edge.t;
       case _ibt68ans.Floor:
         return _ibt68ans.Floor.t;
+      case _it6qy5v4.FloorConnector:
+        return _it6qy5v4.FloorConnector.t;
       case _iy2kpyso.Locations:
         return _iy2kpyso.Locations.t;
       case _ikb2yia4.MapGraph:

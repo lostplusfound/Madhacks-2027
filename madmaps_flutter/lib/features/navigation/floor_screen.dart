@@ -318,10 +318,15 @@ class _FloorSetupScreenState extends State<FloorSetupScreen> {
               padding: const EdgeInsets.all(12),
               children: [
                 SwitchListTile(
-                  title: const Text('Associate this AR map with floor 1'),
+                  title: Text(
+                    'Associate this AR map with ${widget.graph.floorLabel}',
+                  ),
                   value: setup.enabled,
                   onChanged: (v) {
-                    setState(() => setup.enabled = v);
+                    setState(() {
+                      setup.enabled = v;
+                      setup.floorNumber = widget.graph.floor;
+                    });
                     persist();
                   },
                 ),

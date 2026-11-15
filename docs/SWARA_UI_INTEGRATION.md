@@ -1,5 +1,7 @@
 # Swara UI integration
 
+Current behavior: [all-floor routing and shared AR capture](ALL_FLOOR_NAVIGATION.md). Floor-1-only statements below describe the earlier implementation.
+
 This is the historical UI merge record. Subsequent Serverpod map/search integration
 and current startup behavior are documented in [backend integration](LURAY_INTEGRATION.md)
 and [Windows runtime](LOCAL_WINDOWS_RUNTIME.md). The 88-test count below belongs

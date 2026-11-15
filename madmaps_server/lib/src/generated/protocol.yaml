@@ -2,6 +2,10 @@ building:
   - createBuilding:
   - getBuilding:
   - listBuildings:
+buildingMap:
+  - listConnectors:
+  - listCaptures:
+  - publishCapture:
 emailIdp:
   - startOtpLogin:
   - verifyOtpLoginCode:

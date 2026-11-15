@@ -54,10 +54,10 @@ though database rows have active lifecycle status. Seed fidelity tests detect
 future divergence from the frontend assets.
 
 Launch the Android app separately from `madmaps_flutter`; the configured default
-is `http://10.138.33.209:8080/`. Override only when the laptop address changes:
+is the Dart `serverUrl` getter in `lib/client.dart`. Edit it and hot reload when the laptop address changes:
 
 ```powershell
-flutter run -t lib/driver.dart --dart-define=SERVER_URL=http://<computer-LAN-IP>:8080/
+flutter run -t lib/driver.dart
 ```
 
 The runner may print localhost; a physical phone must use the laptop LAN address

@@ -13,10 +13,12 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _ida;
 import 'dart:io' as _idi;
+import 'package:madmaps_server/src/generated/ar_capture.dart' as _ifbpi8hm;
 import 'package:madmaps_server/src/generated/building.dart' as _immk5i13;
 import 'package:madmaps_server/src/generated/create_graph_request.dart'
     as _ied1q2d5;
 import 'package:madmaps_server/src/generated/edge.dart' as _iyt7s8vt;
+import 'package:madmaps_server/src/generated/floor_connector.dart' as _i1k428cv;
 import 'package:madmaps_server/src/generated/graph_patch_request.dart'
     as _ixd1k553;
 import 'package:madmaps_server/src/generated/graph_read_result.dart'
@@ -181,6 +183,8 @@ void withServerpod(
 class TestEndpoints {
   late final _BuildingEndpoint building;
 
+  late final _BuildingMapEndpoint buildingMap;
+
   late final _EmailIdpEndpoint emailIdp;
 
   late final _LocationEndpoint location;
@@ -206,6 +210,10 @@ class _InternalTestEndpoints extends TestEndpoints
     _is.EndpointDispatch endpoints,
   ) {
     building = _BuildingEndpoint(
+      endpoints,
+      serializationManager,
+    );
+    buildingMap = _BuildingMapEndpoint(
       endpoints,
       serializationManager,
     );
@@ -350,6 +358,114 @@ class _BuildingEndpoint {
                   _localCallContext.arguments,
                 )
                 as _ida.Future<List<_immk5i13.Building>>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+}
+
+class _BuildingMapEndpoint {
+  _BuildingMapEndpoint(
+    this._endpointDispatch,
+    this._serializationManager,
+  );
+
+  final _is.EndpointDispatch _endpointDispatch;
+
+  final _is.SerializationManager _serializationManager;
+
+  _ida.Future<List<_i1k428cv.FloorConnector>> listConnectors(
+    _ist.TestSessionBuilder sessionBuilder,
+    String buildingId,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'buildingMap',
+            method: 'listConnectors',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'buildingMap',
+          methodName: 'listConnectors',
+          parameters: _ist.testObjectToJson({'buildingId': buildingId}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<List<_i1k428cv.FloorConnector>>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<List<_ifbpi8hm.ArCapture>> listCaptures(
+    _ist.TestSessionBuilder sessionBuilder,
+    String graphId,
+    int graphVersion,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'buildingMap',
+            method: 'listCaptures',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'buildingMap',
+          methodName: 'listCaptures',
+          parameters: _ist.testObjectToJson({
+            'graphId': graphId,
+            'graphVersion': graphVersion,
+          }),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<List<_ifbpi8hm.ArCapture>>);
+        return _localReturnValue;
+      } finally {
+        await _localUniqueSession.close();
+      }
+    });
+  }
+
+  _ida.Future<_ifbpi8hm.ArCapture> publishCapture(
+    _ist.TestSessionBuilder sessionBuilder,
+    _ifbpi8hm.ArCapture capture,
+  ) async {
+    return _ist.callAwaitableFunctionAndHandleExceptions(() async {
+      var _localUniqueSession =
+          (sessionBuilder as _ist.InternalTestSessionBuilder).internalBuild(
+            endpoint: 'buildingMap',
+            method: 'publishCapture',
+          );
+      try {
+        var _localCallContext = await _endpointDispatch.getMethodCallContext(
+          createSessionCallback: (_) => _localUniqueSession,
+          endpointPath: 'buildingMap',
+          methodName: 'publishCapture',
+          parameters: _ist.testObjectToJson({'capture': capture}),
+          serializationManager: _serializationManager,
+        );
+        var _localReturnValue =
+            await (_localCallContext.method.call(
+                  _localUniqueSession,
+                  _localCallContext.arguments,
+                )
+                as _ida.Future<_ifbpi8hm.ArCapture>);
         return _localReturnValue;
       } finally {
         await _localUniqueSession.close();

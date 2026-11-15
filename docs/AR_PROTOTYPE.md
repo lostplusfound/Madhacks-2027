@@ -1,5 +1,7 @@
 # Android AR localization prototype
 
+Current behavior: [all-floor routing and shared AR capture](ALL_FLOOR_NAVIGATION.md). Floor-1-only statements below describe the earlier implementation.
+
 The app opens a visitor Home screen with Map, Saved, and Profile tabs. Named
 AR maps are managed through **Profile > Manage AR maps and calibration**.
 Map and anchor metadata are saved in

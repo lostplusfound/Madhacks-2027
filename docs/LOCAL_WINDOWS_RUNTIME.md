@@ -1,8 +1,8 @@
 # Local Windows backend
 
-The frontend defaults to `http://10.138.33.209:8080/` in its config asset.
-`--dart-define=SERVER_URL=...` still overrides it. Restart Flutter after changing
-the address; hot reload does not rerun client initialization.
+The frontend address is the `serverUrl` getter in `madmaps_flutter/lib/client.dart`.
+Edit it and hot reload to reconnect. The JSON config asset and SERVER_URL
+build override are removed. See [navigation/capture](ALL_FLOOR_NAVIGATION.md).
 
 From the repository root, start the complete local backend with:
 
