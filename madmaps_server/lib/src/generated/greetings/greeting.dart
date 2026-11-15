@@ -12,7 +12,6 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'package:serverpod/serverpod.dart' as _is;
 
-/// A greeting message which can be sent to or from the server.
 abstract class Greeting
     implements _is.SerializableModel, _is.ProtocolSerialization {
   Greeting._({
@@ -37,13 +36,10 @@ abstract class Greeting
     );
   }
 
-  /// The greeting message.
   String message;
 
-  /// The author of the greeting message.
   String author;
 
-  /// The time when the message was created.
   DateTime timestamp;
 
   /// Returns a shallow copy of this [Greeting]

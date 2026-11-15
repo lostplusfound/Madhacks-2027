@@ -1,0 +1,8 @@
+class: FloorInput
+fields:
+  floorId: String
+  floorNumber: int
+  name: String?
+  width: double
+  height: double
+  metersPerUnit: double

@@ -24,14 +24,11 @@ insightsServer:
 
 # This is the database setup for your test server.
 database:
-  host: localhost
-  # Port 0 lets the embedded test database use an available port with no conflicts.
-  # If using Docker or other external PostgreSQL instances, use their actual port
-  # and remove `dataPath`.
-  port: 0
+  host: 127.0.0.1
+  # Project-local PostgreSQL or Docker Compose test instance.
+  port: 9090
   name: madmaps_test
   user: postgres
-  dataPath: .serverpod/test/pgdata
   #maxConnectionCount: 10 # Defaults to 10, a negative or null value removes the limit
 
 

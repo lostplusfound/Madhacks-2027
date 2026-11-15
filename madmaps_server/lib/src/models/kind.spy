@@ -1,0 +1,6 @@
+enum: Kind
+serialized: byName
+values:
+ - approach
+ - junction
+ - landmark

@@ -1,0 +1,122 @@
+import 'dart:math' as math;
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vector_math/vector_math_64.dart' show Matrix4, Vector3;
+import 'package:madmaps/features/localization/map_data.dart';
+import 'package:madmaps/features/localization/prototype_screen.dart';
+
+void main() {
+  test('aligns translated and rotated sessions, including height', () {
+    final mapAnchor = Matrix4.translationValues(3, 2, 8)..rotateY(.8);
+    final sessionFromMap = Matrix4.translationValues(-7, 4, 2)..rotateY(-1.2);
+    final sessionAnchor = sessionFromMap * mapAnchor;
+    final camera = Matrix4.translationValues(4, 1.7, -2)..rotateY(.2);
+    final result = alignMap(mapAnchor, sessionAnchor) * sessionFromMap * camera;
+    for (var i = 0; i < 16; i++) {
+      expect(result.storage[i], closeTo(camera.storage[i], 1e-9));
+    }
+  });
+
+  test(
+    'discovery catalogs live anchors across floors and preserves matched frame',
+    () {
+      final wallPose = Matrix4.translationValues(3, 2, 8)..rotateZ(math.pi / 2);
+      final anchor = SavedAnchor(
+        'wall',
+        'Wall',
+        'wall-cloud',
+        wallPose,
+        DateTime.utc(2030),
+      );
+      final first = AnchorMap('floor1', 'First floor', [
+        SavedAnchor(
+          'expired',
+          'Old',
+          'expired-cloud',
+          Matrix4.identity(),
+          DateTime.utc(2000),
+        ),
+      ]);
+      final second = AnchorMap('floor2', 'Second floor', [anchor, anchor]);
+      final catalog = liveAnchorCandidates([first, second]);
+      expect(catalog.keys, ['wall-cloud']);
+      final match = catalog['wall-cloud']!;
+      expect(match.map.id, 'floor2');
+      expect(match.anchor.id, 'wall');
+      final sessionFromMap = Matrix4.translationValues(-5, 4, 7)..rotateY(.7);
+      final camera = Matrix4.translationValues(4, 1.6, 2);
+      final localized =
+          match.alignment(sessionFromMap * wallPose) * sessionFromMap * camera;
+      for (var i = 0; i < 16; i++) {
+        expect(localized.storage[i], closeTo(camera.storage[i], 1e-9));
+      }
+      expect(liveAnchorCandidates([first]), isEmpty);
+      expect(liveAnchorCandidates([]), isEmpty);
+    },
+  );
+  test('horizontal distance ignores camera and anchor height', () {
+    expect(horizontalDistance(Vector3(0, 100, 0), Vector3(3, -100, 4)), 5);
+    expect(horizontalDistance(Vector3(3, 9, 4), Vector3(3, 1, 4)), 0);
+  });
+  test('camera relative arrow directions and rotation', () {
+    final camera = Matrix4.identity();
+    expect(relativeBearing(camera, Vector3(0, 0, -3)), 0);
+    expect(
+      relativeBearing(camera, Vector3(3, 99, 0)),
+      closeTo(math.pi / 2, 1e-9),
+    );
+    expect(
+      relativeBearing(camera, Vector3(-3, 0, 0)),
+      closeTo(-math.pi / 2, 1e-9),
+    );
+    camera.rotateY(-math.pi / 2);
+    expect(relativeBearing(camera, Vector3(3, 0, 0)), closeTo(0, 1e-9));
+  });
+  test('storage preserves names, full poses, cloud IDs and expiry', () async {
+    SharedPreferences.setMockInitialValues({});
+    final store = MapStore();
+    expect(await store.load(), isEmpty);
+    final pose = Matrix4.translationValues(1, 2, 3)..rotateY(.7);
+    final expiry = DateTime.utc(2030);
+    await store.save([
+      AnchorMap('map', 'Hall', [
+        SavedAnchor('a', 'Door', 'cloud', pose, expiry),
+      ]),
+    ]);
+    final restored = (await store.load()).single;
+    expect(restored.name, 'Hall');
+    expect(restored.anchors.single.pose.storage, pose.storage);
+    expect(restored.anchors.single.cloudId, 'cloud');
+    expect(restored.anchors.single.expiresAt, expiry);
+    expect(
+      SavedAnchor(
+        'e',
+        'Expired',
+        'c',
+        Matrix4.identity(),
+        DateTime.utc(2000),
+      ).expired,
+      isTrue,
+    );
+  });
+  testWidgets('create map and rename from mapping tools', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.pumpWidget(const MaterialApp(home: MapsScreen()));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Create map'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField), 'Test hall');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(find.text('Test hall'), findsOneWidget);
+    await tester.tap(find.byType(PopupMenuButton<String>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Rename'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField), 'New hall');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(find.text('New hall'), findsOneWidget);
+  });
+}

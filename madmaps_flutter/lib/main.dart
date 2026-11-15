@@ -1,49 +1,54 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'features/shell/app_state.dart';
+import 'features/navigation/map_repository.dart';
+import 'features/shell/madmaps_shell.dart';
+import 'features/shell/shared_widgets.dart';
 
-import 'client.dart';
-import 'screens/greetings_screen.dart';
-
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initializeClient();
-  runApp(const MyApp());
+  SharedPreferences? preferences;
+  try {
+    preferences = await SharedPreferences.getInstance();
+  } catch (_) {
+    // Browsing and in-memory preferences remain available if storage fails.
+  }
+  runApp(MyApp(state: AppState(preferences)));
 }
 
-/// Builds a theme for the given [brightness].
-ThemeData _buildTheme(Brightness brightness) {
-  return ThemeData(
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: Colors.blue,
-      brightness: brightness,
+class MyApp extends StatefulWidget {
+  const MyApp({super.key, required this.state, this.repository});
+  final AppState state;
+  final MapRepository? repository;
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: widget.state,
+    builder: (context, _) => MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'MadMaps',
+      theme: ThemeData(
+        useMaterial3: true,
+        scaffoldBackgroundColor: alabaster,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: widget.state.contrast
+              ? const Color(0xff005f73)
+              : brandCrimson,
+          contrastLevel: widget.state.contrast ? 1 : 0,
+          surface: Colors.white,
+        ),
+        cardTheme: const CardThemeData(elevation: 0, color: Colors.white),
+      ),
+      home: MadMapsShell(state: widget.state, repository: widget.repository),
     ),
   );
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'MadMaps',
-      theme: _buildTheme(Brightness.light),
-      darkTheme: _buildTheme(Brightness.dark),
-      themeMode: ThemeMode.system,
-      home: const MyHomePage(title: 'MadMaps — connection check'),
-    );
-  }
-}
-
-class MyHomePage extends StatelessWidget {
-  const MyHomePage({super.key, required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: const GreetingsScreen(),
-    );
+  void dispose() {
+    widget.state.dispose();
+    super.dispose();
   }
 }

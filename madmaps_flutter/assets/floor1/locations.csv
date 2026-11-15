@@ -1,0 +1,19 @@
+location_id,floor,room_number,name,category,aliases,route_node_id,review_note
+f1-1524,1,1524,,other,,f1-demo-1524,"East-side door, reached west of the gray core and around the north foyer, confirmed by user-marked route. Verify doorway alignment on site."
+f1-1570,1,1570,Hello World Auditorium,auditorium,auditorium,f1-demo-1570,
+f1-auditorium-restroom-1,1,,"Restroom near auditorium, symbol 1",bathroom,,f1-auditorium-restroom-1-approach,Draft floor-plan entrance approach; verify entrance and walkability on site.
+f1-auditorium-restroom-2,1,,"Restroom near auditorium, symbol 2",bathroom,,f1-auditorium-restroom-2-approach,Draft floor-plan entrance approach; verify entrance and walkability on site.
+f1-cafe,1,,Cafe,food,coffee counter; coffee shop,f1-demo-cafe,
+f1-cafe-restroom-1,1,,"Restroom near Cafe, symbol 1",bathroom,,f1-cafe-restroom-1-approach,Draft floor-plan entrance approach; verify entrance and walkability on site.
+f1-cafe-restroom-2,1,,"Restroom near Cafe, symbol 2",bathroom,,f1-cafe-restroom-2-approach,Draft floor-plan entrance approach; verify entrance and walkability on site.
+f1-courtyard-exit,1,,Exit to Courtyard,exit,,f1-exit-courtyard,
+f1-elevator-bank,1,,Elevator bank near Orchard Street and Courtyard exits,elevator,,f1-elevator-bank-approach,Draft floor-plan entrance approach; verify entrance and walkability on site.
+f1-heart,1,,Morgridge Hall Heart,other,,f1-demo-heart,
+f1-main-stairs,1,,Main Stairs to Floor 2,stairs,,f1-main-stairs-approach,Draft floor-plan entrance approach; verify entrance and walkability on site.
+f1-orchard-exit,1,,Exit to Orchard Street,exit,,f1-exit-orchard,
+f1-university-exit,1,,Exit to University,exit,,f1-exit-university,
+f1-south-stairs,1,,South stairs,stairs,,f1-south-stairs,Floor-plan-derived approach; physical verification pending.
+f1-west-stairs,1,,West stairs,stairs,,f1-west-stairs,Floor-plan-derived approach; physical verification pending.
+f1-north-stairs,1,,Cafe stairs,stairs,,f1-north-stairs,Floor-plan-derived approach; physical verification pending.
+f1-garden-stairs,1,,Stairs beside restroom divider,stairs,,f1-garden-stairs,"Stairs beside restroom divider; not a connection to Basement or Floor 2, per user review."
+f1-university-basement-stairs,1,,University stairs to Basement,stairs,downstairs;basement stairs,f1-university-basement-stairs,

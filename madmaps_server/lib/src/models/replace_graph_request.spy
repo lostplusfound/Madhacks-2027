@@ -1,0 +1,10 @@
+class: ReplaceGraphRequest
+fields:
+  graphId: String
+  expectedVersion: int
+  name: String
+  floors: List<FloorInput>
+  nodes: List<MapNodeInput>
+  edges: List<MapEdgeInput>
+  locations: List<LocationInput>
+  walls: List<WallInput>?

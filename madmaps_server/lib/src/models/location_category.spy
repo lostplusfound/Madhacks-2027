@@ -1,0 +1,17 @@
+enum: LocationCategory
+serialized: byName
+default: other
+values:
+  - bathroom
+  - studySpace
+  - exit
+  - entrance
+  - elevator
+  - stairs
+  - classroom
+  - auditorium
+  - food
+  - office
+  - accessibilityService
+  - landmark
+  - other

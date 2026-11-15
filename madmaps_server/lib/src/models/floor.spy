@@ -1,0 +1,18 @@
+class: Floor
+table: floor
+
+fields:
+  floorId: String, column=floor_id, unique(per=buildingId)
+  buildingId: int, column=building_id, relation(parent=building)
+  floorNumber: int, column=floor_number
+  name: String?
+  width: double
+  height: double
+  metersPerUnit: double, default=1.0, column=meters_per_unit
+  createdAt: DateTime, default=now, column=created_at
+  updatedAt: DateTime, default=now, column=updated_at
+
+indexes:
+  floors_building_number_idx:
+    fields: buildingId, floorNumber
+    unique: true

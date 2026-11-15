@@ -1,0 +1,32 @@
+class: Locations
+table: locations
+
+fields:
+  locationId: String, column=location_id, unique
+  graphId: int?, column=graph_id, relation(parent=map_graph)
+  floorId: int?, column=floor_id, relation(parent=floor)
+  floor: int
+  roomNumber: String?, column=room_number
+  name: String?
+  category: LocationCategory?, defaultModel=other
+  aliases: String?
+  routeNodeId: String?, column=route_node_id
+  reviewNote: String?, column=review_note
+  status: MapEntityStatus, default=active
+  createdBy: String?, column=created_by
+  updatedBy: String?, column=updated_by
+  createdAt: DateTime, default=now, column=created_at
+  updatedAt: DateTime, default=now, column=updated_at
+  deletedAt: DateTime?, column=deleted_at
+  version: int, default=1
+
+indexes:
+  locations_graph_floor_idx:
+    fields: graphId, floorId
+  locations_room_idx:
+    fields: roomNumber
+  locations_category_idx:
+    fields: category
+  locations_owner_idx:
+    fields: createdBy
+

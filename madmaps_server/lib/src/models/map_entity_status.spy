@@ -1,0 +1,6 @@
+enum: MapEntityStatus
+serialized: byName
+default: active
+values:
+  - active
+  - deleted

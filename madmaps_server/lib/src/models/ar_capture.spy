@@ -1,0 +1,16 @@
+class: ArCapture
+table: ar_capture
+fields:
+  captureId: String
+  graphId: String
+  graphVersion: int
+  floorNumber: int
+  anchorMapJson: String
+  expiresAt: DateTime
+  createdAt: DateTime, default=now
+indexes:
+  ar_capture_public_idx:
+    fields: captureId
+    unique: true
+  ar_capture_graph_idx:
+    fields: graphId
