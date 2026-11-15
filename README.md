@@ -3,12 +3,12 @@
 MadMaps is an **Android indoor-navigation prototype with Serverpod map and search reads**.
 See [backend integration and setup](docs/LURAY_INTEGRATION.md).
 Named AR maps, saved anchor metadata, floor calibration, and map overrides stay
-on the phone. Cloud Anchor hosting/resolution uses Google directly; anchor hosting/resolution uses no backend round trip. The visitor shell requires
+on the phone. Cloud Anchor hosting/resolution uses Google directly. The visitor shell requires
 a successful Serverpod map load; already-loaded maps remain usable in memory.
 
 The visitor UI now provides Home search, Map, Saved and Profile tabs, using real
 floor-1 navigation. See [Swara UI integration and feature differences](docs/SWARA_UI_INTEGRATION.md).
-Home includes bathroom/exit shortcuts; Saved supports bookmarks and aliases;
+Home includes available backend category shortcuts; Saved supports bookmarks and aliases;
 Profile offers units, high contrast, spoken directions, and **Manage AR maps and
 calibration**. Set up two anchors and Floor 1 calibration there, return to Map,
 then select **Find my location**. A missing-setup prompt retains the destination.
