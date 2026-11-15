@@ -1,2 +1,53 @@
+building:
+  - createBuilding:
+  - getBuilding:
+  - listBuildings:
+emailIdp:
+  - startOtpLogin:
+  - verifyOtpLoginCode:
+  - finishOtpLogin:
+  - finishOtpRegistration:
+  - login:
+  - startRegistration:
+  - verifyRegistrationCode:
+  - finishRegistration:
+  - startPasswordReset:
+  - verifyPasswordResetCode:
+  - finishPasswordReset:
+  - hasAccount:
+location:
+  - createLocation:
+  - getLocation:
+  - listLocations:
+  - updateLocation:
+  - deleteLocation:
+locationSearch:
+  - searchLocations:
+  - listLocationsByCategory:
+  - listQuickAccessCategories:
+mapEdge:
+  - createEdge:
+  - getEdge:
+  - listEdges:
+  - updateEdge:
+  - deleteEdge:
+mapGraph:
+  - createGraph:
+  - getGraph:
+  - listGraphs:
+  - patchGraph:
+  - replaceGraph:
+  - deleteGraph:
+mapNode:
+  - createNode:
+  - createNodeWithConnections:
+  - getNode:
+  - listNodes:
+  - updateNode:
+  - deleteNode:
+mapReport:
+  - reportEntity:
+  - listMyReports:
+  - withdrawReport:
 greeting:
   - hello:

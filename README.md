@@ -1,9 +1,10 @@
 # MadMaps
 
-MadMaps currently runs as a **local-only Android indoor-navigation prototype**.
+MadMaps is an **Android indoor-navigation prototype with Serverpod map and search reads**.
+See [backend integration and setup](docs/LURAY_INTEGRATION.md).
 Named AR maps, saved anchor metadata, floor calibration, and map overrides stay
-on the phone. Cloud Anchor hosting/resolution uses Google directly; these flows
-do not require the Serverpod backend, PostgreSQL, or a backend round trip.
+on the phone. Cloud Anchor hosting/resolution uses Google directly; anchor hosting/resolution uses no backend round trip. The visitor shell requires
+a successful Serverpod map load; already-loaded maps remain usable in memory.
 
 The visitor UI now provides Home search, Map, Saved and Profile tabs, using real
 floor-1 navigation. See [Swara UI integration and feature differences](docs/SWARA_UI_INTEGRATION.md).
@@ -42,7 +43,7 @@ new amenity approaches remain draft.
 
 Indoor navigation for MadHacks: Flutter, Serverpod/PostgreSQL, and the third-party AR package `ar_flutter_plugin_plus: 1.1.3`.
 
-The Flutter app includes an Android AR localization prototype and first-floor graph routing with local persistence. The backend remains a generated framework starter. Backend map persistence, AI processing, and shared domain types remain future work.
+The Flutter app includes an Android AR localization prototype and first-floor graph routing with local persistence. The backend now includes Luray?s graph persistence, destination search, categories, authenticated editing and reports. The visitor frontend integrates map/search reads; reporting UI and AI processing remain future work.
 
 **All domain contracts are proposals, not set in stone.** Revise them together as features are implemented. See [the contract discussion draft](docs/CONTRACTS.md).
 
@@ -69,8 +70,8 @@ dart analyze
 cd madmaps_flutter
 flutter test
 flutter build apk --debug
-# Standalone physical Android run; no SERVER_URL is needed for the AR/map flow.
-flutter run -d <android-device-id> -t lib/driver.dart
+# Physical Android: supply the Serverpod address reachable from this phone.
+flutter run -d <android-device-id> -t lib/driver.dart --dart-define=SERVER_URL=http://<computer-LAN-IP>:8080/
 ```
 
 The debug APK is `madmaps_flutter/build/app/outputs/flutter-apk/app-debug.apk`.
@@ -79,7 +80,7 @@ hot restart cannot replace Android code. See [testing](docs/TESTING.md) for the
 physical checklist. Use Serverpod/Dart MCP tooling for connected app control when
 available, as described in `AGENTS.md`.
 
-The commands below concern the optional generated backend/greeting example.
+The commands below concern backend setup; see the integration guide above for Floor 1 seeding.
 From repository root in PowerShell:
 
 ```powershell

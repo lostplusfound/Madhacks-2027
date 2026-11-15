@@ -15,13 +15,15 @@ import 'map_data.dart';
 import 'scan_guidance.dart';
 import 'localization_controller.dart';
 import '../navigation/floor_data.dart';
+import '../navigation/map_repository.dart';
 import '../navigation/floor_screen.dart';
 import '../navigation/routing.dart';
 import '../navigation/navigation_panel.dart';
 import 'package:vector_math/vector_math_64.dart' show Vector3;
 
 class MapsScreen extends StatefulWidget {
-  const MapsScreen({super.key});
+  const MapsScreen({super.key, this.graph});
+  final FloorGraph? graph;
   @override
   State<MapsScreen> createState() => _MapsScreenState();
 }
@@ -105,7 +107,11 @@ class _MapsScreenState extends State<MapsScreen> {
                   onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute<void>(
-                      builder: (_) => MapSessionScreen(maps: maps!, save: save),
+                      builder: (_) => MapSessionScreen(
+                        maps: maps!,
+                        save: save,
+                        graph: widget.graph,
+                      ),
                     ),
                   ),
                 ),
@@ -119,7 +125,11 @@ class _MapsScreenState extends State<MapsScreen> {
                     await Navigator.push(
                       context,
                       MaterialPageRoute<void>(
-                        builder: (_) => MapSessionScreen(map: map, save: save),
+                        builder: (_) => MapSessionScreen(
+                          map: map,
+                          save: save,
+                          graph: widget.graph,
+                        ),
                       ),
                     );
                     if (mounted) setState(() {});
@@ -127,7 +137,8 @@ class _MapsScreenState extends State<MapsScreen> {
                   trailing: PopupMenuButton<String>(
                     onSelected: (value) => guarded(() async {
                       if (value == 'floor') {
-                        final graph = await FloorGraph.load();
+                        final graph =
+                            widget.graph ?? await ServerMapRepository().load();
                         if (!context.mounted) return;
                         await Navigator.push(
                           context,
@@ -198,6 +209,7 @@ class MapSessionScreen extends StatefulWidget {
     this.adapter,
     this.session,
     this.appState,
+    this.graph,
     required this.save,
   });
 
@@ -205,6 +217,7 @@ class MapSessionScreen extends StatefulWidget {
   final ArAdapter? adapter;
   final NavigationSession? session;
   final AppState? appState;
+  final FloorGraph? graph;
   final AnchorMap? map;
   final List<AnchorMap> maps;
   final Future<void> Function() save;
@@ -371,7 +384,7 @@ class _MapSessionScreenState extends State<MapSessionScreen>
 
   Future<void> loadFloor() async {
     try {
-      final graph = await FloorGraph.load();
+      final graph = widget.graph ?? await ServerMapRepository().load();
       if (mounted) setState(() => floorGraph = graph);
     } catch (e) {
       if (mounted) setState(() => floorError = 'Map data unavailable: $e');

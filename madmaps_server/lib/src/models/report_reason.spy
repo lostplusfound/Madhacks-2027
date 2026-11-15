@@ -1,0 +1,9 @@
+enum: ReportReason
+serialized: byName
+values:
+  - incorrectLocation
+  - wrongLabel
+  - duplicate
+  - inaccessible
+  - unsafeRoute
+  - other

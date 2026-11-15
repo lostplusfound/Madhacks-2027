@@ -1,0 +1,13 @@
+class: GraphPatchRequest
+fields:
+  graphId: String
+  expectedVersion: int
+  nodesToCreate: List<MapNodeInput>
+  nodesToUpdate: List<MapNodeInput>
+  nodeIdsToDelete: List<String>
+  edgesToCreate: List<MapEdgeInput>
+  edgesToUpdate: List<MapEdgeInput>
+  edgeIdsToDelete: List<String>
+  locationsToCreate: List<LocationInput>
+  locationsToUpdate: List<LocationInput>
+  locationIdsToDelete: List<String>

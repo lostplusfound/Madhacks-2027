@@ -1,0 +1,4 @@
+class: GraphReadResult
+fields:
+  unchanged: bool
+  snapshot: MapGraphSnapshot?

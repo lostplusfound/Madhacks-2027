@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:madmaps/main.dart';
+import 'package:madmaps/features/navigation/map_repository.dart';
 import 'package:madmaps/features/localization/map_data.dart';
 import 'package:madmaps/features/localization/prototype_screen.dart';
 import 'package:madmaps/features/navigation/floor_data.dart';
@@ -109,7 +110,9 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       final state = AppState(await SharedPreferences.getInstance());
-      await tester.pumpWidget(MyApp(state: state));
+      await tester.pumpWidget(
+        MyApp(state: state, repository: FixtureRepository(graph)),
+      );
       await tester.runAsync(() async {
         await FloorGraph.load();
       });
@@ -178,7 +181,9 @@ void main() {
       });
       await MapStore().save([map]);
       final state = AppState(await SharedPreferences.getInstance());
-      await tester.pumpWidget(MyApp(state: state));
+      await tester.pumpWidget(
+        MyApp(state: state, repository: FixtureRepository(graph)),
+      );
       await tester.runAsync(() async {
         await FloorGraph.load();
       });
@@ -217,7 +222,9 @@ void main() {
       tester.platformDispatcher.textScaleFactorTestValue = 2;
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
       final state = AppState(await SharedPreferences.getInstance());
-      await tester.pumpWidget(MyApp(state: state));
+      await tester.pumpWidget(
+        MyApp(state: state, repository: FixtureRepository(graph)),
+      );
       await tester.runAsync(() async {
         await FloorGraph.load();
       });
@@ -263,4 +270,31 @@ void main() {
     expect(find.textContaining('79 ft'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+}
+
+class FixtureRepository implements MapRepository {
+  FixtureRepository(this.graph);
+  final FloorGraph graph;
+  @override
+  Future<FloorGraph> load() async => graph;
+  @override
+  List<String> get categories => ['bathroom', 'exit'];
+  @override
+  String? categoryOf(String id) => id.contains('restroom')
+      ? 'bathroom'
+      : id.contains('exit')
+      ? 'exit'
+      : 'other';
+  @override
+  Future<List<String>> search(String query, {String? category}) async => graph
+      .locations
+      .where(
+        (p) =>
+            (category == null || categoryOf(p.id) == category) &&
+            '${p.label} ${p.aliases} ${p.id}'.toLowerCase().contains(
+              query.toLowerCase(),
+            ),
+      )
+      .map((p) => p.id)
+      .toList();
 }

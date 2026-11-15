@@ -1,0 +1,7 @@
+enum: ReportTargetType
+serialized: byName
+values:
+  - node
+  - edge
+  - location
+  - graph

@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import '../navigation/map_repository.dart';
 import '../navigation/floor_data.dart';
 import 'app_state.dart';
 import 'shared_widgets.dart';
@@ -7,12 +9,14 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
     required this.places,
+    required this.repository,
     required this.state,
     required this.onChoose,
     required this.onMap,
     required this.onProfile,
   });
   final List<FloorLocation> places;
+  final MapRepository repository;
   final AppState state;
   final ValueChanged<FloorLocation> onChoose;
   final VoidCallback onMap, onProfile;
@@ -23,13 +27,50 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final search = TextEditingController();
   String query = '';
-  void searchFor(String value) {
+  String? category, searchError;
+  List<String>? resultIds;
+  Timer? debounce;
+  int generation = 0;
+  bool searching = false;
+  void searchFor(String value, {String? filter}) {
     search.text = value;
-    setState(() => query = value);
+    updateSearch(value, filter: filter);
+  }
+
+  void updateSearch(String value, {String? filter}) {
+    debounce?.cancel();
+    final current = ++generation;
+    setState(() {
+      query = value.trim();
+      category = filter;
+      searchError = null;
+      resultIds = null;
+      searching = query.isNotEmpty || category != null;
+    });
+    if (!searching) return;
+    debounce = Timer(const Duration(milliseconds: 300), () async {
+      try {
+        final ids = await widget.repository.search(query, category: category);
+        if (mounted && current == generation)
+          setState(() {
+            resultIds = ids;
+            searching = false;
+          });
+      } catch (_) {
+        if (mounted && current == generation)
+          setState(() {
+            searching = false;
+            searchError =
+                'Could not reach the server. Check your connection and retry. Loaded destinations remain available.';
+          });
+      }
+    });
   }
 
   @override
   void dispose() {
+    debounce?.cancel();
+    generation++;
     search.dispose();
     super.dispose();
   }
@@ -37,13 +78,23 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final state = widget.state;
-    final results = widget.places
-        .where(
-          (p) => '${p.label} ${p.aliases} ${p.id} ${state.label(p)}'
-              .toLowerCase()
-              .contains(query.toLowerCase()),
-        )
-        .toList();
+    final byId = {for (final p in widget.places) p.id: p};
+    final ids = <String>{...?resultIds};
+    if (query.isNotEmpty)
+      ids.addAll(
+        widget.places
+            .where(
+              (p) =>
+                  state.aliases[p.id]?.toLowerCase().contains(
+                        query.toLowerCase(),
+                      ) ==
+                      true &&
+                  (category == null ||
+                      widget.repository.categoryOf(p.id) == category),
+            )
+            .map((p) => p.id),
+      );
+    final results = ids.where(byId.containsKey).map((id) => byId[id]!).toList();
     Widget tile(FloorLocation p) =>
         PlaceTile(place: p, state: state, onChoose: () => widget.onChoose(p));
     List<Widget> group(List<String> ids) => [
@@ -104,13 +155,14 @@ class _HomeScreenState extends State<HomeScreen> {
         TextField(
           controller: search,
           onSubmitted: (_) {
-            if (results.isNotEmpty) widget.onChoose(results.first);
+            if (!searching && results.isNotEmpty)
+              widget.onChoose(results.first);
           },
-          onChanged: (v) => setState(() => query = v.trim()),
+          onChanged: (v) => updateSearch(v),
           decoration: InputDecoration(
             hintText: 'Search room or destination',
             prefixIcon: const Icon(Icons.search, color: brandCrimson),
-            suffixIcon: query.isEmpty
+            suffixIcon: query.isEmpty && category == null
                 ? null
                 : IconButton(
                     tooltip: 'Clear search',
@@ -124,32 +176,45 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
-        if (query.isNotEmpty) ...[
+        if (query.isNotEmpty || category != null) ...[
           const SectionHeading('Search results'),
-          if (results.isEmpty) const EmptyCard('No matching destinations.'),
+          if (searching) const LinearProgressIndicator(),
+          if (searchError != null) ...[
+            Text(searchError!),
+            TextButton(
+              onPressed: () => updateSearch(query, filter: category),
+              child: const Text('Retry'),
+            ),
+          ],
+          if (!searching && searchError == null && results.isEmpty)
+            const EmptyCard('No matching destinations.'),
           ...results.map(tile),
         ] else ...[
           const SectionHeading('Quick access'),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              Expanded(
-                child: QuickAccessCard(
-                  icon: Icons.wc_rounded,
-                  title: 'Bathrooms',
-                  subtitle: 'Find a restroom',
-                  onTap: () => searchFor('restroom'),
+              for (final c in widget.repository.categories)
+                SizedBox(
+                  width: 155,
+                  child: QuickAccessCard(
+                    icon: switch (c) {
+                      'bathroom' => Icons.wc_rounded,
+                      'exit' => Icons.exit_to_app_rounded,
+                      'elevator' => Icons.elevator_outlined,
+                      _ => Icons.menu_book_outlined,
+                    },
+                    title: switch (c) {
+                      'bathroom' => 'Bathrooms',
+                      'exit' => 'Exits',
+                      'elevator' => 'Elevators',
+                      _ => 'Study spaces',
+                    },
+                    subtitle: 'Floor 1 destinations',
+                    onTap: () => searchFor('', filter: c),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: QuickAccessCard(
-                  icon: Icons.exit_to_app_rounded,
-                  title: 'Exits',
-                  subtitle: 'Find a way out',
-                  onTap: () => searchFor('exit'),
-                ),
-              ),
             ],
           ),
           FilledButton.tonalIcon(

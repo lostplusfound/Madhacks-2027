@@ -4,6 +4,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 import '../localization/map_data.dart';
 import '../localization/prototype_screen.dart';
 import '../navigation/floor_data.dart';
+import '../navigation/map_repository.dart';
 import '../navigation/interactive_floor_map.dart';
 import 'app_state.dart';
 import 'home_screen.dart';
@@ -13,14 +14,16 @@ import 'navigation_session.dart';
 import 'shared_widgets.dart';
 
 class MadMapsShell extends StatefulWidget {
-  const MadMapsShell({super.key, required this.state});
+  const MadMapsShell({super.key, required this.state, this.repository});
   final AppState state;
+  final MapRepository? repository;
   @override
   State<MadMapsShell> createState() => _MadMapsShellState();
 }
 
 class _MadMapsShellState extends State<MadMapsShell>
     with WidgetsBindingObserver {
+  late final repository = widget.repository ?? ServerMapRepository();
   final session = NavigationSession();
   final mapNavigator = GlobalKey<NavigatorState>();
   final viewport = FloorViewportController();
@@ -44,7 +47,7 @@ class _MadMapsShellState extends State<MadMapsShell>
 
   Future<void> load() async {
     try {
-      final result = await FloorGraph.load();
+      final result = await repository.load();
       if (mounted) {
         setState(() {
           graph = result;
@@ -140,7 +143,7 @@ class _MadMapsShellState extends State<MadMapsShell>
       return;
     }
     await mapNavigator.currentState!.push(
-      MaterialPageRoute<void>(builder: (_) => const MapsScreen()),
+      MaterialPageRoute<void>(builder: (_) => MapsScreen(graph: graph!)),
     );
     if (mounted) setState(() {});
   }
@@ -197,6 +200,7 @@ class _MadMapsShellState extends State<MadMapsShell>
             save: () => store.save(maps),
             session: session,
             appState: widget.state,
+            graph: graph,
           ),
         ),
       );
@@ -313,6 +317,7 @@ class _MadMapsShellState extends State<MadMapsShell>
                 index: tab,
                 children: [
                   HomeScreen(
+                    repository: repository,
                     places: places,
                     state: widget.state,
                     onChoose: choose,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'features/shell/app_state.dart';
+import 'features/navigation/map_repository.dart';
 import 'features/shell/madmaps_shell.dart';
 import 'features/shell/shared_widgets.dart';
 
@@ -16,8 +17,9 @@ Future<void> main() async {
 }
 
 class MyApp extends StatefulWidget {
-  const MyApp({super.key, required this.state});
+  const MyApp({super.key, required this.state, this.repository});
   final AppState state;
+  final MapRepository? repository;
   @override
   State<MyApp> createState() => _MyAppState();
 }
@@ -41,7 +43,7 @@ class _MyAppState extends State<MyApp> {
         ),
         cardTheme: const CardThemeData(elevation: 0, color: Colors.white),
       ),
-      home: MadMapsShell(state: widget.state),
+      home: MadMapsShell(state: widget.state, repository: widget.repository),
     ),
   );
   @override

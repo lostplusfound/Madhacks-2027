@@ -1,0 +1,19 @@
+class: MapGraph
+table: map_graph
+
+fields:
+  graphId: String, column=graph_id, unique
+  buildingId: int, column=building_id, relation(parent=building)
+  name: String
+  ownerId: String, column=owner_id
+  status: MapEntityStatus, default=active
+  version: int, default=1
+  createdAt: DateTime, default=now, column=created_at
+  updatedAt: DateTime, default=now, column=updated_at
+  deletedAt: DateTime?, column=deleted_at
+
+indexes:
+  map_graph_building_idx:
+    fields: buildingId
+  map_graph_owner_idx:
+    fields: ownerId
