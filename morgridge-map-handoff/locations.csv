@@ -1,4 +1,19 @@
 location_id,floor,room_number,name,category,aliases,route_node_id,review_note
+f0-b2532,0,B2532,B2532,study_room,,f0-b2532,Draft floor-plan approach. Confirm the public doorway on site.
+f0-b2536,0,B2536,B2536,study_room,,f0-b2536,Draft floor-plan approach. Confirm the public doorway on site.
+f0-b2544,0,B2544,B2544,study_room,,f0-b2544,Draft floor-plan approach. Confirm the public doorway on site.
+f0-b2550,0,B2550,B2550,classroom,,f0-b2550,Draft floor-plan approach. Confirm the public doorway on site.
+f0-b2556,0,B2556,B2556,classroom,,f0-b2556,Draft floor-plan approach. Confirm the public doorway on site.
+f0-b2562,0,B2562,B2562,study_room,,f0-b2562,Draft floor-plan approach. Confirm the public doorway on site.
+f0-b2564,0,B2564,B2564,study_room,,f0-b2564,Draft floor-plan approach. Confirm the public doorway on site.
+f0-b2572a,0,B2572A,B2572A,interview_room,,f0-interview-approach,Shared draft approach. Confirm the public entrance and interior access.
+f0-b2572b,0,B2572B,B2572B,interview_room,,f0-interview-approach,Shared draft approach. Confirm the public entrance and interior access.
+f0-b2576,0,B2576,B2576,study_room,,f0-b2576,Draft floor-plan approach. Confirm the public doorway on site.
+f0-b2580,0,B2580,B2580,study_room,,f0-b2580,Draft floor-plan approach. Confirm the public doorway on site.
+f0-b2582,0,B2582,B2582,study_room,,f0-b2582,Draft floor-plan approach. Confirm the public doorway on site.
+f0-b2586,0,B2586,B2586,study_room,,f0-b2586,Draft floor-plan approach. Confirm the public doorway on site.
+f0-b2590,0,B2590,B2590,classroom,,f0-b2590,Draft floor-plan approach. Confirm the public doorway on site.
+f0-elevator-bank,0,,Basement elevator bank,elevator,,f0-elevator-approach,Basement approach. Confirm cross-floor elevator service.
 f1-1524,1,1524,,,,f1-demo-1524,
 f1-1570,1,1570,Hello World Auditorium,auditorium,auditorium,f1-demo-1570,
 f1-auditorium-restroom-1,1,,"Restroom near auditorium, symbol 1",restroom,,,"Symbol on plan. Verify amenity, entrance, and access on site."
@@ -7,9 +22,9 @@ f1-cafe,1,,Cafe,cafe,coffee counter; coffee shop,f1-demo-cafe,
 f1-cafe-restroom-1,1,,"Restroom near Cafe, symbol 1",restroom,,,"Symbol on plan. Verify amenity, entrance, and access on site."
 f1-cafe-restroom-2,1,,"Restroom near Cafe, symbol 2",restroom,,,"Symbol on plan. Verify amenity, entrance, and access on site."
 f1-courtyard-exit,1,,Exit to Courtyard,exit,,f1-exit-courtyard,
-f1-elevator-bank,1,,Elevator bank near Orchard Street and Courtyard exits,elevator,,,"Symbol on plan. Verify amenity, entrance, and access on site."
+f1-elevator-bank,1,,Elevator bank near Orchard Street and Courtyard exits,elevator,,f1-elevator-landing,"Symbol on plan. Verify amenity, entrance, and access on site."
 f1-heart,1,,Morgridge Hall Heart,,,f1-demo-heart,
-f1-main-stairs,1,,Main Stairs,stairs,,,
+f1-main-stairs,1,,Main Stairs,stairs,,f1-main-stairs-landing,
 f1-orchard-exit,1,,Exit to Orchard Street,exit,,f1-exit-orchard,
 f1-university-exit,1,,Exit to University,exit,,f1-exit-university,
 f2-2513,2,2513,,,,f2-room-2513,
@@ -30,7 +45,7 @@ f2-2540,2,2540,Quiet Study,study_room,quiet study area,f2-demo-2540,
 f2-2556,2,2556,Student Org,,,f2-org-approach,
 f2-2564,2,2564,Programming Suite,,,f2-suite-approach,
 f2-2564c,2,2564C,,,,f2-suite-c-approach,
-f2-2570,2,2570,Masters Lounge & Study Rooms,lounge,,,
+f2-2570,2,2570,Masters Lounge & Study Rooms,lounge,,f2-room-2570,Draft approach. Confirm the public entrance to room 2570.
 f2-2570a,2,2570A,,,,,
 f2-2570b,2,2570B,,,,,
 f2-2570c,2,2570C,,,,,
@@ -46,7 +61,7 @@ f2-2610,2,2610,,,,f2-room-2610,
 f2-2610a,2,2610A,Undergrad Lounge,lounge,,f2-undergrad-approach,
 f2-2618,2,2618,UPL,,,f2-upl-approach,
 f2-advising,2,,Student Advising & Support Services,,advising,f2-advising-approach,
-f2-elevator-bank,2,,Elevator bank near Info Desk,elevator,,f2-demo-elevator,"Symbol on plan. Verify amenity, entrance, and access on site."
+f2-elevator-bank,2,,Elevator bank near Info Desk,elevator,,f2-elevator-landing,"Symbol on plan. Verify amenity, entrance, and access on site."
 f2-info-desk,2,,Info Desk,,information desk,f2-info-desk-approach,
 f2-learning-center,2,,Learning Center,learning_center,,f2-learning-approach,
 f2-library,2,,Library,library,,f2-demo-library,
