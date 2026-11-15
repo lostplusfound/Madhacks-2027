@@ -46,12 +46,15 @@ import 'map_graph.dart' as _ikb2yia4;
 import 'map_graph_snapshot.dart' as _iuswi8s2;
 import 'map_node_input.dart' as _i3qve637;
 import 'map_report.dart' as _iictijcz;
+import 'map_wall.dart' as _i064s9h8;
 import 'node.dart' as _i9tve71o;
 import 'replace_graph_request.dart' as _iz7e8f0p;
 import 'report_reason.dart' as _ijgj7dn0;
 import 'report_status.dart' as _i8pcsu0p;
 import 'report_target_type.dart' as _iyydfyiu;
 import 'search_result.dart' as _ifcih7a1;
+import 'wall_input.dart' as _icks2m2l;
+import 'wall_point.dart' as _inoptxl6;
 export 'building.dart';
 export 'create_graph_request.dart';
 export 'edge.dart';
@@ -72,12 +75,15 @@ export 'map_graph.dart';
 export 'map_graph_snapshot.dart';
 export 'map_node_input.dart';
 export 'map_report.dart';
+export 'map_wall.dart';
 export 'node.dart';
 export 'replace_graph_request.dart';
 export 'report_reason.dart';
 export 'report_status.dart';
 export 'report_target_type.dart';
 export 'search_result.dart';
+export 'wall_input.dart';
+export 'wall_point.dart';
 export 'client.dart';
 
 class Protocol extends _isc.SerializationManager
@@ -113,12 +119,15 @@ class Protocol extends _isc.SerializationManager
           _isc.getType<_iuswi8s2.MapGraphSnapshot>,
           _isc.getType<_i3qve637.MapNodeInput>,
           _isc.getType<_iictijcz.MapReport>,
+          _isc.getType<_i064s9h8.MapWall>,
           _isc.getType<_i9tve71o.Nodes>,
           _isc.getType<_iz7e8f0p.ReplaceGraphRequest>,
           _isc.getType<_ijgj7dn0.ReportReason>,
           _isc.getType<_i8pcsu0p.ReportStatus>,
           _isc.getType<_iyydfyiu.ReportTargetType>,
           _isc.getType<_ifcih7a1.SearchResult>,
+          _isc.getType<_icks2m2l.WallInput>,
+          _isc.getType<_inoptxl6.WallPoint>,
           _isc.getType<_icdi8t76.Building?>,
           _isc.getType<_ihh4bgnv.CreateGraphRequest?>,
           _isc.getType<_ilmyslsx.Edge?>,
@@ -139,21 +148,27 @@ class Protocol extends _isc.SerializationManager
           _isc.getType<_iuswi8s2.MapGraphSnapshot?>,
           _isc.getType<_i3qve637.MapNodeInput?>,
           _isc.getType<_iictijcz.MapReport?>,
+          _isc.getType<_i064s9h8.MapWall?>,
           _isc.getType<_i9tve71o.Nodes?>,
           _isc.getType<_iz7e8f0p.ReplaceGraphRequest?>,
           _isc.getType<_ijgj7dn0.ReportReason?>,
           _isc.getType<_i8pcsu0p.ReportStatus?>,
           _isc.getType<_iyydfyiu.ReportTargetType?>,
           _isc.getType<_ifcih7a1.SearchResult?>,
+          _isc.getType<_icks2m2l.WallInput?>,
+          _isc.getType<_inoptxl6.WallPoint?>,
           _isc.getType<List<_i647gghf.FloorInput>>,
           _isc.getType<List<_i3qve637.MapNodeInput>>,
           _isc.getType<List<_ipndifli.MapEdgeInput>>,
           _isc.getType<List<_iaviofrw.LocationInput>>,
+          _isc.getType<List<_icks2m2l.WallInput>>,
+          _isc.getType<List<_icks2m2l.WallInput>?>,
           _isc.getType<List<String>>,
           _isc.getType<List<_ibt68ans.Floor>>,
           _isc.getType<List<_i9tve71o.Nodes>>,
           _isc.getType<List<_ilmyslsx.Edge>>,
           _isc.getType<List<_iy2kpyso.Locations>>,
+          _isc.getType<List<_inoptxl6.WallPoint>>,
           _isc.getType<List<_ixxicett.Building>>,
           _isc.getType<List<_iwfkkrvw.Locations>>,
           _isc.getType<List<_i56rwuj1.SearchResult>>,
@@ -189,12 +204,15 @@ class Protocol extends _isc.SerializationManager
           'MapGraphSnapshot',
           'MapNodeInput',
           'MapReport',
+          'MapWall',
           'Nodes',
           'ReplaceGraphRequest',
           'ReportReason',
           'ReportStatus',
           'ReportTargetType',
           'SearchResult',
+          'WallInput',
+          'WallPoint',
         ],
       );
 
@@ -282,6 +300,9 @@ class Protocol extends _isc.SerializationManager
     if (t == _iictijcz.MapReport) {
       return _iictijcz.MapReport.fromJson(data) as T;
     }
+    if (t == _i064s9h8.MapWall) {
+      return _i064s9h8.MapWall.fromJson(data) as T;
+    }
     if (t == _i9tve71o.Nodes) {
       return _i9tve71o.Nodes.fromJson(data) as T;
     }
@@ -299,6 +320,12 @@ class Protocol extends _isc.SerializationManager
     }
     if (t == _ifcih7a1.SearchResult) {
       return _ifcih7a1.SearchResult.fromJson(data) as T;
+    }
+    if (t == _icks2m2l.WallInput) {
+      return _icks2m2l.WallInput.fromJson(data) as T;
+    }
+    if (t == _inoptxl6.WallPoint) {
+      return _inoptxl6.WallPoint.fromJson(data) as T;
     }
     if (t == _isc.getType<_icdi8t76.Building?>()) {
       return (data != null ? _icdi8t76.Building.fromJson(data) : null) as T;
@@ -368,6 +395,9 @@ class Protocol extends _isc.SerializationManager
     if (t == _isc.getType<_iictijcz.MapReport?>()) {
       return (data != null ? _iictijcz.MapReport.fromJson(data) : null) as T;
     }
+    if (t == _isc.getType<_i064s9h8.MapWall?>()) {
+      return (data != null ? _i064s9h8.MapWall.fromJson(data) : null) as T;
+    }
     if (t == _isc.getType<_i9tve71o.Nodes?>()) {
       return (data != null ? _i9tve71o.Nodes.fromJson(data) : null) as T;
     }
@@ -389,6 +419,12 @@ class Protocol extends _isc.SerializationManager
     }
     if (t == _isc.getType<_ifcih7a1.SearchResult?>()) {
       return (data != null ? _ifcih7a1.SearchResult.fromJson(data) : null) as T;
+    }
+    if (t == _isc.getType<_icks2m2l.WallInput?>()) {
+      return (data != null ? _icks2m2l.WallInput.fromJson(data) : null) as T;
+    }
+    if (t == _isc.getType<_inoptxl6.WallPoint?>()) {
+      return (data != null ? _inoptxl6.WallPoint.fromJson(data) : null) as T;
     }
     if (t == List<_i647gghf.FloorInput>) {
       return (data as List)
@@ -414,6 +450,20 @@ class Protocol extends _isc.SerializationManager
               .toList()
           as T;
     }
+    if (t == List<_icks2m2l.WallInput>) {
+      return (data as List)
+              .map((e) => deserialize<_icks2m2l.WallInput>(e))
+              .toList()
+          as T;
+    }
+    if (t == _isc.getType<List<_icks2m2l.WallInput>?>()) {
+      return (data != null
+              ? (data as List)
+                    .map((e) => deserialize<_icks2m2l.WallInput>(e))
+                    .toList()
+              : null)
+          as T;
+    }
     if (t == List<String>) {
       return (data as List).map((e) => deserialize<String>(e)).toList() as T;
     }
@@ -432,6 +482,12 @@ class Protocol extends _isc.SerializationManager
     if (t == List<_iy2kpyso.Locations>) {
       return (data as List)
               .map((e) => deserialize<_iy2kpyso.Locations>(e))
+              .toList()
+          as T;
+    }
+    if (t == List<_inoptxl6.WallPoint>) {
+      return (data as List)
+              .map((e) => deserialize<_inoptxl6.WallPoint>(e))
               .toList()
           as T;
     }
@@ -520,12 +576,15 @@ class Protocol extends _isc.SerializationManager
       _iuswi8s2.MapGraphSnapshot => 'MapGraphSnapshot',
       _i3qve637.MapNodeInput => 'MapNodeInput',
       _iictijcz.MapReport => 'MapReport',
+      _i064s9h8.MapWall => 'MapWall',
       _i9tve71o.Nodes => 'Nodes',
       _iz7e8f0p.ReplaceGraphRequest => 'ReplaceGraphRequest',
       _ijgj7dn0.ReportReason => 'ReportReason',
       _i8pcsu0p.ReportStatus => 'ReportStatus',
       _iyydfyiu.ReportTargetType => 'ReportTargetType',
       _ifcih7a1.SearchResult => 'SearchResult',
+      _icks2m2l.WallInput => 'WallInput',
+      _inoptxl6.WallPoint => 'WallPoint',
       _ => null,
     };
   }
@@ -580,6 +639,8 @@ class Protocol extends _isc.SerializationManager
         return 'MapNodeInput';
       case _iictijcz.MapReport():
         return 'MapReport';
+      case _i064s9h8.MapWall():
+        return 'MapWall';
       case _i9tve71o.Nodes():
         return 'Nodes';
       case _iz7e8f0p.ReplaceGraphRequest():
@@ -592,6 +653,10 @@ class Protocol extends _isc.SerializationManager
         return 'ReportTargetType';
       case _ifcih7a1.SearchResult():
         return 'SearchResult';
+      case _icks2m2l.WallInput():
+        return 'WallInput';
+      case _inoptxl6.WallPoint():
+        return 'WallPoint';
     }
     className = _iaic.Protocol().getClassNameForObject(data);
     if (className != null) {
@@ -674,6 +739,9 @@ class Protocol extends _isc.SerializationManager
     if (dataClassName == 'MapReport') {
       return deserialize<_iictijcz.MapReport>(data['data']);
     }
+    if (dataClassName == 'MapWall') {
+      return deserialize<_i064s9h8.MapWall>(data['data']);
+    }
     if (dataClassName == 'Nodes') {
       return deserialize<_i9tve71o.Nodes>(data['data']);
     }
@@ -691,6 +759,12 @@ class Protocol extends _isc.SerializationManager
     }
     if (dataClassName == 'SearchResult') {
       return deserialize<_ifcih7a1.SearchResult>(data['data']);
+    }
+    if (dataClassName == 'WallInput') {
+      return deserialize<_icks2m2l.WallInput>(data['data']);
+    }
+    if (dataClassName == 'WallPoint') {
+      return deserialize<_inoptxl6.WallPoint>(data['data']);
     }
     if (dataClassName.startsWith('serverpod_auth_idp.')) {
       return _iaic.Protocol().deserializeByClassName({

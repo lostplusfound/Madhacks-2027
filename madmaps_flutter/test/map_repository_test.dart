@@ -20,6 +20,7 @@ api.MapGraphSnapshot fixture() {
           as Map<String, dynamic>;
   final r = data['request'] as Map<String, dynamic>;
   return api.MapGraphSnapshot(
+    walls: [],
     graph: api.MapGraph(
       graphId: r['graphId'],
       buildingId: 1,

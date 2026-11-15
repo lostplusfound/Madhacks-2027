@@ -447,7 +447,8 @@
         "aliases": null,
         "routeNodeId": "f1-exit-university"
       }
-    ]
+    ],
+    "walls": []
   },
   "reviewNotes": {
     "f1-auditorium-restroom-1": "Draft floor-plan entrance approach; verify entrance and walkability on site.",

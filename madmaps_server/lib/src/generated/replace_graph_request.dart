@@ -16,6 +16,7 @@ import 'floor_input.dart' as _i647gghf;
 import 'location_input.dart' as _iaviofrw;
 import 'map_edge_input.dart' as _ipndifli;
 import 'map_node_input.dart' as _i3qve637;
+import 'wall_input.dart' as _icks2m2l;
 
 abstract class ReplaceGraphRequest
     implements _is.SerializableModel, _is.ProtocolSerialization {
@@ -27,6 +28,7 @@ abstract class ReplaceGraphRequest
     required this.nodes,
     required this.edges,
     required this.locations,
+    this.walls,
   });
 
   factory ReplaceGraphRequest({
@@ -37,6 +39,7 @@ abstract class ReplaceGraphRequest
     required List<_i3qve637.MapNodeInput> nodes,
     required List<_ipndifli.MapEdgeInput> edges,
     required List<_iaviofrw.LocationInput> locations,
+    List<_icks2m2l.WallInput>? walls,
   }) = _ReplaceGraphRequestImpl;
 
   factory ReplaceGraphRequest.fromJson(Map<String, dynamic> jsonSerialization) {
@@ -57,6 +60,11 @@ abstract class ReplaceGraphRequest
           .deserialize<List<_iaviofrw.LocationInput>>(
             jsonSerialization['locations'],
           ),
+      walls: jsonSerialization['walls'] == null
+          ? null
+          : _i1t1vlhc.Protocol().deserialize<List<_icks2m2l.WallInput>>(
+              jsonSerialization['walls'],
+            ),
     );
   }
 
@@ -74,6 +82,8 @@ abstract class ReplaceGraphRequest
 
   List<_iaviofrw.LocationInput> locations;
 
+  List<_icks2m2l.WallInput>? walls;
+
   /// Returns a shallow copy of this [ReplaceGraphRequest]
   /// with some or all fields replaced by the given arguments.
   @_is.useResult
@@ -85,6 +95,8 @@ abstract class ReplaceGraphRequest
     List<_i3qve637.MapNodeInput>? nodes,
     List<_ipndifli.MapEdgeInput>? edges,
     List<_iaviofrw.LocationInput>? locations,
+    List<_icks2m2l.WallInput>? walls =
+        const _is.$UndefinedList<_icks2m2l.WallInput>(),
   });
   @override
   Map<String, dynamic> toJson() {
@@ -97,6 +109,7 @@ abstract class ReplaceGraphRequest
       'nodes': nodes.toJson(valueToJson: (v) => v.toJson()),
       'edges': edges.toJson(valueToJson: (v) => v.toJson()),
       'locations': locations.toJson(valueToJson: (v) => v.toJson()),
+      if (walls != null) 'walls': walls?.toJson(valueToJson: (v) => v.toJson()),
     };
   }
 
@@ -111,6 +124,8 @@ abstract class ReplaceGraphRequest
       'nodes': nodes.toJson(valueToJson: (v) => v.toJsonForProtocol()),
       'edges': edges.toJson(valueToJson: (v) => v.toJsonForProtocol()),
       'locations': locations.toJson(valueToJson: (v) => v.toJsonForProtocol()),
+      if (walls != null)
+        'walls': walls?.toJson(valueToJson: (v) => v.toJsonForProtocol()),
     };
   }
 
@@ -129,6 +144,7 @@ class _ReplaceGraphRequestImpl extends ReplaceGraphRequest {
     required List<_i3qve637.MapNodeInput> nodes,
     required List<_ipndifli.MapEdgeInput> edges,
     required List<_iaviofrw.LocationInput> locations,
+    List<_icks2m2l.WallInput>? walls,
   }) : super._(
          graphId: graphId,
          expectedVersion: expectedVersion,
@@ -137,6 +153,7 @@ class _ReplaceGraphRequestImpl extends ReplaceGraphRequest {
          nodes: nodes,
          edges: edges,
          locations: locations,
+         walls: walls,
        );
 
   /// Returns a shallow copy of this [ReplaceGraphRequest]
@@ -151,6 +168,8 @@ class _ReplaceGraphRequestImpl extends ReplaceGraphRequest {
     List<_i3qve637.MapNodeInput>? nodes,
     List<_ipndifli.MapEdgeInput>? edges,
     List<_iaviofrw.LocationInput>? locations,
+    List<_icks2m2l.WallInput>? walls =
+        const _is.$UndefinedList<_icks2m2l.WallInput>(),
   }) {
     return ReplaceGraphRequest(
       graphId: graphId ?? this.graphId,
@@ -161,6 +180,9 @@ class _ReplaceGraphRequestImpl extends ReplaceGraphRequest {
       edges: edges ?? this.edges.map((e0) => e0.copyWith()).toList(),
       locations:
           locations ?? this.locations.map((e0) => e0.copyWith()).toList(),
+      walls: walls is _is.UndefinedSentinel
+          ? this.walls?.map((e0) => e0.copyWith()).toList()
+          : walls,
     );
   }
 }

@@ -1,0 +1,11 @@
+class: MapWall
+table: map_wall
+fields:
+  graphId: int, column=graph_id, relation(parent=map_graph)
+  wallId: String, column=wall_id
+  floorId: String, column=floor_id
+  verticesJson: String, column=vertices_json
+indexes:
+  map_wall_graph_wall_idx:
+    fields: graphId, wallId
+    unique: true

@@ -18,6 +18,7 @@ import 'floor.dart' as _ibt68ans;
 import 'locations.dart' as _iy2kpyso;
 import 'map_graph.dart' as _ikb2yia4;
 import 'node.dart' as _i9tve71o;
+import 'wall_input.dart' as _icks2m2l;
 
 abstract class MapGraphSnapshot
     implements _is.SerializableModel, _is.ProtocolSerialization {
@@ -28,6 +29,7 @@ abstract class MapGraphSnapshot
     required this.nodes,
     required this.edges,
     required this.locations,
+    required this.walls,
   });
 
   factory MapGraphSnapshot({
@@ -37,6 +39,7 @@ abstract class MapGraphSnapshot
     required List<_i9tve71o.Nodes> nodes,
     required List<_ilmyslsx.Edge> edges,
     required List<_iy2kpyso.Locations> locations,
+    required List<_icks2m2l.WallInput> walls,
   }) = _MapGraphSnapshotImpl;
 
   factory MapGraphSnapshot.fromJson(Map<String, dynamic> jsonSerialization) {
@@ -59,6 +62,9 @@ abstract class MapGraphSnapshot
       locations: _i1t1vlhc.Protocol().deserialize<List<_iy2kpyso.Locations>>(
         jsonSerialization['locations'],
       ),
+      walls: _i1t1vlhc.Protocol().deserialize<List<_icks2m2l.WallInput>>(
+        jsonSerialization['walls'],
+      ),
     );
   }
 
@@ -74,6 +80,8 @@ abstract class MapGraphSnapshot
 
   List<_iy2kpyso.Locations> locations;
 
+  List<_icks2m2l.WallInput> walls;
+
   /// Returns a shallow copy of this [MapGraphSnapshot]
   /// with some or all fields replaced by the given arguments.
   @_is.useResult
@@ -84,6 +92,7 @@ abstract class MapGraphSnapshot
     List<_i9tve71o.Nodes>? nodes,
     List<_ilmyslsx.Edge>? edges,
     List<_iy2kpyso.Locations>? locations,
+    List<_icks2m2l.WallInput>? walls,
   });
   @override
   Map<String, dynamic> toJson() {
@@ -95,6 +104,7 @@ abstract class MapGraphSnapshot
       'nodes': nodes.toJson(valueToJson: (v) => v.toJson()),
       'edges': edges.toJson(valueToJson: (v) => v.toJson()),
       'locations': locations.toJson(valueToJson: (v) => v.toJson()),
+      'walls': walls.toJson(valueToJson: (v) => v.toJson()),
     };
   }
 
@@ -108,6 +118,7 @@ abstract class MapGraphSnapshot
       'nodes': nodes.toJson(valueToJson: (v) => v.toJsonForProtocol()),
       'edges': edges.toJson(valueToJson: (v) => v.toJsonForProtocol()),
       'locations': locations.toJson(valueToJson: (v) => v.toJsonForProtocol()),
+      'walls': walls.toJson(valueToJson: (v) => v.toJsonForProtocol()),
     };
   }
 
@@ -125,6 +136,7 @@ class _MapGraphSnapshotImpl extends MapGraphSnapshot {
     required List<_i9tve71o.Nodes> nodes,
     required List<_ilmyslsx.Edge> edges,
     required List<_iy2kpyso.Locations> locations,
+    required List<_icks2m2l.WallInput> walls,
   }) : super._(
          graph: graph,
          building: building,
@@ -132,6 +144,7 @@ class _MapGraphSnapshotImpl extends MapGraphSnapshot {
          nodes: nodes,
          edges: edges,
          locations: locations,
+         walls: walls,
        );
 
   /// Returns a shallow copy of this [MapGraphSnapshot]
@@ -145,6 +158,7 @@ class _MapGraphSnapshotImpl extends MapGraphSnapshot {
     List<_i9tve71o.Nodes>? nodes,
     List<_ilmyslsx.Edge>? edges,
     List<_iy2kpyso.Locations>? locations,
+    List<_icks2m2l.WallInput>? walls,
   }) {
     return MapGraphSnapshot(
       graph: graph ?? this.graph.copyWith(),
@@ -154,6 +168,7 @@ class _MapGraphSnapshotImpl extends MapGraphSnapshot {
       edges: edges ?? this.edges.map((e0) => e0.copyWith()).toList(),
       locations:
           locations ?? this.locations.map((e0) => e0.copyWith()).toList(),
+      walls: walls ?? this.walls.map((e0) => e0.copyWith()).toList(),
     );
   }
 }

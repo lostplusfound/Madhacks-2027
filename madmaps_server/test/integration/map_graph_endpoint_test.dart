@@ -95,6 +95,69 @@ void main() {
       expect(unchanged.snapshot, isNull);
     });
 
+    test('walls persist and reject unsafe graph changes', () async {
+      final graph = await createFixture();
+      WallInput wall(double left, double top, double right, double bottom) =>
+          WallInput(
+            wallId: 'wall',
+            floorId: 'floor-1',
+            vertices: [
+              WallPoint(x: left, y: top),
+              WallPoint(x: right, y: top),
+              WallPoint(x: right, y: bottom),
+              WallPoint(x: left, y: bottom),
+            ],
+          );
+      GraphPatchRequest patch(int version, List<WallInput> walls) =>
+          GraphPatchRequest(
+            graphId: graph.graph.graphId,
+            expectedVersion: version,
+            nodesToCreate: [],
+            nodesToUpdate: [],
+            nodeIdsToDelete: [],
+            edgesToCreate: [],
+            edgesToUpdate: [],
+            edgeIdsToDelete: [],
+            locationsToCreate: [],
+            locationsToUpdate: [],
+            locationIdsToDelete: [],
+            walls: walls,
+          );
+      await expectLater(
+        endpoints.mapGraph.patchGraph(
+          owner,
+          patch(graph.graph.version, [wall(140, 90, 160, 110)]),
+        ),
+        throwsA(isA<MapApiException>()),
+      );
+      final saved = await endpoints.mapGraph.patchGraph(
+        owner,
+        patch(graph.graph.version, [wall(400, 400, 500, 500)]),
+      );
+      expect(saved.walls.single.vertices, hasLength(4));
+      final read = await endpoints.mapGraph.getGraph(
+        sessionBuilder,
+        graph.graph.graphId,
+        null,
+      );
+      expect(read.snapshot!.walls.single.wallId, 'wall');
+      await expectLater(
+        endpoints.mapNode.updateNode(
+          owner,
+          graph.graph.graphId,
+          saved.graph.version,
+          MapNodeInput(
+            nodeId: 'hall-a',
+            floorId: 'floor-1',
+            x: 450,
+            y: 450,
+            kind: Kind.junction,
+          ),
+        ),
+        throwsA(isA<MapApiException>()),
+      );
+    });
+
     test('search ranks exact room and supports quick categories', () async {
       await createFixture();
 

@@ -89,6 +89,11 @@ FloorGraph adaptSnapshot(api.MapGraphSnapshot snapshot) {
       floor.height != floorImageSize.height) {
     throw const FormatException('Map dimensions do not match the floor image.');
   }
+  if (snapshot.walls.any((w) => w.floorId == floor.floorId)) {
+    throw const FormatException(
+      'This app version supports the Floor 1 graph without wall polygons only.',
+    );
+  }
   final nodes = <String, FloorNode>{};
   for (final n in snapshot.nodes.where((n) => n.floor == 1)) {
     if (nodes.containsKey(n.nodeId) ||

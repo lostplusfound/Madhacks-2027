@@ -65,6 +65,7 @@ void verifySeed(
       );
   }
 
+  check(snapshot.walls.isEmpty);
   check(
     snapshot.building.buildingId == request.buildingId &&
         snapshot.graph.name == request.name,

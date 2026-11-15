@@ -1,7 +1,10 @@
 # Serverpod map and search integration
 
-Branch: `integration/luray-maps-search`. Merged Luray commit `028792d` after
-checking the remote branch. The visitor UI remains the Swara integration.
+Branch: `integration/luray-maps-search`. Merged Luray through commit `ba2537c` after
+checking the remote branch again during implementation. The visitor UI remains the Swara integration.
+The latest backend supports wall polygons, but our seed contains an empty wall list.
+No wall data is invented and no wall UI is added. The frontend rejects Floor 1
+snapshots containing walls until its local router supports those constraints.
 
 ## Behavior
 
