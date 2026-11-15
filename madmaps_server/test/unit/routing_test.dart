@@ -27,7 +27,7 @@ void main() {
             x: 0,
             y: 0,
             kind: Kind.junction,
-            status: 'draft',
+            status: MapEntityStatus.active,
           ),
           Nodes(
             nodeId: 'b',
@@ -35,17 +35,17 @@ void main() {
             x: 3,
             y: 4,
             kind: Kind.approach,
-            status: 'draft',
+            status: MapEntityStatus.active,
           ),
         ],
         edges: [
           Edge(
             fromNodeId: 'a',
             toNodeId: 'b',
-            type: 'walk',
+            type: EdgeType.walk,
             costPx: 5,
             bidirectional: true,
-            status: 'draft',
+            status: MapEntityStatus.active,
           ),
         ],
       );

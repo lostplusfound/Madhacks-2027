@@ -1,0 +1,9 @@
+class: LocationInput
+fields:
+  locationId: String
+  floorId: String
+  roomNumber: String?
+  name: String?
+  category: LocationCategory
+  aliases: String?
+  routeNodeId: String?

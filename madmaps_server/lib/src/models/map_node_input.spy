@@ -1,0 +1,8 @@
+class: MapNodeInput
+fields:
+  nodeId: String
+  floorId: String
+  x: double
+  y: double
+  locationId: String?
+  kind: Kind

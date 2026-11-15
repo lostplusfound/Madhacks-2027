@@ -1,0 +1,9 @@
+enum: EdgeType
+serialized: byName
+default: walk
+values:
+  - walk
+  - stairs
+  - elevator
+  - escalator
+  - ramp

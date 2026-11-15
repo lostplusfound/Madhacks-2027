@@ -1,2 +1,40 @@
+building:
+  - createBuilding:
+  - getBuilding:
+  - listBuildings:
+location:
+  - createLocation:
+  - getLocation:
+  - listLocations:
+  - updateLocation:
+  - deleteLocation:
+locationSearch:
+  - searchLocations:
+  - listLocationsByCategory:
+  - listQuickAccessCategories:
+mapEdge:
+  - createEdge:
+  - getEdge:
+  - listEdges:
+  - updateEdge:
+  - deleteEdge:
+mapGraph:
+  - createGraph:
+  - getGraph:
+  - listGraphs:
+  - patchGraph:
+  - replaceGraph:
+  - deleteGraph:
+mapNode:
+  - createNode:
+  - createNodeWithConnections:
+  - getNode:
+  - listNodes:
+  - updateNode:
+  - deleteNode:
+mapReport:
+  - reportEntity:
+  - listMyReports:
+  - withdrawReport:
 greeting:
   - hello:

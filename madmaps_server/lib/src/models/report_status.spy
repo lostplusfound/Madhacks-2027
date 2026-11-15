@@ -1,0 +1,6 @@
+enum: ReportStatus
+serialized: byName
+values:
+  - open
+  - withdrawn
+  - resolved

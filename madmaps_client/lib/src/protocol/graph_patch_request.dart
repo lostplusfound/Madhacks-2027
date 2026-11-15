@@ -1,0 +1,259 @@
+/* AUTOMATICALLY GENERATED CODE DO NOT MODIFY */
+/*   To generate run: "serverpod generate"    */
+
+// ignore_for_file: implementation_imports
+// ignore_for_file: library_private_types_in_public_api
+// ignore_for_file: non_constant_identifier_names
+// ignore_for_file: public_member_api_docs
+// ignore_for_file: type_literal_in_constant_pattern
+// ignore_for_file: use_super_parameters
+// ignore_for_file: invalid_use_of_internal_member
+
+// ignore_for_file: no_leading_underscores_for_library_prefixes
+import 'package:madmaps_client/src/protocol/protocol.dart' as _isgyuksw;
+import 'package:serverpod_client/serverpod_client.dart' as _isc;
+import 'location_input.dart' as _iaviofrw;
+import 'map_edge_input.dart' as _ipndifli;
+import 'map_node_input.dart' as _i3qve637;
+
+abstract class GraphPatchRequest
+    implements _isc.SerializableModel, _isc.ProtocolSerialization {
+  GraphPatchRequest._({
+    required this.graphId,
+    required this.expectedVersion,
+    required this.nodesToCreate,
+    required this.nodesToUpdate,
+    required this.nodeIdsToDelete,
+    required this.edgesToCreate,
+    required this.edgesToUpdate,
+    required this.edgeIdsToDelete,
+    required this.locationsToCreate,
+    required this.locationsToUpdate,
+    required this.locationIdsToDelete,
+  });
+
+  factory GraphPatchRequest({
+    required String graphId,
+    required int expectedVersion,
+    required List<_i3qve637.MapNodeInput> nodesToCreate,
+    required List<_i3qve637.MapNodeInput> nodesToUpdate,
+    required List<String> nodeIdsToDelete,
+    required List<_ipndifli.MapEdgeInput> edgesToCreate,
+    required List<_ipndifli.MapEdgeInput> edgesToUpdate,
+    required List<String> edgeIdsToDelete,
+    required List<_iaviofrw.LocationInput> locationsToCreate,
+    required List<_iaviofrw.LocationInput> locationsToUpdate,
+    required List<String> locationIdsToDelete,
+  }) = _GraphPatchRequestImpl;
+
+  factory GraphPatchRequest.fromJson(Map<String, dynamic> jsonSerialization) {
+    return GraphPatchRequest(
+      graphId: jsonSerialization['graphId'] as String,
+      expectedVersion: jsonSerialization['expectedVersion'] as int,
+      nodesToCreate: _isgyuksw.Protocol()
+          .deserialize<List<_i3qve637.MapNodeInput>>(
+            jsonSerialization['nodesToCreate'],
+          ),
+      nodesToUpdate: _isgyuksw.Protocol()
+          .deserialize<List<_i3qve637.MapNodeInput>>(
+            jsonSerialization['nodesToUpdate'],
+          ),
+      nodeIdsToDelete: _isgyuksw.Protocol().deserialize<List<String>>(
+        jsonSerialization['nodeIdsToDelete'],
+      ),
+      edgesToCreate: _isgyuksw.Protocol()
+          .deserialize<List<_ipndifli.MapEdgeInput>>(
+            jsonSerialization['edgesToCreate'],
+          ),
+      edgesToUpdate: _isgyuksw.Protocol()
+          .deserialize<List<_ipndifli.MapEdgeInput>>(
+            jsonSerialization['edgesToUpdate'],
+          ),
+      edgeIdsToDelete: _isgyuksw.Protocol().deserialize<List<String>>(
+        jsonSerialization['edgeIdsToDelete'],
+      ),
+      locationsToCreate: _isgyuksw.Protocol()
+          .deserialize<List<_iaviofrw.LocationInput>>(
+            jsonSerialization['locationsToCreate'],
+          ),
+      locationsToUpdate: _isgyuksw.Protocol()
+          .deserialize<List<_iaviofrw.LocationInput>>(
+            jsonSerialization['locationsToUpdate'],
+          ),
+      locationIdsToDelete: _isgyuksw.Protocol().deserialize<List<String>>(
+        jsonSerialization['locationIdsToDelete'],
+      ),
+    );
+  }
+
+  String graphId;
+
+  int expectedVersion;
+
+  List<_i3qve637.MapNodeInput> nodesToCreate;
+
+  List<_i3qve637.MapNodeInput> nodesToUpdate;
+
+  List<String> nodeIdsToDelete;
+
+  List<_ipndifli.MapEdgeInput> edgesToCreate;
+
+  List<_ipndifli.MapEdgeInput> edgesToUpdate;
+
+  List<String> edgeIdsToDelete;
+
+  List<_iaviofrw.LocationInput> locationsToCreate;
+
+  List<_iaviofrw.LocationInput> locationsToUpdate;
+
+  List<String> locationIdsToDelete;
+
+  /// Returns a shallow copy of this [GraphPatchRequest]
+  /// with some or all fields replaced by the given arguments.
+  @_isc.useResult
+  GraphPatchRequest copyWith({
+    String? graphId,
+    int? expectedVersion,
+    List<_i3qve637.MapNodeInput>? nodesToCreate,
+    List<_i3qve637.MapNodeInput>? nodesToUpdate,
+    List<String>? nodeIdsToDelete,
+    List<_ipndifli.MapEdgeInput>? edgesToCreate,
+    List<_ipndifli.MapEdgeInput>? edgesToUpdate,
+    List<String>? edgeIdsToDelete,
+    List<_iaviofrw.LocationInput>? locationsToCreate,
+    List<_iaviofrw.LocationInput>? locationsToUpdate,
+    List<String>? locationIdsToDelete,
+  });
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      '__className__': 'GraphPatchRequest',
+      'graphId': graphId,
+      'expectedVersion': expectedVersion,
+      'nodesToCreate': nodesToCreate.toJson(valueToJson: (v) => v.toJson()),
+      'nodesToUpdate': nodesToUpdate.toJson(valueToJson: (v) => v.toJson()),
+      'nodeIdsToDelete': nodeIdsToDelete.toJson(),
+      'edgesToCreate': edgesToCreate.toJson(valueToJson: (v) => v.toJson()),
+      'edgesToUpdate': edgesToUpdate.toJson(valueToJson: (v) => v.toJson()),
+      'edgeIdsToDelete': edgeIdsToDelete.toJson(),
+      'locationsToCreate': locationsToCreate.toJson(
+        valueToJson: (v) => v.toJson(),
+      ),
+      'locationsToUpdate': locationsToUpdate.toJson(
+        valueToJson: (v) => v.toJson(),
+      ),
+      'locationIdsToDelete': locationIdsToDelete.toJson(),
+    };
+  }
+
+  @override
+  Map<String, dynamic> toJsonForProtocol() {
+    return {
+      '__className__': 'GraphPatchRequest',
+      'graphId': graphId,
+      'expectedVersion': expectedVersion,
+      'nodesToCreate': nodesToCreate.toJson(
+        valueToJson: (v) => v.toJsonForProtocol(),
+      ),
+      'nodesToUpdate': nodesToUpdate.toJson(
+        valueToJson: (v) => v.toJsonForProtocol(),
+      ),
+      'nodeIdsToDelete': nodeIdsToDelete.toJson(),
+      'edgesToCreate': edgesToCreate.toJson(
+        valueToJson: (v) => v.toJsonForProtocol(),
+      ),
+      'edgesToUpdate': edgesToUpdate.toJson(
+        valueToJson: (v) => v.toJsonForProtocol(),
+      ),
+      'edgeIdsToDelete': edgeIdsToDelete.toJson(),
+      'locationsToCreate': locationsToCreate.toJson(
+        valueToJson: (v) => v.toJsonForProtocol(),
+      ),
+      'locationsToUpdate': locationsToUpdate.toJson(
+        valueToJson: (v) => v.toJsonForProtocol(),
+      ),
+      'locationIdsToDelete': locationIdsToDelete.toJson(),
+    };
+  }
+
+  @override
+  String toString() {
+    return _isc.SerializationManager.encode(this);
+  }
+}
+
+class _GraphPatchRequestImpl extends GraphPatchRequest {
+  _GraphPatchRequestImpl({
+    required String graphId,
+    required int expectedVersion,
+    required List<_i3qve637.MapNodeInput> nodesToCreate,
+    required List<_i3qve637.MapNodeInput> nodesToUpdate,
+    required List<String> nodeIdsToDelete,
+    required List<_ipndifli.MapEdgeInput> edgesToCreate,
+    required List<_ipndifli.MapEdgeInput> edgesToUpdate,
+    required List<String> edgeIdsToDelete,
+    required List<_iaviofrw.LocationInput> locationsToCreate,
+    required List<_iaviofrw.LocationInput> locationsToUpdate,
+    required List<String> locationIdsToDelete,
+  }) : super._(
+         graphId: graphId,
+         expectedVersion: expectedVersion,
+         nodesToCreate: nodesToCreate,
+         nodesToUpdate: nodesToUpdate,
+         nodeIdsToDelete: nodeIdsToDelete,
+         edgesToCreate: edgesToCreate,
+         edgesToUpdate: edgesToUpdate,
+         edgeIdsToDelete: edgeIdsToDelete,
+         locationsToCreate: locationsToCreate,
+         locationsToUpdate: locationsToUpdate,
+         locationIdsToDelete: locationIdsToDelete,
+       );
+
+  /// Returns a shallow copy of this [GraphPatchRequest]
+  /// with some or all fields replaced by the given arguments.
+  @_isc.useResult
+  @override
+  GraphPatchRequest copyWith({
+    String? graphId,
+    int? expectedVersion,
+    List<_i3qve637.MapNodeInput>? nodesToCreate,
+    List<_i3qve637.MapNodeInput>? nodesToUpdate,
+    List<String>? nodeIdsToDelete,
+    List<_ipndifli.MapEdgeInput>? edgesToCreate,
+    List<_ipndifli.MapEdgeInput>? edgesToUpdate,
+    List<String>? edgeIdsToDelete,
+    List<_iaviofrw.LocationInput>? locationsToCreate,
+    List<_iaviofrw.LocationInput>? locationsToUpdate,
+    List<String>? locationIdsToDelete,
+  }) {
+    return GraphPatchRequest(
+      graphId: graphId ?? this.graphId,
+      expectedVersion: expectedVersion ?? this.expectedVersion,
+      nodesToCreate:
+          nodesToCreate ??
+          this.nodesToCreate.map((e0) => e0.copyWith()).toList(),
+      nodesToUpdate:
+          nodesToUpdate ??
+          this.nodesToUpdate.map((e0) => e0.copyWith()).toList(),
+      nodeIdsToDelete:
+          nodeIdsToDelete ?? this.nodeIdsToDelete.map((e0) => e0).toList(),
+      edgesToCreate:
+          edgesToCreate ??
+          this.edgesToCreate.map((e0) => e0.copyWith()).toList(),
+      edgesToUpdate:
+          edgesToUpdate ??
+          this.edgesToUpdate.map((e0) => e0.copyWith()).toList(),
+      edgeIdsToDelete:
+          edgeIdsToDelete ?? this.edgeIdsToDelete.map((e0) => e0).toList(),
+      locationsToCreate:
+          locationsToCreate ??
+          this.locationsToCreate.map((e0) => e0.copyWith()).toList(),
+      locationsToUpdate:
+          locationsToUpdate ??
+          this.locationsToUpdate.map((e0) => e0.copyWith()).toList(),
+      locationIdsToDelete:
+          locationIdsToDelete ??
+          this.locationIdsToDelete.map((e0) => e0).toList(),
+    );
+  }
+}

@@ -1,0 +1,19 @@
+class: MapReport
+table: map_report
+
+fields:
+  reportId: String, column=report_id, unique
+  targetType: ReportTargetType, column=target_type
+  targetId: String, column=target_id
+  reporterId: String, column=reporter_id
+  reason: ReportReason
+  notes: String?
+  status: ReportStatus, default=open
+  createdAt: DateTime, default=now, column=created_at
+  updatedAt: DateTime, default=now, column=updated_at
+
+indexes:
+  reports_target_idx:
+    fields: targetType, targetId
+  reports_reporter_idx:
+    fields: reporterId

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
 
 import 'client.dart';
 import 'screens/greetings_screen.dart';
@@ -34,6 +35,42 @@ class MyApp extends StatelessWidget {
   }
 }
 
+class ContributorAccountPage extends StatelessWidget {
+  const ContributorAccountPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: client.auth.authInfoListenable,
+      builder: (context, _) {
+        if (client.auth.isAuthenticated) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Contributor account')),
+            body: Center(
+              child: FilledButton(
+                onPressed: client.auth.signOutDevice,
+                child: const Text('Sign out'),
+              ),
+            ),
+          );
+        }
+        return Scaffold(
+          appBar: AppBar(title: const Text('Sign in to contribute')),
+          body: SignInWidget(
+            client: client,
+            onAuthenticated: () {},
+            onError: (error) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Sign-in failed: $error')),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
 class MyHomePage extends StatelessWidget {
   const MyHomePage({super.key, required this.title});
 
@@ -42,7 +79,29 @@ class MyHomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: AppBar(
+        title: Text(title),
+        actions: [
+          ListenableBuilder(
+            listenable: client.auth.authInfoListenable,
+            builder: (context, _) => IconButton(
+              tooltip: client.auth.isAuthenticated
+                  ? 'Contributor account'
+                  : 'Sign in to contribute',
+              icon: Icon(
+                client.auth.isAuthenticated
+                    ? Icons.account_circle
+                    : Icons.login,
+              ),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const ContributorAccountPage(),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
       body: const GreetingsScreen(),
     );
   }

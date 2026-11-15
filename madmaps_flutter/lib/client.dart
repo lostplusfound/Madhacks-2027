@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:madmaps_client/madmaps_client.dart';
+import 'package:serverpod_auth_idp_flutter/serverpod_auth_idp_flutter.dart';
 import 'package:serverpod_flutter/serverpod_flutter.dart';
 
 // When you are running the app on a physical device, you need to set the
@@ -25,5 +26,7 @@ late final Client client;
 
 Future<void> initializeClient() async {
   client = Client(await serverUrl)
-    ..connectivityMonitor = FlutterConnectivityMonitor();
+    ..connectivityMonitor = FlutterConnectivityMonitor()
+    ..authSessionManager = FlutterAuthSessionManager();
+  await client.auth.initialize();
 }

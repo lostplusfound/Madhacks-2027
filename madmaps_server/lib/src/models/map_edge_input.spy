@@ -1,0 +1,8 @@
+class: MapEdgeInput
+fields:
+  edgeId: String
+  fromNodeId: String
+  toNodeId: String
+  type: EdgeType
+  cost: double?
+  bidirectional: bool

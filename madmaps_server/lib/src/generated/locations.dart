@@ -12,44 +12,91 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _ida;
 import 'package:serverpod/serverpod.dart' as _is;
+import 'location_category.dart' as _ipivyxsl;
+import 'map_entity_status.dart' as _itjn1vsu;
 
 abstract class Locations
     implements _is.TableRow<int?>, _is.ProtocolSerialization {
   Locations._({
     this.id,
     required this.locationId,
+    this.graphId,
+    this.floorId,
     required this.floor,
     this.roomNumber,
     this.name,
-    this.category,
+    _ipivyxsl.LocationCategory? category,
     this.aliases,
     this.routeNodeId,
     this.reviewNote,
-  });
+    _itjn1vsu.MapEntityStatus? status,
+    this.createdBy,
+    this.updatedBy,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    this.deletedAt,
+    int? version,
+  }) : category = category ?? _ipivyxsl.LocationCategory.other,
+       status = status ?? _itjn1vsu.MapEntityStatus.active,
+       createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now(),
+       version = version ?? 1;
 
   factory Locations({
     int? id,
     required String locationId,
+    int? graphId,
+    int? floorId,
     required int floor,
     String? roomNumber,
     String? name,
-    String? category,
+    _ipivyxsl.LocationCategory? category,
     String? aliases,
     String? routeNodeId,
     String? reviewNote,
+    _itjn1vsu.MapEntityStatus? status,
+    String? createdBy,
+    String? updatedBy,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    DateTime? deletedAt,
+    int? version,
   }) = _LocationsImpl;
 
   factory Locations.fromJson(Map<String, dynamic> jsonSerialization) {
     return Locations(
       id: jsonSerialization['id'] as int?,
-      locationId: jsonSerialization['location_id'] as String,
+      locationId: jsonSerialization['locationId'] as String,
+      graphId: jsonSerialization['graphId'] as int?,
+      floorId: jsonSerialization['floorId'] as int?,
       floor: jsonSerialization['floor'] as int,
-      roomNumber: jsonSerialization['room_number'] as String?,
+      roomNumber: jsonSerialization['roomNumber'] as String?,
       name: jsonSerialization['name'] as String?,
-      category: jsonSerialization['category'] as String?,
+      category: jsonSerialization['category'] == null
+          ? null
+          : _ipivyxsl.LocationCategory.fromJson(
+              (jsonSerialization['category'] as String),
+            ),
       aliases: jsonSerialization['aliases'] as String?,
-      routeNodeId: jsonSerialization['route_node_id'] as String?,
-      reviewNote: jsonSerialization['review_note'] as String?,
+      routeNodeId: jsonSerialization['routeNodeId'] as String?,
+      reviewNote: jsonSerialization['reviewNote'] as String?,
+      status: jsonSerialization['status'] == null
+          ? null
+          : _itjn1vsu.MapEntityStatus.fromJson(
+              (jsonSerialization['status'] as String),
+            ),
+      createdBy: jsonSerialization['createdBy'] as String?,
+      updatedBy: jsonSerialization['updatedBy'] as String?,
+      createdAt: jsonSerialization['createdAt'] == null
+          ? null
+          : _is.DateTimeJsonExtension.fromJson(jsonSerialization['createdAt']),
+      updatedAt: jsonSerialization['updatedAt'] == null
+          ? null
+          : _is.DateTimeJsonExtension.fromJson(jsonSerialization['updatedAt']),
+      deletedAt: jsonSerialization['deletedAt'] == null
+          ? null
+          : _is.DateTimeJsonExtension.fromJson(jsonSerialization['deletedAt']),
+      version: jsonSerialization['version'] as int?,
     );
   }
 
@@ -62,19 +109,37 @@ abstract class Locations
 
   String locationId;
 
+  int? graphId;
+
+  int? floorId;
+
   int floor;
 
   String? roomNumber;
 
   String? name;
 
-  String? category;
+  _ipivyxsl.LocationCategory? category;
 
   String? aliases;
 
   String? routeNodeId;
 
   String? reviewNote;
+
+  _itjn1vsu.MapEntityStatus status;
+
+  String? createdBy;
+
+  String? updatedBy;
+
+  DateTime createdAt;
+
+  DateTime updatedAt;
+
+  DateTime? deletedAt;
+
+  int version;
 
   @override
   _is.Table<int?> get table => t;
@@ -85,27 +150,45 @@ abstract class Locations
   Locations copyWith({
     int? id,
     String? locationId,
+    int? graphId,
+    int? floorId,
     int? floor,
     String? roomNumber,
     String? name,
-    String? category,
+    _ipivyxsl.LocationCategory? category,
     String? aliases,
     String? routeNodeId,
     String? reviewNote,
+    _itjn1vsu.MapEntityStatus? status,
+    String? createdBy,
+    String? updatedBy,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    DateTime? deletedAt = const _is.$UndefinedDateTime(),
+    int? version,
   });
   @override
   Map<String, dynamic> toJson() {
     return {
       '__className__': 'Locations',
       if (id != null) 'id': id,
-      'location_id': locationId,
+      'locationId': locationId,
+      if (graphId != null) 'graphId': graphId,
+      if (floorId != null) 'floorId': floorId,
       'floor': floor,
-      if (roomNumber != null) 'room_number': roomNumber,
+      if (roomNumber != null) 'roomNumber': roomNumber,
       if (name != null) 'name': name,
-      if (category != null) 'category': category,
+      if (category != null) 'category': category?.toJson(),
       if (aliases != null) 'aliases': aliases,
-      if (routeNodeId != null) 'route_node_id': routeNodeId,
-      if (reviewNote != null) 'review_note': reviewNote,
+      if (routeNodeId != null) 'routeNodeId': routeNodeId,
+      if (reviewNote != null) 'reviewNote': reviewNote,
+      'status': status.toJson(),
+      if (createdBy != null) 'createdBy': createdBy,
+      if (updatedBy != null) 'updatedBy': updatedBy,
+      'createdAt': createdAt.toJson(),
+      'updatedAt': updatedAt.toJson(),
+      if (deletedAt != null) 'deletedAt': deletedAt?.toJson(),
+      'version': version,
     };
   }
 
@@ -114,14 +197,23 @@ abstract class Locations
     return {
       '__className__': 'Locations',
       if (id != null) 'id': id,
-      'location_id': locationId,
+      'locationId': locationId,
+      if (graphId != null) 'graphId': graphId,
+      if (floorId != null) 'floorId': floorId,
       'floor': floor,
-      if (roomNumber != null) 'room_number': roomNumber,
+      if (roomNumber != null) 'roomNumber': roomNumber,
       if (name != null) 'name': name,
-      if (category != null) 'category': category,
+      if (category != null) 'category': category?.toJson(),
       if (aliases != null) 'aliases': aliases,
-      if (routeNodeId != null) 'route_node_id': routeNodeId,
-      if (reviewNote != null) 'review_note': reviewNote,
+      if (routeNodeId != null) 'routeNodeId': routeNodeId,
+      if (reviewNote != null) 'reviewNote': reviewNote,
+      'status': status.toJson(),
+      if (createdBy != null) 'createdBy': createdBy,
+      if (updatedBy != null) 'updatedBy': updatedBy,
+      'createdAt': createdAt.toJson(),
+      'updatedAt': updatedAt.toJson(),
+      if (deletedAt != null) 'deletedAt': deletedAt?.toJson(),
+      'version': version,
     };
   }
 
@@ -159,16 +251,27 @@ class _LocationsImpl extends Locations {
   _LocationsImpl({
     int? id,
     required String locationId,
+    int? graphId,
+    int? floorId,
     required int floor,
     String? roomNumber,
     String? name,
-    String? category,
+    _ipivyxsl.LocationCategory? category,
     String? aliases,
     String? routeNodeId,
     String? reviewNote,
+    _itjn1vsu.MapEntityStatus? status,
+    String? createdBy,
+    String? updatedBy,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    DateTime? deletedAt,
+    int? version,
   }) : super._(
          id: id,
          locationId: locationId,
+         graphId: graphId,
+         floorId: floorId,
          floor: floor,
          roomNumber: roomNumber,
          name: name,
@@ -176,6 +279,13 @@ class _LocationsImpl extends Locations {
          aliases: aliases,
          routeNodeId: routeNodeId,
          reviewNote: reviewNote,
+         status: status,
+         createdBy: createdBy,
+         updatedBy: updatedBy,
+         createdAt: createdAt,
+         updatedAt: updatedAt,
+         deletedAt: deletedAt,
+         version: version,
        );
 
   /// Returns a shallow copy of this [Locations]
@@ -185,6 +295,8 @@ class _LocationsImpl extends Locations {
   Locations copyWith({
     Object? id = _Undefined,
     String? locationId,
+    Object? graphId = _Undefined,
+    Object? floorId = _Undefined,
     int? floor,
     Object? roomNumber = _Undefined,
     Object? name = _Undefined,
@@ -192,17 +304,37 @@ class _LocationsImpl extends Locations {
     Object? aliases = _Undefined,
     Object? routeNodeId = _Undefined,
     Object? reviewNote = _Undefined,
+    _itjn1vsu.MapEntityStatus? status,
+    Object? createdBy = _Undefined,
+    Object? updatedBy = _Undefined,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    DateTime? deletedAt = const _is.$UndefinedDateTime(),
+    int? version,
   }) {
     return Locations(
       id: id is int? ? id : this.id,
       locationId: locationId ?? this.locationId,
+      graphId: graphId is int? ? graphId : this.graphId,
+      floorId: floorId is int? ? floorId : this.floorId,
       floor: floor ?? this.floor,
       roomNumber: roomNumber is String? ? roomNumber : this.roomNumber,
       name: name is String? ? name : this.name,
-      category: category is String? ? category : this.category,
+      category: category is _ipivyxsl.LocationCategory?
+          ? category
+          : this.category,
       aliases: aliases is String? ? aliases : this.aliases,
       routeNodeId: routeNodeId is String? ? routeNodeId : this.routeNodeId,
       reviewNote: reviewNote is String? ? reviewNote : this.reviewNote,
+      status: status ?? this.status,
+      createdBy: createdBy is String? ? createdBy : this.createdBy,
+      updatedBy: updatedBy is String? ? updatedBy : this.updatedBy,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt is _is.UndefinedSentinel
+          ? this.deletedAt
+          : deletedAt,
+      version: version ?? this.version,
     );
   }
 }
@@ -212,6 +344,16 @@ class LocationsUpdateTable extends _is.UpdateTable<LocationsTable> {
 
   _is.ColumnValue<String, String> locationId(String value) => _is.ColumnValue(
     table.locationId,
+    value,
+  );
+
+  _is.ColumnValue<int, int> graphId(int? value) => _is.ColumnValue(
+    table.graphId,
+    value,
+  );
+
+  _is.ColumnValue<int, int> floorId(int? value) => _is.ColumnValue(
+    table.floorId,
     value,
   );
 
@@ -230,7 +372,8 @@ class LocationsUpdateTable extends _is.UpdateTable<LocationsTable> {
     value,
   );
 
-  _is.ColumnValue<String, String> category(String? value) => _is.ColumnValue(
+  _is.ColumnValue<_ipivyxsl.LocationCategory, _ipivyxsl.LocationCategory>
+  category(_ipivyxsl.LocationCategory? value) => _is.ColumnValue(
     table.category,
     value,
   );
@@ -249,6 +392,46 @@ class LocationsUpdateTable extends _is.UpdateTable<LocationsTable> {
     table.reviewNote,
     value,
   );
+
+  _is.ColumnValue<_itjn1vsu.MapEntityStatus, _itjn1vsu.MapEntityStatus> status(
+    _itjn1vsu.MapEntityStatus value,
+  ) => _is.ColumnValue(
+    table.status,
+    value,
+  );
+
+  _is.ColumnValue<String, String> createdBy(String? value) => _is.ColumnValue(
+    table.createdBy,
+    value,
+  );
+
+  _is.ColumnValue<String, String> updatedBy(String? value) => _is.ColumnValue(
+    table.updatedBy,
+    value,
+  );
+
+  _is.ColumnValue<DateTime, DateTime> createdAt(DateTime value) =>
+      _is.ColumnValue(
+        table.createdAt,
+        value,
+      );
+
+  _is.ColumnValue<DateTime, DateTime> updatedAt(DateTime value) =>
+      _is.ColumnValue(
+        table.updatedAt,
+        value,
+      );
+
+  _is.ColumnValue<DateTime, DateTime> deletedAt(DateTime? value) =>
+      _is.ColumnValue(
+        table.deletedAt,
+        value,
+      );
+
+  _is.ColumnValue<int, int> version(int value) => _is.ColumnValue(
+    table.version,
+    value,
+  );
 }
 
 class LocationsTable extends _is.Table<int?> {
@@ -258,6 +441,16 @@ class LocationsTable extends _is.Table<int?> {
       'location_id',
       this,
       fieldName: 'locationId',
+    );
+    graphId = _is.ColumnInt(
+      'graph_id',
+      this,
+      fieldName: 'graphId',
+    );
+    floorId = _is.ColumnInt(
+      'floor_id',
+      this,
+      fieldName: 'floorId',
     );
     floor = _is.ColumnInt(
       'floor',
@@ -272,9 +465,10 @@ class LocationsTable extends _is.Table<int?> {
       'name',
       this,
     );
-    category = _is.ColumnString(
+    category = _is.ColumnEnum(
       'category',
       this,
+      _is.EnumSerialization.byName,
     );
     aliases = _is.ColumnString(
       'aliases',
@@ -290,11 +484,53 @@ class LocationsTable extends _is.Table<int?> {
       this,
       fieldName: 'reviewNote',
     );
+    status = _is.ColumnEnum(
+      'status',
+      this,
+      _is.EnumSerialization.byName,
+      hasDefault: true,
+    );
+    createdBy = _is.ColumnString(
+      'created_by',
+      this,
+      fieldName: 'createdBy',
+    );
+    updatedBy = _is.ColumnString(
+      'updated_by',
+      this,
+      fieldName: 'updatedBy',
+    );
+    createdAt = _is.ColumnDateTime(
+      'created_at',
+      this,
+      hasDefault: true,
+      fieldName: 'createdAt',
+    );
+    updatedAt = _is.ColumnDateTime(
+      'updated_at',
+      this,
+      hasDefault: true,
+      fieldName: 'updatedAt',
+    );
+    deletedAt = _is.ColumnDateTime(
+      'deleted_at',
+      this,
+      fieldName: 'deletedAt',
+    );
+    version = _is.ColumnInt(
+      'version',
+      this,
+      hasDefault: true,
+    );
   }
 
   late final LocationsUpdateTable updateTable;
 
   late final _is.ColumnString locationId;
+
+  late final _is.ColumnInt graphId;
+
+  late final _is.ColumnInt floorId;
 
   late final _is.ColumnInt floor;
 
@@ -302,7 +538,7 @@ class LocationsTable extends _is.Table<int?> {
 
   late final _is.ColumnString name;
 
-  late final _is.ColumnString category;
+  late final _is.ColumnEnum<_ipivyxsl.LocationCategory> category;
 
   late final _is.ColumnString aliases;
 
@@ -310,10 +546,26 @@ class LocationsTable extends _is.Table<int?> {
 
   late final _is.ColumnString reviewNote;
 
+  late final _is.ColumnEnum<_itjn1vsu.MapEntityStatus> status;
+
+  late final _is.ColumnString createdBy;
+
+  late final _is.ColumnString updatedBy;
+
+  late final _is.ColumnDateTime createdAt;
+
+  late final _is.ColumnDateTime updatedAt;
+
+  late final _is.ColumnDateTime deletedAt;
+
+  late final _is.ColumnInt version;
+
   @override
   List<_is.Column> get columns => [
     id,
     locationId,
+    graphId,
+    floorId,
     floor,
     roomNumber,
     name,
@@ -321,6 +573,13 @@ class LocationsTable extends _is.Table<int?> {
     aliases,
     routeNodeId,
     reviewNote,
+    status,
+    createdBy,
+    updatedBy,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    version,
   ];
 }
 

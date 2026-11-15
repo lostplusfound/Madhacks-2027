@@ -13,40 +13,78 @@
 import 'dart:async' as _ida;
 import 'package:serverpod/serverpod.dart' as _is;
 import 'kind.dart' as _iokugpqm;
+import 'map_entity_status.dart' as _itjn1vsu;
 
 abstract class Nodes implements _is.TableRow<int?>, _is.ProtocolSerialization {
   Nodes._({
     this.id,
     required this.nodeId,
+    this.graphId,
+    this.floorId,
     required this.floor,
     required this.x,
     required this.y,
     this.locationId,
     required this.kind,
-    required this.status,
-  });
+    _itjn1vsu.MapEntityStatus? status,
+    this.createdBy,
+    this.updatedBy,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    this.deletedAt,
+    int? version,
+  }) : status = status ?? _itjn1vsu.MapEntityStatus.active,
+       createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now(),
+       version = version ?? 1;
 
   factory Nodes({
     int? id,
     required String nodeId,
+    int? graphId,
+    int? floorId,
     required int floor,
     required double x,
     required double y,
     String? locationId,
     required _iokugpqm.Kind kind,
-    required String status,
+    _itjn1vsu.MapEntityStatus? status,
+    String? createdBy,
+    String? updatedBy,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    DateTime? deletedAt,
+    int? version,
   }) = _NodesImpl;
 
   factory Nodes.fromJson(Map<String, dynamic> jsonSerialization) {
     return Nodes(
       id: jsonSerialization['id'] as int?,
-      nodeId: jsonSerialization['node_id'] as String,
+      nodeId: jsonSerialization['nodeId'] as String,
+      graphId: jsonSerialization['graphId'] as int?,
+      floorId: jsonSerialization['floorId'] as int?,
       floor: jsonSerialization['floor'] as int,
       x: (jsonSerialization['x'] as num).toDouble(),
       y: (jsonSerialization['y'] as num).toDouble(),
-      locationId: jsonSerialization['location_id'] as String?,
+      locationId: jsonSerialization['locationId'] as String?,
       kind: _iokugpqm.Kind.fromJson((jsonSerialization['kind'] as String)),
-      status: jsonSerialization['status'] as String,
+      status: jsonSerialization['status'] == null
+          ? null
+          : _itjn1vsu.MapEntityStatus.fromJson(
+              (jsonSerialization['status'] as String),
+            ),
+      createdBy: jsonSerialization['createdBy'] as String?,
+      updatedBy: jsonSerialization['updatedBy'] as String?,
+      createdAt: jsonSerialization['createdAt'] == null
+          ? null
+          : _is.DateTimeJsonExtension.fromJson(jsonSerialization['createdAt']),
+      updatedAt: jsonSerialization['updatedAt'] == null
+          ? null
+          : _is.DateTimeJsonExtension.fromJson(jsonSerialization['updatedAt']),
+      deletedAt: jsonSerialization['deletedAt'] == null
+          ? null
+          : _is.DateTimeJsonExtension.fromJson(jsonSerialization['deletedAt']),
+      version: jsonSerialization['version'] as int?,
     );
   }
 
@@ -59,6 +97,10 @@ abstract class Nodes implements _is.TableRow<int?>, _is.ProtocolSerialization {
 
   String nodeId;
 
+  int? graphId;
+
+  int? floorId;
+
   int floor;
 
   double x;
@@ -69,7 +111,19 @@ abstract class Nodes implements _is.TableRow<int?>, _is.ProtocolSerialization {
 
   _iokugpqm.Kind kind;
 
-  String status;
+  _itjn1vsu.MapEntityStatus status;
+
+  String? createdBy;
+
+  String? updatedBy;
+
+  DateTime createdAt;
+
+  DateTime updatedAt;
+
+  DateTime? deletedAt;
+
+  int version;
 
   @override
   _is.Table<int?> get table => t;
@@ -80,25 +134,41 @@ abstract class Nodes implements _is.TableRow<int?>, _is.ProtocolSerialization {
   Nodes copyWith({
     int? id,
     String? nodeId,
+    int? graphId,
+    int? floorId,
     int? floor,
     double? x,
     double? y,
     String? locationId,
     _iokugpqm.Kind? kind,
-    String? status,
+    _itjn1vsu.MapEntityStatus? status,
+    String? createdBy,
+    String? updatedBy,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    DateTime? deletedAt = const _is.$UndefinedDateTime(),
+    int? version,
   });
   @override
   Map<String, dynamic> toJson() {
     return {
       '__className__': 'Nodes',
       if (id != null) 'id': id,
-      'node_id': nodeId,
+      'nodeId': nodeId,
+      if (graphId != null) 'graphId': graphId,
+      if (floorId != null) 'floorId': floorId,
       'floor': floor,
       'x': x,
       'y': y,
-      if (locationId != null) 'location_id': locationId,
+      if (locationId != null) 'locationId': locationId,
       'kind': kind.toJson(),
-      'status': status,
+      'status': status.toJson(),
+      if (createdBy != null) 'createdBy': createdBy,
+      if (updatedBy != null) 'updatedBy': updatedBy,
+      'createdAt': createdAt.toJson(),
+      'updatedAt': updatedAt.toJson(),
+      if (deletedAt != null) 'deletedAt': deletedAt?.toJson(),
+      'version': version,
     };
   }
 
@@ -107,13 +177,21 @@ abstract class Nodes implements _is.TableRow<int?>, _is.ProtocolSerialization {
     return {
       '__className__': 'Nodes',
       if (id != null) 'id': id,
-      'node_id': nodeId,
+      'nodeId': nodeId,
+      if (graphId != null) 'graphId': graphId,
+      if (floorId != null) 'floorId': floorId,
       'floor': floor,
       'x': x,
       'y': y,
-      if (locationId != null) 'location_id': locationId,
+      if (locationId != null) 'locationId': locationId,
       'kind': kind.toJson(),
-      'status': status,
+      'status': status.toJson(),
+      if (createdBy != null) 'createdBy': createdBy,
+      if (updatedBy != null) 'updatedBy': updatedBy,
+      'createdAt': createdAt.toJson(),
+      'updatedAt': updatedAt.toJson(),
+      if (deletedAt != null) 'deletedAt': deletedAt?.toJson(),
+      'version': version,
     };
   }
 
@@ -151,21 +229,37 @@ class _NodesImpl extends Nodes {
   _NodesImpl({
     int? id,
     required String nodeId,
+    int? graphId,
+    int? floorId,
     required int floor,
     required double x,
     required double y,
     String? locationId,
     required _iokugpqm.Kind kind,
-    required String status,
+    _itjn1vsu.MapEntityStatus? status,
+    String? createdBy,
+    String? updatedBy,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    DateTime? deletedAt,
+    int? version,
   }) : super._(
          id: id,
          nodeId: nodeId,
+         graphId: graphId,
+         floorId: floorId,
          floor: floor,
          x: x,
          y: y,
          locationId: locationId,
          kind: kind,
          status: status,
+         createdBy: createdBy,
+         updatedBy: updatedBy,
+         createdAt: createdAt,
+         updatedAt: updatedAt,
+         deletedAt: deletedAt,
+         version: version,
        );
 
   /// Returns a shallow copy of this [Nodes]
@@ -175,22 +269,40 @@ class _NodesImpl extends Nodes {
   Nodes copyWith({
     Object? id = _Undefined,
     String? nodeId,
+    Object? graphId = _Undefined,
+    Object? floorId = _Undefined,
     int? floor,
     double? x,
     double? y,
     Object? locationId = _Undefined,
     _iokugpqm.Kind? kind,
-    String? status,
+    _itjn1vsu.MapEntityStatus? status,
+    Object? createdBy = _Undefined,
+    Object? updatedBy = _Undefined,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    DateTime? deletedAt = const _is.$UndefinedDateTime(),
+    int? version,
   }) {
     return Nodes(
       id: id is int? ? id : this.id,
       nodeId: nodeId ?? this.nodeId,
+      graphId: graphId is int? ? graphId : this.graphId,
+      floorId: floorId is int? ? floorId : this.floorId,
       floor: floor ?? this.floor,
       x: x ?? this.x,
       y: y ?? this.y,
       locationId: locationId is String? ? locationId : this.locationId,
       kind: kind ?? this.kind,
       status: status ?? this.status,
+      createdBy: createdBy is String? ? createdBy : this.createdBy,
+      updatedBy: updatedBy is String? ? updatedBy : this.updatedBy,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt is _is.UndefinedSentinel
+          ? this.deletedAt
+          : deletedAt,
+      version: version ?? this.version,
     );
   }
 }
@@ -200,6 +312,16 @@ class NodesUpdateTable extends _is.UpdateTable<NodesTable> {
 
   _is.ColumnValue<String, String> nodeId(String value) => _is.ColumnValue(
     table.nodeId,
+    value,
+  );
+
+  _is.ColumnValue<int, int> graphId(int? value) => _is.ColumnValue(
+    table.graphId,
+    value,
+  );
+
+  _is.ColumnValue<int, int> floorId(int? value) => _is.ColumnValue(
+    table.floorId,
     value,
   );
 
@@ -229,8 +351,43 @@ class NodesUpdateTable extends _is.UpdateTable<NodesTable> {
         value,
       );
 
-  _is.ColumnValue<String, String> status(String value) => _is.ColumnValue(
+  _is.ColumnValue<_itjn1vsu.MapEntityStatus, _itjn1vsu.MapEntityStatus> status(
+    _itjn1vsu.MapEntityStatus value,
+  ) => _is.ColumnValue(
     table.status,
+    value,
+  );
+
+  _is.ColumnValue<String, String> createdBy(String? value) => _is.ColumnValue(
+    table.createdBy,
+    value,
+  );
+
+  _is.ColumnValue<String, String> updatedBy(String? value) => _is.ColumnValue(
+    table.updatedBy,
+    value,
+  );
+
+  _is.ColumnValue<DateTime, DateTime> createdAt(DateTime value) =>
+      _is.ColumnValue(
+        table.createdAt,
+        value,
+      );
+
+  _is.ColumnValue<DateTime, DateTime> updatedAt(DateTime value) =>
+      _is.ColumnValue(
+        table.updatedAt,
+        value,
+      );
+
+  _is.ColumnValue<DateTime, DateTime> deletedAt(DateTime? value) =>
+      _is.ColumnValue(
+        table.deletedAt,
+        value,
+      );
+
+  _is.ColumnValue<int, int> version(int value) => _is.ColumnValue(
+    table.version,
     value,
   );
 }
@@ -242,6 +399,16 @@ class NodesTable extends _is.Table<int?> {
       'node_id',
       this,
       fieldName: 'nodeId',
+    );
+    graphId = _is.ColumnInt(
+      'graph_id',
+      this,
+      fieldName: 'graphId',
+    );
+    floorId = _is.ColumnInt(
+      'floor_id',
+      this,
+      fieldName: 'floorId',
     );
     floor = _is.ColumnInt(
       'floor',
@@ -265,15 +432,53 @@ class NodesTable extends _is.Table<int?> {
       this,
       _is.EnumSerialization.byName,
     );
-    status = _is.ColumnString(
+    status = _is.ColumnEnum(
       'status',
       this,
+      _is.EnumSerialization.byName,
+      hasDefault: true,
+    );
+    createdBy = _is.ColumnString(
+      'created_by',
+      this,
+      fieldName: 'createdBy',
+    );
+    updatedBy = _is.ColumnString(
+      'updated_by',
+      this,
+      fieldName: 'updatedBy',
+    );
+    createdAt = _is.ColumnDateTime(
+      'created_at',
+      this,
+      hasDefault: true,
+      fieldName: 'createdAt',
+    );
+    updatedAt = _is.ColumnDateTime(
+      'updated_at',
+      this,
+      hasDefault: true,
+      fieldName: 'updatedAt',
+    );
+    deletedAt = _is.ColumnDateTime(
+      'deleted_at',
+      this,
+      fieldName: 'deletedAt',
+    );
+    version = _is.ColumnInt(
+      'version',
+      this,
+      hasDefault: true,
     );
   }
 
   late final NodesUpdateTable updateTable;
 
   late final _is.ColumnString nodeId;
+
+  late final _is.ColumnInt graphId;
+
+  late final _is.ColumnInt floorId;
 
   late final _is.ColumnInt floor;
 
@@ -285,18 +490,38 @@ class NodesTable extends _is.Table<int?> {
 
   late final _is.ColumnEnum<_iokugpqm.Kind> kind;
 
-  late final _is.ColumnString status;
+  late final _is.ColumnEnum<_itjn1vsu.MapEntityStatus> status;
+
+  late final _is.ColumnString createdBy;
+
+  late final _is.ColumnString updatedBy;
+
+  late final _is.ColumnDateTime createdAt;
+
+  late final _is.ColumnDateTime updatedAt;
+
+  late final _is.ColumnDateTime deletedAt;
+
+  late final _is.ColumnInt version;
 
   @override
   List<_is.Column> get columns => [
     id,
     nodeId,
+    graphId,
+    floorId,
     floor,
     x,
     y,
     locationId,
     kind,
     status,
+    createdBy,
+    updatedBy,
+    createdAt,
+    updatedAt,
+    deletedAt,
+    version,
   ];
 }
 

@@ -1,0 +1,4 @@
+exception: MapApiException
+fields:
+  code: String
+  message: String

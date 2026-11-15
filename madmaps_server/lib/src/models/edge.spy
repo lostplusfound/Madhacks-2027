@@ -2,9 +2,27 @@ class: Edge
 table: edge
 
 fields:
-  fromNodeId: String, column=from_node_id, jsonKey=from_node_id
-  toNodeId: String, column=to_node_id, jsonKey=to_node_id
-  type: String
-  costPx: double, column=cost_px, jsonKey=cost_px
+  edgeId: String?, column=edge_id, unique
+  graphId: int?, column=graph_id, relation(parent=map_graph)
+  fromNodeId: String, column=from_node_id
+  toNodeId: String, column=to_node_id
+  type: EdgeType, default=walk
+  costPx: double, column=cost_px
   bidirectional: bool
-  status: String
+  status: MapEntityStatus, default=active
+  createdBy: String?, column=created_by
+  updatedBy: String?, column=updated_by
+  createdAt: DateTime, default=now, column=created_at
+  updatedAt: DateTime, default=now, column=updated_at
+  deletedAt: DateTime?, column=deleted_at
+  version: int, default=1
+
+indexes:
+  edges_graph_idx:
+    fields: graphId
+  edges_from_node_idx:
+    fields: fromNodeId
+  edges_to_node_idx:
+    fields: toNodeId
+  edges_owner_idx:
+    fields: createdBy

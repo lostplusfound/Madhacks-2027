@@ -150,7 +150,7 @@ class IndoorGraph {
           from: edge.fromNodeId,
           to: edge.toNodeId,
           cost: edge.costPx,
-          description: edge.type,
+          description: edge.type.name,
         ),
       );
       if (edge.bidirectional) {
@@ -160,7 +160,7 @@ class IndoorGraph {
             from: edge.toNodeId,
             to: edge.fromNodeId,
             cost: edge.costPx,
-            description: edge.type,
+            description: edge.type.name,
           ),
         );
       }
