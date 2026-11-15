@@ -14,8 +14,9 @@ The script downloads the [EDB Windows PostgreSQL binaries](https://productsdl.en
 into ignored `.dart_tool/toolchains` if absent, starts project-local development
 and test databases, starts the Serverpod runner with Docker disabled, and seeds
 or verifies Floor 1, then streams backend logs in the same terminal. It disables
-automatic Flutter launch; launch the phone app separately. Ctrl+C detaches from
-the logs and leaves the databases and runner running.
+automatic Flutter launch; launch the phone app separately. Keep this terminal
+open while testing. Ctrl+C stops the Serverpod runner and both project-local
+databases, including on startup failure. Use Ctrl+C for a clean shutdown.
 Repeated invocations reuse the databases and runner. It never installs a system
 service. The x64 PostgreSQL binaries run on this Windows ARM64 laptop.
 

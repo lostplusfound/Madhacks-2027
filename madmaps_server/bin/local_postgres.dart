@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:yaml/yaml.dart';
 
 /// Starts project-local PostgreSQL on Windows, including ARM64 via x64 emulation.
@@ -10,6 +11,9 @@ Future<void> main() async {
   final passwords =
       loadYaml(await File('config/passwords.yaml').readAsString()) as YamlMap;
   for (final entry in {'development': 8090, 'test': 9090}.entries) {
+    stdout.writeln(
+      'Checking PostgreSQL ${entry.key} on port ${entry.value}...',
+    );
     final password = passwords[entry.key]?['database'] as String?;
     if (password == null || password.isEmpty)
       throw StateError(
@@ -49,14 +53,32 @@ Future<void> main() async {
       );
     }
     if ((await run('pg_ctl', ['-D', data.path, 'status'])).exitCode != 0) {
-      // Detach fully: PostgreSQL otherwise inherits Dart's process pipes on Windows.
-      String psQuote(String text) => "'${text.replaceAll("'", "''")}'";
-      final start = await Process.run('powershell.exe', [
-        '-NoProfile',
-        '-Command',
-        'Start-Process -FilePath ${psQuote('$binaryRoot/pg_ctl.exe')} -ArgumentList ${psQuote('-D "${data.path}" -l "${data.path}.postgres.log" -w start')} -WindowStyle Hidden -RedirectStandardOutput ${psQuote('${data.path}.startup.stdout.log')} -RedirectStandardError ${psQuote('${data.path}.startup.stderr.log')}',
+      stdout.writeln('Starting PostgreSQL ${entry.key}...');
+      // Wait for pg_ctl itself, not EOF on pipes inherited by the server.
+      final launch = await Process.start('$binaryRoot/pg_ctl.exe', [
+        '-D',
+        data.path,
+        '-l',
+        '${data.path}.postgres.log',
+        '-w',
+        '-t',
+        '30',
+        'start',
       ]);
-      requireSuccess(start);
+      final output = StringBuffer();
+      final outSub = launch.stdout.transform(utf8.decoder).listen(output.write);
+      final errSub = launch.stderr.transform(utf8.decoder).listen(output.write);
+      await launch.stdin.close();
+      try {
+        final code = await launch.exitCode.timeout(const Duration(seconds: 40));
+        if (code != 0)
+          throw StateError(
+            'PostgreSQL ${entry.key} failed: $output\nSee ${data.path}.postgres.log',
+          );
+      } finally {
+        await outSub.cancel();
+        await errSub.cancel();
+      }
       var ready = false;
       for (var attempt = 0; attempt < 100; attempt++) {
         if ((await run('pg_isready', [

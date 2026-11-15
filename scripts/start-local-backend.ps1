@@ -11,22 +11,42 @@ if (-not (Test-Path -LiteralPath $postgresBinary)) {
     Expand-Archive -LiteralPath $archive -DestinationPath $postgresRoot -Force
 }
 Push-Location (Join-Path $workspace 'madmaps_server')
+$localCli = Join-Path $workspace '.dart_tool/toolchains/serverpod_cli/bin/local_cli.dill'
 try {
     dart pub get
     if ($LASTEXITCODE -ne 0) { throw 'Dependency resolution failed.' }
-    dart run bin/local_postgres.dart
+    Write-Host 'Starting project-local PostgreSQL...'
+    dart bin/local_postgres.dart
     if ($LASTEXITCODE -ne 0) { throw 'Local PostgreSQL startup failed.' }
-    dart run bin/prepare_local_cli.dart
+    dart bin/prepare_local_cli.dart
     if ($LASTEXITCODE -ne 0) { throw 'Local Serverpod CLI preparation failed.' }
-    $localCli = Join-Path $workspace '.dart_tool/toolchains/serverpod_cli/bin/local_cli.dill'
     dart $localCli --no-analytics runner start --no-docker --no-flutter
     if ($LASTEXITCODE -ne 0) { throw 'Serverpod runner startup failed.' }
     dart run bin/seed_floor1.dart
     if ($LASTEXITCODE -ne 0) { throw 'Floor 1 seed verification failed.' }
     Write-Host 'Backend ready. Streaming logs; launch Flutter separately on your phone.'
-    Write-Host 'Ctrl+C detaches from logs and leaves the backend running.'
-    dart $localCli --no-analytics runner attach --no-tui
-    if ($LASTEXITCODE -ne 0) { throw 'Serverpod log attachment ended with an error.' }
+    Write-Host 'Ctrl+C stops the backend and both project-local databases.'
+    # Keep log following in PowerShell so Ctrl+C reaches this script's finally.
+    Get-Content -LiteralPath '.dart_tool/serverpod/runner.log' -Tail 60 -Wait
 } finally {
-    Pop-Location
+    try {
+        Write-Host 'Stopping MadMaps backend...'
+        if (Test-Path -LiteralPath $localCli) {
+            dart $localCli --no-analytics runner stop
+        }
+        $pgCtl = Join-Path $postgresRoot 'pgsql/bin/pg_ctl.exe'
+        if (Test-Path -LiteralPath $pgCtl) {
+            foreach ($databaseMode in @('development', 'test')) {
+                $dataDirectory = Join-Path $workspace "madmaps_server/.serverpod/local-postgres/$databaseMode"
+                if (Test-Path -LiteralPath (Join-Path $dataDirectory 'PG_VERSION')) {
+                    & $pgCtl -D $dataDirectory status *> $null
+                    if ($LASTEXITCODE -eq 0) {
+                        & $pgCtl -D $dataDirectory -m fast -w stop
+                    }
+                }
+            }
+        }
+    } finally {
+        Pop-Location
+    }
 }
