@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../localization/map_data.dart';
 import 'floor_data.dart';
@@ -16,6 +17,7 @@ class FloorCanvas extends StatelessWidget {
     this.showLabels = true,
     this.transformationController,
     this.showGraph = true,
+    this.anchorLabels = const {},
     this.interactive = true,
     this.rejoinPoint,
     this.selectedLocation,
@@ -38,6 +40,7 @@ class FloorCanvas extends StatelessWidget {
   final ValueChanged<Offset>? onPoint;
   final bool showLabels;
   final bool showGraph;
+  final Map<String, String> anchorLabels;
   final bool interactive;
   final Offset? rejoinPoint;
   final TransformationController? transformationController;
@@ -88,6 +91,7 @@ class FloorCanvas extends StatelessWidget {
                       showPosition,
                       routePosition,
                       showDestinationMarker,
+                      anchorLabels,
                     ),
                   ),
                 ],
@@ -124,6 +128,7 @@ class _FloorPainter extends CustomPainter {
     this.showPosition,
     this.routePosition,
     this.showDestinationMarker,
+    this.anchorLabels,
   );
   final String? selectedLocation;
   final bool highContrast;
@@ -137,6 +142,7 @@ class _FloorPainter extends CustomPainter {
   final List<Offset> fullRoute;
   final bool labels;
   final bool showGraph;
+  final Map<String, String> anchorLabels;
   final Offset? rejoinPoint;
   final Offset? pin;
   @override
@@ -236,10 +242,38 @@ class _FloorPainter extends CustomPainter {
       canvas.drawCircle(center, 9, Paint()..color = Colors.red);
     }
     for (final entry
-        in showGraph
+        in showGraph || anchorLabels.isNotEmpty
             ? setup.anchorPoints.entries
             : <MapEntry<String, Offset>>[]) {
-      canvas.drawCircle(p(entry.value), 6, Paint()..color = Colors.teal);
+      final center = p(entry.value);
+      canvas.drawCircle(center, 8, Paint()..color = Colors.white);
+      canvas.drawCircle(center, 6, Paint()..color = Colors.teal);
+      final label = anchorLabels[entry.key];
+      if (label != null) {
+        final text = TextPainter(
+          text: TextSpan(
+            text: label,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.black,
+              backgroundColor: Colors.white,
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        )..layout(maxWidth: 140);
+        text.paint(
+          canvas,
+          Offset(
+            (center.dx + 10)
+                .clamp(0, math.max(0, size.width - text.width))
+                .toDouble(),
+            (center.dy - text.height / 2)
+                .clamp(0, math.max(0, size.height - text.height))
+                .toDouble(),
+          ),
+        );
+      }
     }
     if (labels) {
       for (final l in graph.locations) {

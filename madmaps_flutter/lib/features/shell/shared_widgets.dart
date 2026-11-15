@@ -93,11 +93,12 @@ ThemeData madMapsTheme({bool highContrast = false}) {
 const routeCobalt = Color(0xff1769aa);
 
 class SectionHeading extends StatelessWidget {
-  const SectionHeading(this.title, {super.key});
+  const SectionHeading(this.title, {super.key, this.topPadding = 24});
   final String title;
+  final double topPadding;
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 24, bottom: 10),
+    padding: EdgeInsets.only(top: topPadding, bottom: 10),
     child: Text(
       title,
       style: Theme.of(

@@ -350,6 +350,9 @@ class _SharedPointEditorState extends State<SharedPointEditor> {
             setup: map.floor,
             showGraph: false,
             showLabels: false,
+            anchorLabels: {
+              for (final anchor in map.anchors) anchor.id: anchor.name,
+            },
           ),
         ),
         if (error != null) Text(error!),

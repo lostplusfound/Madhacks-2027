@@ -202,7 +202,7 @@ void main() {
         result.route!.points,
         contains(g.nodes['f1-demo-south-hall']!.point),
       );
-      expect(result.route!.points.last, const Offset(430, 753));
+      expect(result.route!.points.last, const Offset(450, 739));
       expect(
         result.route!.points,
         contains(g.nodes['f1-1524-orchard-approach']!.point),

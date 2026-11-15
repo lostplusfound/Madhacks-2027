@@ -300,7 +300,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             widget.panelTitle!,
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
-                        const SizedBox(height: 12),
+                        if (widget.panelTitle != null ||
+                            widget.tripControls != null)
+                          const SizedBox(height: 12),
                         if (widget.tripControls != null && !active)
                           widget.tripControls!
                         else ...[
@@ -308,11 +310,17 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             Text(widget.connectorError!),
                           if (!active) ...[
                             if (state.saved.isNotEmpty) ...[
-                              const SectionHeading('Saved places'),
+                              const SectionHeading(
+                                'Saved places',
+                                topPadding: 8,
+                              ),
                               ...group(state.saved.toList()),
                             ],
                             if (state.recent.isNotEmpty) ...[
-                              const SectionHeading('Recently visited'),
+                              SectionHeading(
+                                'Recently visited',
+                                topPadding: state.saved.isEmpty ? 8 : 24,
+                              ),
                               ...group(state.recent),
                             ],
                             if (state.saved.isEmpty && state.recent.isEmpty)
