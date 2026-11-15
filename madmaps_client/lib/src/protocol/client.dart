@@ -39,6 +39,10 @@ import 'package:madmaps_client/src/protocol/report_reason.dart' as _i6ynwlr2;
 import 'package:madmaps_client/src/protocol/report_target_type.dart'
     as _iws3unv8;
 import 'package:madmaps_client/src/protocol/search_result.dart' as _i56rwuj1;
+import 'package:serverpod_auth_core_client/serverpod_auth_core_client.dart'
+    as _iacc;
+import 'package:serverpod_auth_idp_client/serverpod_auth_idp_client.dart'
+    as _iaic;
 import 'package:serverpod_client/serverpod_client.dart' as _isc;
 import 'protocol.dart' as _il2as5qe;
 
@@ -80,6 +84,285 @@ class EndpointBuilding extends _isc.EndpointRef {
       'limit': limit,
       'offset': offset,
     },
+  );
+}
+
+/// Email sign-in endpoint supplied by Serverpod's maintained auth module.
+/// {@category Endpoint}
+class EndpointEmailIdp extends _iaic.EndpointEmailOtpIdpBase {
+  EndpointEmailIdp(_isc.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'emailIdp';
+
+  /// Starts a passwordless login by sending a one-time password to [email].
+  ///
+  /// The code is sent whether or not an account is registered for the email.
+  /// If none is, verifying the code lets the user create a new account.
+  ///
+  /// Always returns a login request ID, which must be passed to
+  /// [verifyOtpLoginCode] together with the one-time password.
+  ///
+  /// Throws an [EmailAccountRequestException] in case of errors, with reason:
+  /// - [EmailAccountRequestExceptionReason.policyViolation] if the email is
+  ///   not valid.
+  /// - [EmailAccountRequestExceptionReason.tooManyAttempts] if too many
+  ///   one-time passwords have been requested for the email.
+  @override
+  _ida.Future<_isc.UuidValue> startOtpLogin({required String email}) =>
+      caller.callServerEndpoint<_isc.UuidValue>(
+        'emailIdp',
+        'startOtpLogin',
+        {'email': email},
+      );
+
+  /// Verifies a one-time password and returns a token to complete the login.
+  ///
+  /// If [EmailAccountOtpVerificationResult.accountExists] is `true`, pass the
+  /// token to [finishOtpLogin] to sign in. Otherwise, have the user accept the
+  /// terms (and optionally set a password if
+  /// [EmailAccountOtpVerificationResult.allowPassword] is `true`) and pass it
+  /// to [finishOtpRegistration] to create the account.
+  ///
+  /// Throws an [EmailAccountRequestException] in case of errors, with reason:
+  /// - [EmailAccountRequestExceptionReason.expired] if the login request has
+  ///   already expired.
+  /// - [EmailAccountRequestExceptionReason.tooManyAttempts] if the user has
+  ///   made too many attempts to verify the code.
+  /// - [EmailAccountRequestExceptionReason.invalid] if no request exists for
+  ///   the given [otpLoginRequestId] or [verificationCode] is invalid.
+  @override
+  _ida.Future<_iaic.EmailAccountOtpVerificationResult> verifyOtpLoginCode({
+    required _isc.UuidValue otpLoginRequestId,
+    required String verificationCode,
+  }) => caller.callServerEndpoint<_iaic.EmailAccountOtpVerificationResult>(
+    'emailIdp',
+    'verifyOtpLoginCode',
+    {
+      'otpLoginRequestId': otpLoginRequestId,
+      'verificationCode': verificationCode,
+    },
+  );
+
+  /// Completes a passwordless login for an existing account and returns a new
+  /// session.
+  ///
+  /// Throws an [EmailAccountRequestException] in case of errors, with reason:
+  /// - [EmailAccountRequestExceptionReason.expired] if the login request has
+  ///   already expired.
+  /// - [EmailAccountRequestExceptionReason.invalid] if the [otpLoginToken] is
+  ///   invalid or no account exists for the email.
+  ///
+  /// Throws an [AuthUserBlockedException] if the auth user is blocked.
+  @override
+  _ida.Future<_iacc.AuthSuccess> finishOtpLogin({
+    required String otpLoginToken,
+  }) => caller.callServerEndpoint<_iacc.AuthSuccess>(
+    'emailIdp',
+    'finishOtpLogin',
+    {'otpLoginToken': otpLoginToken},
+  );
+
+  /// Completes a passwordless login for an email without an account, by
+  /// creating a new auth user with a profile and attaching the verified email
+  /// to it.
+  ///
+  /// Must only be called after the user accepted the terms. The [password] is
+  /// optional, and may only be set if
+  /// [EmailAccountOtpVerificationResult.allowPassword] was `true`.
+  ///
+  /// Throws an [EmailAccountRequestException] in case of errors, with reason:
+  /// - [EmailAccountRequestExceptionReason.expired] if the login request has
+  ///   already expired.
+  /// - [EmailAccountRequestExceptionReason.policyViolation] if a password is
+  ///   given but not allowed, or it does not comply with the password policy.
+  /// - [EmailAccountRequestExceptionReason.invalid] if the [otpLoginToken] is
+  ///   invalid or an account already exists for the email.
+  ///
+  /// Returns a session for the newly created user.
+  @override
+  _ida.Future<_iacc.AuthSuccess> finishOtpRegistration({
+    required String otpLoginToken,
+    String? password,
+  }) => caller.callServerEndpoint<_iacc.AuthSuccess>(
+    'emailIdp',
+    'finishOtpRegistration',
+    {
+      'otpLoginToken': otpLoginToken,
+      'password': password,
+    },
+  );
+
+  /// Logs in the user and returns a new session.
+  ///
+  /// Throws an [EmailAccountLoginException] in case of errors, with reason:
+  /// - [EmailAccountLoginExceptionReason.invalidCredentials] if the email or
+  ///   password is incorrect.
+  /// - [EmailAccountLoginExceptionReason.tooManyAttempts] if there have been
+  ///   too many failed login attempts.
+  ///
+  /// Throws an [AuthUserBlockedException] if the auth user is blocked.
+  @override
+  _ida.Future<_iacc.AuthSuccess> login({
+    required String email,
+    required String password,
+  }) => caller.callServerEndpoint<_iacc.AuthSuccess>(
+    'emailIdp',
+    'login',
+    {
+      'email': email,
+      'password': password,
+    },
+  );
+
+  /// Starts the registration for a new user account with an email-based login
+  /// associated to it.
+  ///
+  /// Upon successful completion of this method, an email will have been
+  /// sent to [email] with a verification link, which the user must open to
+  /// complete the registration.
+  ///
+  /// Always returns a account request ID, which can be used to complete the
+  /// registration. If the email is already registered, the returned ID will not
+  /// be valid.
+  @override
+  _ida.Future<_isc.UuidValue> startRegistration({required String email}) =>
+      caller.callServerEndpoint<_isc.UuidValue>(
+        'emailIdp',
+        'startRegistration',
+        {'email': email},
+      );
+
+  /// Verifies an account request code and returns a token
+  /// that can be used to complete the account creation.
+  ///
+  /// Throws an [EmailAccountRequestException] in case of errors, with reason:
+  /// - [EmailAccountRequestExceptionReason.expired] if the account request has
+  ///   already expired.
+  /// - [EmailAccountRequestExceptionReason.policyViolation] if the password
+  ///   does not comply with the password policy.
+  /// - [EmailAccountRequestExceptionReason.invalid] if no request exists
+  ///   for the given [accountRequestId] or [verificationCode] is invalid.
+  @override
+  _ida.Future<String> verifyRegistrationCode({
+    required _isc.UuidValue accountRequestId,
+    required String verificationCode,
+  }) => caller.callServerEndpoint<String>(
+    'emailIdp',
+    'verifyRegistrationCode',
+    {
+      'accountRequestId': accountRequestId,
+      'verificationCode': verificationCode,
+    },
+  );
+
+  /// Completes a new account registration, creating a new auth user with a
+  /// profile and attaching the given email account to it.
+  ///
+  /// Throws an [EmailAccountRequestException] in case of errors, with reason:
+  /// - [EmailAccountRequestExceptionReason.expired] if the account request has
+  ///   already expired.
+  /// - [EmailAccountRequestExceptionReason.policyViolation] if the password
+  ///   does not comply with the password policy.
+  /// - [EmailAccountRequestExceptionReason.invalid] if the [registrationToken]
+  ///   is invalid.
+  ///
+  /// Throws an [AuthUserBlockedException] if the auth user is blocked.
+  ///
+  /// Returns a session for the newly created user.
+  @override
+  _ida.Future<_iacc.AuthSuccess> finishRegistration({
+    required String registrationToken,
+    required String password,
+  }) => caller.callServerEndpoint<_iacc.AuthSuccess>(
+    'emailIdp',
+    'finishRegistration',
+    {
+      'registrationToken': registrationToken,
+      'password': password,
+    },
+  );
+
+  /// Requests a password reset for [email].
+  ///
+  /// If the email address is registered, an email with reset instructions will
+  /// be send out. If the email is unknown, this method will have no effect.
+  ///
+  /// Always returns a password reset request ID, which can be used to complete
+  /// the reset. If the email is not registered, the returned ID will not be
+  /// valid.
+  ///
+  /// Throws an [EmailAccountPasswordResetException] in case of errors, with reason:
+  /// - [EmailAccountPasswordResetExceptionReason.tooManyAttempts] if the user has
+  ///   made too many attempts trying to request a password reset.
+  ///
+  @override
+  _ida.Future<_isc.UuidValue> startPasswordReset({required String email}) =>
+      caller.callServerEndpoint<_isc.UuidValue>(
+        'emailIdp',
+        'startPasswordReset',
+        {'email': email},
+      );
+
+  /// Verifies a password reset code and returns a finishPasswordResetToken
+  /// that can be used to finish the password reset.
+  ///
+  /// Throws an [EmailAccountPasswordResetException] in case of errors, with reason:
+  /// - [EmailAccountPasswordResetExceptionReason.expired] if the password reset
+  ///   request has already expired.
+  /// - [EmailAccountPasswordResetExceptionReason.tooManyAttempts] if the user has
+  ///   made too many attempts trying to verify the password reset.
+  /// - [EmailAccountPasswordResetExceptionReason.invalid] if no request exists
+  ///   for the given [passwordResetRequestId] or [verificationCode] is invalid.
+  ///
+  /// If multiple steps are required to complete the password reset, this endpoint
+  /// should be overridden to return credentials for the next step instead
+  /// of the credentials for setting the password.
+  @override
+  _ida.Future<String> verifyPasswordResetCode({
+    required _isc.UuidValue passwordResetRequestId,
+    required String verificationCode,
+  }) => caller.callServerEndpoint<String>(
+    'emailIdp',
+    'verifyPasswordResetCode',
+    {
+      'passwordResetRequestId': passwordResetRequestId,
+      'verificationCode': verificationCode,
+    },
+  );
+
+  /// Completes a password reset request by setting a new password.
+  ///
+  /// The [verificationCode] returned from [verifyPasswordResetCode] is used to
+  /// validate the password reset request.
+  ///
+  /// Throws an [EmailAccountPasswordResetException] in case of errors, with reason:
+  /// - [EmailAccountPasswordResetExceptionReason.expired] if the password reset
+  ///   request has already expired.
+  /// - [EmailAccountPasswordResetExceptionReason.policyViolation] if the new
+  ///   password does not comply with the password policy.
+  /// - [EmailAccountPasswordResetExceptionReason.invalid] if no request exists
+  ///   for the given [passwordResetRequestId] or [verificationCode] is invalid.
+  ///
+  /// Throws an [AuthUserBlockedException] if the auth user is blocked.
+  @override
+  _ida.Future<void> finishPasswordReset({
+    required String finishPasswordResetToken,
+    required String newPassword,
+  }) => caller.callServerEndpoint<void>(
+    'emailIdp',
+    'finishPasswordReset',
+    {
+      'finishPasswordResetToken': finishPasswordResetToken,
+      'newPassword': newPassword,
+    },
+  );
+
+  @override
+  _ida.Future<bool> hasAccount() => caller.callServerEndpoint<bool>(
+    'emailIdp',
+    'hasAccount',
+    {},
   );
 }
 
@@ -500,6 +783,17 @@ class EndpointGreeting extends _isc.EndpointRef {
       );
 }
 
+class Modules {
+  Modules(Client client) {
+    serverpod_auth_idp = _iaic.Caller(client);
+    serverpod_auth_core = _iacc.Caller(client);
+  }
+
+  late final _iaic.Caller serverpod_auth_idp;
+
+  late final _iacc.Caller serverpod_auth_core;
+}
+
 class Client extends _isc.ServerpodClientShared {
   Client(
     String host, {
@@ -528,6 +822,7 @@ class Client extends _isc.ServerpodClientShared {
          httpClientOverride: httpClientOverride,
        ) {
     building = EndpointBuilding(this);
+    emailIdp = EndpointEmailIdp(this);
     location = EndpointLocation(this);
     locationSearch = EndpointLocationSearch(this);
     mapEdge = EndpointMapEdge(this);
@@ -535,9 +830,12 @@ class Client extends _isc.ServerpodClientShared {
     mapNode = EndpointMapNode(this);
     mapReport = EndpointMapReport(this);
     greeting = EndpointGreeting(this);
+    modules = Modules(this);
   }
 
   late final EndpointBuilding building;
+
+  late final EndpointEmailIdp emailIdp;
 
   late final EndpointLocation location;
 
@@ -553,9 +851,12 @@ class Client extends _isc.ServerpodClientShared {
 
   late final EndpointGreeting greeting;
 
+  late final Modules modules;
+
   @override
   Map<String, _isc.EndpointRef> get endpointRefLookup => {
     'building': building,
+    'emailIdp': emailIdp,
     'location': location,
     'locationSearch': locationSearch,
     'mapEdge': mapEdge,
@@ -566,5 +867,8 @@ class Client extends _isc.ServerpodClientShared {
   };
 
   @override
-  Map<String, _isc.ModuleEndpointCaller> get moduleLookup => {};
+  Map<String, _isc.ModuleEndpointCaller> get moduleLookup => {
+    'serverpod_auth_idp': modules.serverpod_auth_idp,
+    'serverpod_auth_core': modules.serverpod_auth_core,
+  };
 }

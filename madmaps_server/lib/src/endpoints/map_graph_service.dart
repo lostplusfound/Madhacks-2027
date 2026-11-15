@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:serverpod/serverpod.dart';
 
 import '../generated/protocol.dart';
+import 'data_safety_service.dart';
 
 /// Owns validation, authorization, and transactional persistence for map data.
 ///
@@ -10,6 +12,8 @@ import '../generated/protocol.dart';
 /// cannot drift into subtly different validation rules.
 class MapGraphService {
   const MapGraphService();
+
+  static const _dataSafety = DataSafetyService();
 
   String requireUser(Session session) {
     final userId = session.authenticated?.userIdentifier;
@@ -102,6 +106,7 @@ class MapGraphService {
       nodes: request.nodes,
       edges: request.edges,
       locations: request.locations,
+      walls: request.walls ?? const [],
     );
 
     late MapGraph graph;
@@ -132,6 +137,12 @@ class MapGraphService {
         locations: request.locations,
         userId: userId,
         transaction: transaction,
+      );
+      await _replaceWalls(
+        session,
+        graph.id!,
+        request.walls ?? const [],
+        transaction,
       );
     });
 
@@ -186,6 +197,11 @@ class MapGraphService {
             t.deletedAt.equals(null),
         orderBy: (t) => t.locationId,
       ),
+      MapWall.db.find(
+        session,
+        where: (t) => t.graphId.equals(graph.id),
+        orderBy: (t) => t.wallId,
+      ),
     ]);
 
     return MapGraphSnapshot(
@@ -195,6 +211,7 @@ class MapGraphService {
       nodes: results[1].cast<Nodes>(),
       edges: results[2].cast<Edge>(),
       locations: results[3].cast<Locations>(),
+      walls: results[4].cast<MapWall>().map(_wallToInput).toList(),
     );
   }
 
@@ -291,11 +308,15 @@ class MapGraphService {
       prospectiveLocations[input.locationId] = input;
     }
 
+    if (request.walls != null && snapshot.graph.ownerId != userId) {
+      throw _forbidden('Only the graph owner can change walls.');
+    }
     _validateContent(
       floors: snapshot.floors.map(_floorToInput).toList(),
       nodes: prospectiveNodes.values.toList(),
       edges: prospectiveEdges.values.toList(),
       locations: prospectiveLocations.values.toList(),
+      walls: request.walls ?? snapshot.walls,
     );
 
     await session.db.transaction(
@@ -310,6 +331,16 @@ class MapGraphService {
           throw MapApiException(
             code: 'version_conflict',
             message: 'The graph changed after it was loaded.',
+          );
+        }
+        if (request.walls != null) {
+          if (lockedGraph.ownerId != userId)
+            throw _forbidden('Only the graph owner can change walls.');
+          await _replaceWalls(
+            session,
+            lockedGraph.id!,
+            request.walls!,
+            transaction,
           );
         }
 
@@ -387,6 +418,7 @@ class MapGraphService {
       nodes: request.nodes,
       edges: request.edges,
       locations: request.locations,
+      walls: request.walls ?? current.walls,
     );
 
     final existingNodeIds = {for (final row in current.nodes) row.nodeId};
@@ -458,6 +490,15 @@ class MapGraphService {
         final floorsByPublicId = {
           for (final floor in floors) floor.floorId: floor,
         };
+
+        if (request.walls != null) {
+          await _replaceWalls(
+            session,
+            lockedGraph.id!,
+            request.walls!,
+            transaction,
+          );
+        }
 
         await _applyNodePatch(
           session,
@@ -1155,6 +1196,7 @@ class MapGraphService {
     required List<MapNodeInput> nodes,
     required List<MapEdgeInput> edges,
     required List<LocationInput> locations,
+    required List<WallInput> walls,
   }) {
     if (floors.isEmpty) {
       throw _validation('A graph must contain at least one floor.');
@@ -1163,14 +1205,14 @@ class MapGraphService {
     final floorNumbers = <int>{};
     for (final floor in floors) {
       _requireIdentifier(floor.floorId, 'floorId');
-      if (!floor.width.isFinite ||
-          floor.width <= 0 ||
-          !floor.height.isFinite ||
-          floor.height <= 0 ||
-          !floor.metersPerUnit.isFinite ||
-          floor.metersPerUnit <= 0) {
-        throw _validation('Floor dimensions and scale must be positive.');
-      }
+      _guardGeometry(
+        () => _dataSafety.validateFloor(
+          floorId: floor.floorId,
+          width: floor.width,
+          height: floor.height,
+          metersPerUnit: floor.metersPerUnit,
+        ),
+      );
       if (floorsById.containsKey(floor.floorId) ||
           !floorNumbers.add(floor.floorNumber)) {
         throw _validation('Floor IDs and floor numbers must be unique.');
@@ -1178,6 +1220,31 @@ class MapGraphService {
       floorsById[floor.floorId] = floor;
     }
 
+    final wallIds = <String>{};
+    final obstacles = <ExclusionPolygon>[];
+    for (final wall in walls) {
+      _requireIdentifier(wall.wallId, 'wallId');
+      if (!wallIds.add(wall.wallId))
+        throw _validation('Wall IDs must be unique within the graph.');
+      final floor = floorsById[wall.floorId];
+      if (floor == null)
+        throw _validation('Wall ${wall.wallId} references an unknown floor.');
+      final obstacle = ExclusionPolygon(
+        id: wall.wallId,
+        floorId: wall.floorId,
+        vertices: wall.vertices.map((v) => FloorPoint(v.x, v.y)).toList(),
+      );
+      _guardGeometry(
+        () => _dataSafety.validateFloor(
+          floorId: floor.floorId,
+          width: floor.width,
+          height: floor.height,
+          metersPerUnit: floor.metersPerUnit,
+          obstacles: [obstacle],
+        ),
+      );
+      obstacles.add(obstacle);
+    }
     final nodesById = <String, MapNodeInput>{};
     for (final node in nodes) {
       _requireIdentifier(node.nodeId, 'nodeId');
@@ -1185,14 +1252,17 @@ class MapGraphService {
       if (floor == null) {
         throw _validation('Node ${node.nodeId} references an unknown floor.');
       }
-      if (!node.x.isFinite ||
-          !node.y.isFinite ||
-          node.x < 0 ||
-          node.y < 0 ||
-          node.x > floor.width ||
-          node.y > floor.height) {
-        throw _validation('Node ${node.nodeId} is outside its floor bounds.');
-      }
+      _guardGeometry(
+        () => _dataSafety.validatePoint(
+          entityId: node.nodeId,
+          floorId: node.floorId,
+          point: FloorPoint(node.x, node.y),
+          floorWidth: floor.width,
+          floorHeight: floor.height,
+          metersPerUnit: floor.metersPerUnit,
+          obstacles: obstacles,
+        ),
+      );
       if (nodesById.containsKey(node.nodeId)) {
         throw _validation('Node IDs must be unique within the graph.');
       }
@@ -1230,6 +1300,17 @@ class MapGraphService {
       }
       if (crossFloor && edge.cost == null) {
         throw _validation('Cross-floor edges require an explicit cost.');
+      }
+      if (!crossFloor) {
+        _guardGeometry(
+          () => _dataSafety.validateSegment(
+            entityId: edge.edgeId,
+            floorId: from.floorId,
+            start: FloorPoint(from.x, from.y),
+            end: FloorPoint(to.x, to.y),
+            obstacles: obstacles,
+          ),
+        );
       }
       connectedNodeIds.add(from.nodeId);
       connectedNodeIds.add(to.nodeId);
@@ -1273,6 +1354,60 @@ class MapGraphService {
           );
         }
       }
+    }
+  }
+
+  WallInput _wallToInput(MapWall wall) {
+    final vertices = (jsonDecode(wall.verticesJson) as List).map((value) {
+      final pair = value as List;
+      return WallPoint(
+        x: (pair[0] as num).toDouble(),
+        y: (pair[1] as num).toDouble(),
+      );
+    }).toList();
+    return WallInput(
+      wallId: wall.wallId,
+      floorId: wall.floorId,
+      vertices: vertices,
+    );
+  }
+
+  Future<void> _replaceWalls(
+    Session session,
+    int graphId,
+    List<WallInput> walls,
+    Transaction transaction,
+  ) async {
+    await MapWall.db.deleteWhere(
+      session,
+      where: (t) => t.graphId.equals(graphId),
+      transaction: transaction,
+    );
+    if (walls.isNotEmpty) {
+      await MapWall.db.insert(
+        session,
+        walls
+            .map(
+              (wall) => MapWall(
+                graphId: graphId,
+                wallId: wall.wallId,
+                floorId: wall.floorId,
+                verticesJson: jsonEncode(
+                  wall.vertices.map((v) => [v.x, v.y]).toList(),
+                ),
+              ),
+            )
+            .toList(),
+        transaction: transaction,
+      );
+    }
+  }
+
+  void _guardGeometry(void Function() validation) {
+    try {
+      validation();
+    } on DataSafetyViolation catch (error) {
+      throw _validation(error.message);
     }
   }
 

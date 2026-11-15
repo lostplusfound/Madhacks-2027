@@ -23,6 +23,10 @@ import 'package:madmaps_server/src/generated/node.dart' as _iccguhj3;
 import 'package:madmaps_server/src/generated/search_result.dart' as _iw7f3ebs;
 import 'package:serverpod/protocol.dart' as _isp;
 import 'package:serverpod/serverpod.dart' as _is;
+import 'package:serverpod_auth_core_server/serverpod_auth_core_server.dart'
+    as _iacs;
+import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
+    as _iais;
 import 'building.dart' as _icdi8t76;
 import 'create_graph_request.dart' as _ihh4bgnv;
 import 'edge.dart' as _ilmyslsx;
@@ -43,12 +47,15 @@ import 'map_graph.dart' as _ikb2yia4;
 import 'map_graph_snapshot.dart' as _iuswi8s2;
 import 'map_node_input.dart' as _i3qve637;
 import 'map_report.dart' as _iictijcz;
+import 'map_wall.dart' as _i064s9h8;
 import 'node.dart' as _i9tve71o;
 import 'replace_graph_request.dart' as _iz7e8f0p;
 import 'report_reason.dart' as _ijgj7dn0;
 import 'report_status.dart' as _i8pcsu0p;
 import 'report_target_type.dart' as _iyydfyiu;
 import 'search_result.dart' as _ifcih7a1;
+import 'wall_input.dart' as _icks2m2l;
+import 'wall_point.dart' as _inoptxl6;
 export 'building.dart';
 export 'create_graph_request.dart';
 export 'edge.dart';
@@ -69,12 +76,15 @@ export 'map_graph.dart';
 export 'map_graph_snapshot.dart';
 export 'map_node_input.dart';
 export 'map_report.dart';
+export 'map_wall.dart';
 export 'node.dart';
 export 'replace_graph_request.dart';
 export 'report_reason.dart';
 export 'report_status.dart';
 export 'report_target_type.dart';
 export 'search_result.dart';
+export 'wall_input.dart';
+export 'wall_point.dart';
 
 class Protocol extends _is.DatabaseSerializationManager
     implements _is.DatabaseProtocolDeserializationProvider {
@@ -82,7 +92,7 @@ class Protocol extends _is.DatabaseSerializationManager
 
   factory Protocol() => _instance;
 
-  static final Protocol _instance = Protocol._();
+  static final Protocol _instance = Protocol._().._registerHostProtocols();
 
   @override
   _is.ProtocolDeserialization get deserializationMetadata =>
@@ -109,12 +119,15 @@ class Protocol extends _is.DatabaseSerializationManager
           _is.getType<_iuswi8s2.MapGraphSnapshot>,
           _is.getType<_i3qve637.MapNodeInput>,
           _is.getType<_iictijcz.MapReport>,
+          _is.getType<_i064s9h8.MapWall>,
           _is.getType<_i9tve71o.Nodes>,
           _is.getType<_iz7e8f0p.ReplaceGraphRequest>,
           _is.getType<_ijgj7dn0.ReportReason>,
           _is.getType<_i8pcsu0p.ReportStatus>,
           _is.getType<_iyydfyiu.ReportTargetType>,
           _is.getType<_ifcih7a1.SearchResult>,
+          _is.getType<_icks2m2l.WallInput>,
+          _is.getType<_inoptxl6.WallPoint>,
           _is.getType<_icdi8t76.Building?>,
           _is.getType<_ihh4bgnv.CreateGraphRequest?>,
           _is.getType<_ilmyslsx.Edge?>,
@@ -135,21 +148,27 @@ class Protocol extends _is.DatabaseSerializationManager
           _is.getType<_iuswi8s2.MapGraphSnapshot?>,
           _is.getType<_i3qve637.MapNodeInput?>,
           _is.getType<_iictijcz.MapReport?>,
+          _is.getType<_i064s9h8.MapWall?>,
           _is.getType<_i9tve71o.Nodes?>,
           _is.getType<_iz7e8f0p.ReplaceGraphRequest?>,
           _is.getType<_ijgj7dn0.ReportReason?>,
           _is.getType<_i8pcsu0p.ReportStatus?>,
           _is.getType<_iyydfyiu.ReportTargetType?>,
           _is.getType<_ifcih7a1.SearchResult?>,
+          _is.getType<_icks2m2l.WallInput?>,
+          _is.getType<_inoptxl6.WallPoint?>,
           _is.getType<List<_i647gghf.FloorInput>>,
           _is.getType<List<_i3qve637.MapNodeInput>>,
           _is.getType<List<_ipndifli.MapEdgeInput>>,
           _is.getType<List<_iaviofrw.LocationInput>>,
+          _is.getType<List<_icks2m2l.WallInput>>,
+          _is.getType<List<_icks2m2l.WallInput>?>,
           _is.getType<List<String>>,
           _is.getType<List<_ibt68ans.Floor>>,
           _is.getType<List<_i9tve71o.Nodes>>,
           _is.getType<List<_ilmyslsx.Edge>>,
           _is.getType<List<_iy2kpyso.Locations>>,
+          _is.getType<List<_inoptxl6.WallPoint>>,
           _is.getType<List<_immk5i13.Building>>,
           _is.getType<List<_idkqo2s3.Locations>>,
           _is.getType<List<_iw7f3ebs.SearchResult>>,
@@ -160,7 +179,11 @@ class Protocol extends _is.DatabaseSerializationManager
           _is.getType<List<_iccguhj3.Nodes>>,
           _is.getType<List<_iyphw3s3.MapReport>>,
         ],
-        modules: const [_isp.Protocol.new],
+        modules: const [
+          _iais.Protocol.new,
+          _iacs.Protocol.new,
+          _isp.Protocol.new,
+        ],
         classNames: const [
           'Building',
           'CreateGraphRequest',
@@ -182,17 +205,22 @@ class Protocol extends _is.DatabaseSerializationManager
           'MapGraphSnapshot',
           'MapNodeInput',
           'MapReport',
+          'MapWall',
           'Nodes',
           'ReplaceGraphRequest',
           'ReportReason',
           'ReportStatus',
           'ReportTargetType',
           'SearchResult',
+          'WallInput',
+          'WallPoint',
         ],
       );
 
   static List<_isp.TableDefinition> get targetTableDefinitions => [
     ..._ownTableDefinitions,
+    ..._iais.Protocol().getOwnTableDefinitions(),
+    ..._iacs.Protocol().getOwnTableDefinitions(),
     ..._isp.Protocol.targetTableDefinitions,
   ];
 
@@ -1080,6 +1108,77 @@ class Protocol extends _is.DatabaseSerializationManager
       managed: true,
     ),
     _isp.TableDefinition(
+      name: 'map_wall',
+      dartName: 'MapWall',
+      schema: 'public',
+      module: 'madmaps',
+      columns: [
+        _isp.ColumnDefinition(
+          name: 'id',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int?',
+          columnDefault: 'serial',
+        ),
+        _isp.ColumnDefinition(
+          name: 'graph_id',
+          columnType: _isp.ColumnType.bigint,
+          isNullable: false,
+          dartType: 'int',
+        ),
+        _isp.ColumnDefinition(
+          name: 'wall_id',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _isp.ColumnDefinition(
+          name: 'floor_id',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+        _isp.ColumnDefinition(
+          name: 'vertices_json',
+          columnType: _isp.ColumnType.text,
+          isNullable: false,
+          dartType: 'String',
+        ),
+      ],
+      foreignKeys: [
+        _isp.ForeignKeyDefinition(
+          constraintName: 'map_wall_fk_0',
+          columns: ['graph_id'],
+          referenceTable: 'map_graph',
+          referenceTableSchema: 'public',
+          referenceColumns: ['id'],
+          onUpdate: _isp.ForeignKeyAction.noAction,
+          onDelete: _isp.ForeignKeyAction.noAction,
+          matchType: null,
+        ),
+      ],
+      indexes: [
+        _isp.IndexDefinition(
+          indexName: 'map_wall_graph_wall_idx',
+          tableSpace: null,
+          elements: [
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'graph_id',
+            ),
+            _isp.IndexElementDefinition(
+              type: _isp.IndexElementDefinitionType.column,
+              definition: 'wall_id',
+            ),
+          ],
+          type: 'btree',
+          isUnique: true,
+          isPrimary: false,
+        ),
+      ],
+      managed: true,
+    ),
+    _isp.TableDefinition(
       name: 'nodes',
       dartName: 'Nodes',
       schema: 'public',
@@ -1342,6 +1441,9 @@ class Protocol extends _is.DatabaseSerializationManager
     if (t == _iictijcz.MapReport) {
       return _iictijcz.MapReport.fromJson(data) as T;
     }
+    if (t == _i064s9h8.MapWall) {
+      return _i064s9h8.MapWall.fromJson(data) as T;
+    }
     if (t == _i9tve71o.Nodes) {
       return _i9tve71o.Nodes.fromJson(data) as T;
     }
@@ -1359,6 +1461,12 @@ class Protocol extends _is.DatabaseSerializationManager
     }
     if (t == _ifcih7a1.SearchResult) {
       return _ifcih7a1.SearchResult.fromJson(data) as T;
+    }
+    if (t == _icks2m2l.WallInput) {
+      return _icks2m2l.WallInput.fromJson(data) as T;
+    }
+    if (t == _inoptxl6.WallPoint) {
+      return _inoptxl6.WallPoint.fromJson(data) as T;
     }
     if (t == _is.getType<_icdi8t76.Building?>()) {
       return (data != null ? _icdi8t76.Building.fromJson(data) : null) as T;
@@ -1428,6 +1536,9 @@ class Protocol extends _is.DatabaseSerializationManager
     if (t == _is.getType<_iictijcz.MapReport?>()) {
       return (data != null ? _iictijcz.MapReport.fromJson(data) : null) as T;
     }
+    if (t == _is.getType<_i064s9h8.MapWall?>()) {
+      return (data != null ? _i064s9h8.MapWall.fromJson(data) : null) as T;
+    }
     if (t == _is.getType<_i9tve71o.Nodes?>()) {
       return (data != null ? _i9tve71o.Nodes.fromJson(data) : null) as T;
     }
@@ -1449,6 +1560,12 @@ class Protocol extends _is.DatabaseSerializationManager
     }
     if (t == _is.getType<_ifcih7a1.SearchResult?>()) {
       return (data != null ? _ifcih7a1.SearchResult.fromJson(data) : null) as T;
+    }
+    if (t == _is.getType<_icks2m2l.WallInput?>()) {
+      return (data != null ? _icks2m2l.WallInput.fromJson(data) : null) as T;
+    }
+    if (t == _is.getType<_inoptxl6.WallPoint?>()) {
+      return (data != null ? _inoptxl6.WallPoint.fromJson(data) : null) as T;
     }
     if (t == List<_i647gghf.FloorInput>) {
       return (data as List)
@@ -1474,6 +1591,20 @@ class Protocol extends _is.DatabaseSerializationManager
               .toList()
           as T;
     }
+    if (t == List<_icks2m2l.WallInput>) {
+      return (data as List)
+              .map((e) => deserialize<_icks2m2l.WallInput>(e))
+              .toList()
+          as T;
+    }
+    if (t == _is.getType<List<_icks2m2l.WallInput>?>()) {
+      return (data != null
+              ? (data as List)
+                    .map((e) => deserialize<_icks2m2l.WallInput>(e))
+                    .toList()
+              : null)
+          as T;
+    }
     if (t == List<String>) {
       return (data as List).map((e) => deserialize<String>(e)).toList() as T;
     }
@@ -1492,6 +1623,12 @@ class Protocol extends _is.DatabaseSerializationManager
     if (t == List<_iy2kpyso.Locations>) {
       return (data as List)
               .map((e) => deserialize<_iy2kpyso.Locations>(e))
+              .toList()
+          as T;
+    }
+    if (t == List<_inoptxl6.WallPoint>) {
+      return (data as List)
+              .map((e) => deserialize<_inoptxl6.WallPoint>(e))
               .toList()
           as T;
     }
@@ -1580,12 +1717,15 @@ class Protocol extends _is.DatabaseSerializationManager
       _iuswi8s2.MapGraphSnapshot => 'MapGraphSnapshot',
       _i3qve637.MapNodeInput => 'MapNodeInput',
       _iictijcz.MapReport => 'MapReport',
+      _i064s9h8.MapWall => 'MapWall',
       _i9tve71o.Nodes => 'Nodes',
       _iz7e8f0p.ReplaceGraphRequest => 'ReplaceGraphRequest',
       _ijgj7dn0.ReportReason => 'ReportReason',
       _i8pcsu0p.ReportStatus => 'ReportStatus',
       _iyydfyiu.ReportTargetType => 'ReportTargetType',
       _ifcih7a1.SearchResult => 'SearchResult',
+      _icks2m2l.WallInput => 'WallInput',
+      _inoptxl6.WallPoint => 'WallPoint',
       _ => null,
     };
   }
@@ -1640,6 +1780,8 @@ class Protocol extends _is.DatabaseSerializationManager
         return 'MapNodeInput';
       case _iictijcz.MapReport():
         return 'MapReport';
+      case _i064s9h8.MapWall():
+        return 'MapWall';
       case _i9tve71o.Nodes():
         return 'Nodes';
       case _iz7e8f0p.ReplaceGraphRequest():
@@ -1652,6 +1794,22 @@ class Protocol extends _is.DatabaseSerializationManager
         return 'ReportTargetType';
       case _ifcih7a1.SearchResult():
         return 'SearchResult';
+      case _icks2m2l.WallInput():
+        return 'WallInput';
+      case _inoptxl6.WallPoint():
+        return 'WallPoint';
+    }
+    className = _iais.Protocol().getClassNameForObject(data);
+    if (className != null) {
+      return className.contains('.')
+          ? className
+          : 'serverpod_auth_idp.$className';
+    }
+    className = _iacs.Protocol().getClassNameForObject(data);
+    if (className != null) {
+      return className.contains('.')
+          ? className
+          : 'serverpod_auth_core.$className';
     }
     className = _isp.Protocol().getClassNameForObject(data);
     if (className != null) {
@@ -1726,6 +1884,9 @@ class Protocol extends _is.DatabaseSerializationManager
     if (dataClassName == 'MapReport') {
       return deserialize<_iictijcz.MapReport>(data['data']);
     }
+    if (dataClassName == 'MapWall') {
+      return deserialize<_i064s9h8.MapWall>(data['data']);
+    }
     if (dataClassName == 'Nodes') {
       return deserialize<_i9tve71o.Nodes>(data['data']);
     }
@@ -1744,6 +1905,24 @@ class Protocol extends _is.DatabaseSerializationManager
     if (dataClassName == 'SearchResult') {
       return deserialize<_ifcih7a1.SearchResult>(data['data']);
     }
+    if (dataClassName == 'WallInput') {
+      return deserialize<_icks2m2l.WallInput>(data['data']);
+    }
+    if (dataClassName == 'WallPoint') {
+      return deserialize<_inoptxl6.WallPoint>(data['data']);
+    }
+    if (dataClassName.startsWith('serverpod_auth_idp.')) {
+      return _iais.Protocol().deserializeByClassName({
+        ...data,
+        'className': dataClassName.substring(19),
+      });
+    }
+    if (dataClassName.startsWith('serverpod_auth_core.')) {
+      return _iacs.Protocol().deserializeByClassName({
+        ...data,
+        'className': dataClassName.substring(20),
+      });
+    }
     if (dataClassName.startsWith('serverpod.')) {
       return _isp.Protocol().deserializeByClassName({
         ...data,
@@ -1753,8 +1932,25 @@ class Protocol extends _is.DatabaseSerializationManager
     return super.deserializeByClassName(data);
   }
 
+  void _registerHostProtocols() {
+    _iais.Protocol().registerHostProtocol('madmaps', this);
+    _iacs.Protocol().registerHostProtocol('madmaps', this);
+  }
+
   @override
   _is.Table? getTableForType(Type t) {
+    {
+      var table = _iais.Protocol().getTableForType(t);
+      if (table != null) {
+        return table;
+      }
+    }
+    {
+      var table = _iacs.Protocol().getTableForType(t);
+      if (table != null) {
+        return table;
+      }
+    }
     {
       var table = _isp.Protocol().getTableForType(t);
       if (table != null) {
@@ -1774,6 +1970,8 @@ class Protocol extends _is.DatabaseSerializationManager
         return _ikb2yia4.MapGraph.t;
       case _iictijcz.MapReport:
         return _iictijcz.MapReport.t;
+      case _i064s9h8.MapWall:
+        return _i064s9h8.MapWall.t;
       case _i9tve71o.Nodes:
         return _i9tve71o.Nodes.t;
     }
@@ -1800,7 +1998,10 @@ class Protocol extends _is.DatabaseSerializationManager
       return null;
     }
     try {
-      return _isp.Protocol().mapRecordToJson(record);
+      return _iais.Protocol().mapRecordToJson(record);
+    } catch (_) {}
+    try {
+      return _iacs.Protocol().mapRecordToJson(record);
     } catch (_) {}
     throw Exception('Unsupported record type ${record.runtimeType}');
   }

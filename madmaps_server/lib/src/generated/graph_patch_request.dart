@@ -15,6 +15,7 @@ import 'package:serverpod/serverpod.dart' as _is;
 import 'location_input.dart' as _iaviofrw;
 import 'map_edge_input.dart' as _ipndifli;
 import 'map_node_input.dart' as _i3qve637;
+import 'wall_input.dart' as _icks2m2l;
 
 abstract class GraphPatchRequest
     implements _is.SerializableModel, _is.ProtocolSerialization {
@@ -30,6 +31,7 @@ abstract class GraphPatchRequest
     required this.locationsToCreate,
     required this.locationsToUpdate,
     required this.locationIdsToDelete,
+    this.walls,
   });
 
   factory GraphPatchRequest({
@@ -44,6 +46,7 @@ abstract class GraphPatchRequest
     required List<_iaviofrw.LocationInput> locationsToCreate,
     required List<_iaviofrw.LocationInput> locationsToUpdate,
     required List<String> locationIdsToDelete,
+    List<_icks2m2l.WallInput>? walls,
   }) = _GraphPatchRequestImpl;
 
   factory GraphPatchRequest.fromJson(Map<String, dynamic> jsonSerialization) {
@@ -83,6 +86,11 @@ abstract class GraphPatchRequest
       locationIdsToDelete: _i1t1vlhc.Protocol().deserialize<List<String>>(
         jsonSerialization['locationIdsToDelete'],
       ),
+      walls: jsonSerialization['walls'] == null
+          ? null
+          : _i1t1vlhc.Protocol().deserialize<List<_icks2m2l.WallInput>>(
+              jsonSerialization['walls'],
+            ),
     );
   }
 
@@ -108,6 +116,8 @@ abstract class GraphPatchRequest
 
   List<String> locationIdsToDelete;
 
+  List<_icks2m2l.WallInput>? walls;
+
   /// Returns a shallow copy of this [GraphPatchRequest]
   /// with some or all fields replaced by the given arguments.
   @_is.useResult
@@ -123,6 +133,8 @@ abstract class GraphPatchRequest
     List<_iaviofrw.LocationInput>? locationsToCreate,
     List<_iaviofrw.LocationInput>? locationsToUpdate,
     List<String>? locationIdsToDelete,
+    List<_icks2m2l.WallInput>? walls =
+        const _is.$UndefinedList<_icks2m2l.WallInput>(),
   });
   @override
   Map<String, dynamic> toJson() {
@@ -143,6 +155,7 @@ abstract class GraphPatchRequest
         valueToJson: (v) => v.toJson(),
       ),
       'locationIdsToDelete': locationIdsToDelete.toJson(),
+      if (walls != null) 'walls': walls?.toJson(valueToJson: (v) => v.toJson()),
     };
   }
 
@@ -173,6 +186,8 @@ abstract class GraphPatchRequest
         valueToJson: (v) => v.toJsonForProtocol(),
       ),
       'locationIdsToDelete': locationIdsToDelete.toJson(),
+      if (walls != null)
+        'walls': walls?.toJson(valueToJson: (v) => v.toJsonForProtocol()),
     };
   }
 
@@ -195,6 +210,7 @@ class _GraphPatchRequestImpl extends GraphPatchRequest {
     required List<_iaviofrw.LocationInput> locationsToCreate,
     required List<_iaviofrw.LocationInput> locationsToUpdate,
     required List<String> locationIdsToDelete,
+    List<_icks2m2l.WallInput>? walls,
   }) : super._(
          graphId: graphId,
          expectedVersion: expectedVersion,
@@ -207,6 +223,7 @@ class _GraphPatchRequestImpl extends GraphPatchRequest {
          locationsToCreate: locationsToCreate,
          locationsToUpdate: locationsToUpdate,
          locationIdsToDelete: locationIdsToDelete,
+         walls: walls,
        );
 
   /// Returns a shallow copy of this [GraphPatchRequest]
@@ -225,6 +242,8 @@ class _GraphPatchRequestImpl extends GraphPatchRequest {
     List<_iaviofrw.LocationInput>? locationsToCreate,
     List<_iaviofrw.LocationInput>? locationsToUpdate,
     List<String>? locationIdsToDelete,
+    List<_icks2m2l.WallInput>? walls =
+        const _is.$UndefinedList<_icks2m2l.WallInput>(),
   }) {
     return GraphPatchRequest(
       graphId: graphId ?? this.graphId,
@@ -254,6 +273,9 @@ class _GraphPatchRequestImpl extends GraphPatchRequest {
       locationIdsToDelete:
           locationIdsToDelete ??
           this.locationIdsToDelete.map((e0) => e0).toList(),
+      walls: walls is _is.UndefinedSentinel
+          ? this.walls?.map((e0) => e0.copyWith()).toList()
+          : walls,
     );
   }
 }

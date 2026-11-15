@@ -11,3 +11,4 @@ fields:
   locationsToCreate: List<LocationInput>
   locationsToUpdate: List<LocationInput>
   locationIdsToDelete: List<String>
+  walls: List<WallInput>?

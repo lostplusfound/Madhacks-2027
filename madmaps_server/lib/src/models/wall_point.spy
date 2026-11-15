@@ -1,0 +1,4 @@
+class: WallPoint
+fields:
+  x: double
+  y: double
