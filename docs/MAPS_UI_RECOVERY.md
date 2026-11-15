@@ -1,5 +1,7 @@
 # Maps and Swara UI integration
 
+Current behavior: [all-floor routing and shared AR capture](ALL_FLOOR_NAVIGATION.md). Floor-1-only statements below describe the earlier implementation.
+
 The integration continues the recovered local changes on
 `integration/maps-swara-recovery`, based on `abd7405`. Source map handoff:
 `origin/main` at `36b57cc`; UI reference: `origin/ui_swara` at `e1b36cf`.

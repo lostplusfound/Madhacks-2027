@@ -1,0 +1,165 @@
+import 'dart:convert';
+import 'package:test/test.dart';
+import 'package:madmaps_server/src/generated/protocol.dart';
+import '../unit/capture_validation_test.dart' show captureFixture;
+import 'test_tools/serverpod_test_tools.dart';
+
+void main() {
+  withServerpod('Shared mapping', (sessions, endpoints) {
+    Future<MapGraphSnapshot> graph() async {
+      final owner = sessions.copyWith(
+        authentication: AuthenticationOverride.authenticationInfo(
+          'mapper-owner',
+          const {},
+        ),
+      );
+      await endpoints.building.createBuilding(
+        owner,
+        'capture-building',
+        'Capture Building',
+        null,
+      );
+      return endpoints.mapGraph.createGraph(
+        owner,
+        CreateGraphRequest(
+          graphId: 'capture-floor',
+          buildingId: 'capture-building',
+          name: 'Floor 2',
+          floors: [
+            FloorInput(
+              floorId: 'capture-floor',
+              floorNumber: 2,
+              width: 1632,
+              height: 1056,
+              metersPerUnit: .1,
+            ),
+          ],
+          nodes: [
+            MapNodeInput(
+              nodeId: 'a',
+              floorId: 'capture-floor',
+              x: 100,
+              y: 100,
+              kind: Kind.junction,
+            ),
+            MapNodeInput(
+              nodeId: 'b',
+              floorId: 'capture-floor',
+              x: 160,
+              y: 100,
+              kind: Kind.junction,
+            ),
+          ],
+          edges: [
+            MapEdgeInput(
+              edgeId: 'a-b',
+              fromNodeId: 'a',
+              toNodeId: 'b',
+              type: EdgeType.walk,
+              bidirectional: true,
+            ),
+          ],
+          locations: [],
+        ),
+      );
+    }
+
+    ArCapture input(int version) => ArCapture(
+      captureId: 'scan-1',
+      graphId: 'capture-floor',
+      graphVersion: version,
+      floorNumber: 2,
+      anchorMapJson: jsonEncode(captureFixture(DateTime.now().toUtc())),
+      expiresAt: DateTime.utc(2030),
+    );
+    test(
+      'public capture upload is idempotent and another phone can read it',
+      () async {
+        final snapshot = await graph();
+        final request = input(snapshot.graph.version);
+        final first = await endpoints.buildingMap.publishCapture(
+          sessions,
+          request,
+        );
+        final retry = await endpoints.buildingMap.publishCapture(
+          sessions,
+          request,
+        );
+        expect(retry.id, first.id);
+        expect(
+          first.expiresAt.isBefore(DateTime.now().add(const Duration(days: 2))),
+          isTrue,
+        );
+        final shared = await endpoints.buildingMap.listCaptures(
+          sessions,
+          'capture-floor',
+          snapshot.graph.version,
+        );
+        expect(shared.map((c) => c.captureId), ['scan-1']);
+        expect(
+          await endpoints.buildingMap.listCaptures(
+            sessions,
+            'capture-floor',
+            snapshot.graph.version + 1,
+          ),
+          isEmpty,
+        );
+      },
+    );
+    test('capture ID conflicts cannot replace another contribution', () async {
+      final snapshot = await graph();
+      final original = input(snapshot.graph.version);
+      await endpoints.buildingMap.publishCapture(sessions, original);
+      final altered =
+          jsonDecode(original.anchorMapJson) as Map<String, dynamic>;
+      altered['name'] = 'Different';
+      await expectLater(
+        endpoints.buildingMap.publishCapture(
+          sessions,
+          original.copyWith(anchorMapJson: jsonEncode(altered)),
+        ),
+        throwsA(
+          isA<MapApiException>().having(
+            (e) => e.code,
+            'code',
+            'captureConflict',
+          ),
+        ),
+      );
+    });
+    test('stale map revision and graph overrides are rejected', () async {
+      final snapshot = await graph();
+      await expectLater(
+        endpoints.buildingMap.publishCapture(
+          sessions,
+          input(snapshot.graph.version + 1),
+        ),
+        throwsA(
+          isA<MapApiException>().having(
+            (e) => e.code,
+            'code',
+            'revisionMismatch',
+          ),
+        ),
+      );
+      final request = input(snapshot.graph.version);
+      final altered = jsonDecode(request.anchorMapJson) as Map<String, dynamic>;
+      altered['floor']['nodes'] = {
+        'a': [1, 2],
+      };
+      await expectLater(
+        endpoints.buildingMap.publishCapture(
+          sessions,
+          request.copyWith(anchorMapJson: jsonEncode(altered)),
+        ),
+        throwsA(
+          isA<MapApiException>().having(
+            (e) => e.code,
+            'code',
+            'invalidCapture',
+          ),
+        ),
+      );
+    });
+  });
+}

@@ -1,4 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import 'package:madmaps_client/madmaps_client.dart' as api;
+import 'package:madmaps/features/navigation/map_repository.dart';
+import 'package:madmaps/features/shell/navigation_session.dart';
+import 'map_repository_test.dart' show fixture;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/services.dart'
@@ -16,6 +22,22 @@ class FakeSession extends ARSessionManager {
   FakeSession(BuildContext context)
     : super(700, context, PlaneDetectionConfig.horizontalAndVertical);
   bool closed = false;
+  int frameTimestamp = 0;
+  @override
+  Future<Map<String, dynamic>?> getLocalizationFrame(
+    List<String> names,
+  ) async => {
+    'timestamp': frameTimestamp += 100000000,
+    'camera': Matrix4.identity().storage.toList(),
+    'tracking': 'TRACKING',
+    'anchors': {
+      for (final name in names)
+        name: {
+          'pose': Matrix4.identity().storage.toList(),
+          'tracking': 'TRACKING',
+        },
+    },
+  };
   @override
   Future<void> onInitialize({
     bool showAnimatedGuide = true,
@@ -104,6 +126,128 @@ class FakeAnchors extends ARAnchorManager {
 }
 
 void main() {
+  for (final mode in [api.EdgeType.stairs, api.EdgeType.elevator]) {
+    testWidgets(
+      '${mode.name} transition confirms the destination floor before arrival, retaining the native session',
+      (tester) async {
+        await tester.pumpWidget(const MaterialApp(home: Text('AR')));
+        final native = FakeSession(tester.element(find.text('AR')));
+        final anchors = FakeAnchors();
+        final ar = ArAdapter(cloudConfigured: () async => true);
+        await ar.attach(native, anchors);
+        ar.tracking = true;
+        final floors = {
+          for (final f in [1, 2]) f: adaptSnapshot(fixture(f), floorNumber: f),
+        };
+        AnchorMap capture(int floor, String landing) {
+          final point = floors[floor]!.nodes[landing]!.point;
+          final map = AnchorMap('capture-$floor', 'Floor $floor', [
+            SavedAnchor(
+              'a-$floor',
+              'A',
+              'cloud-a-$floor',
+              Matrix4.identity(),
+              DateTime.utc(2030),
+            ),
+            SavedAnchor(
+              'b-$floor',
+              'B',
+              'cloud-b-$floor',
+              Matrix4.translationValues(3, 0, 0),
+              DateTime.utc(2030),
+            ),
+          ]);
+          map.floor
+            ..enabled = true
+            ..floorNumber = floor;
+          map.floor.anchorPoints.addAll({
+            'a-$floor': point,
+            'b-$floor': point + const Offset(30, 0),
+          });
+          map.floor.calibrationIds.addAll(['a-$floor', 'b-$floor']);
+          return map;
+        }
+
+        final maps = [
+          capture(
+            1,
+            mode == api.EdgeType.stairs
+                ? 'f1-south-stairs'
+                : 'f1-elevator-bank-approach',
+          ),
+          capture(
+            2,
+            mode == api.EdgeType.stairs
+                ? 'f2-main-stairs-landing'
+                : 'f2-elevator-landing',
+          ),
+        ];
+        final links =
+            (jsonDecode(
+                      File(
+                        '../madmaps_server/assets/floor_connectors.json',
+                      ).readAsStringSync(),
+                    )
+                    as List)
+                .map(
+                  (j) => api.FloorConnector.fromJson(j as Map<String, dynamic>),
+                )
+                .toList();
+        final target = mode == api.EdgeType.stairs
+            ? 'f2-south-stairs'
+            : 'f2-elevator-bank';
+        final session = NavigationSession()
+          ..avoidStairs = mode == api.EdgeType.elevator
+          ..choose(floors[2]!.locations.firstWhere((l) => l.id == target));
+        await tester.pumpWidget(
+          MaterialApp(
+            home: MapSessionScreen(
+              map: maps.first,
+              maps: maps,
+              adapter: ar,
+              session: session,
+              floors: floors,
+              connectors: links,
+              save: () async {},
+            ),
+          ),
+        );
+        await tester.pump();
+        final first = anchors.requests.entries
+            .firstWhere((e) => e.value == 'cloud-a-1')
+            .key;
+        anchors.resolveRequest(first);
+        await tester.pump();
+        for (var i = 0; i < 15; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+        expect(session.currentFloor, 1);
+        expect(
+          session.instruction,
+          contains(
+            mode == api.EdgeType.stairs ? 'South stairs' : 'Elevator bank',
+          ),
+        );
+        expect(session.instruction, isNot(contains('arrived')));
+        final second = anchors.requests.entries
+            .lastWhere((e) => e.value == 'cloud-a-2')
+            .key;
+        anchors.resolveRequest(second);
+        await tester.pump();
+        for (var i = 0; i < 15; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+        expect(session.currentFloor, 2);
+        expect(session.destination!.id, target);
+        expect(session.instruction, contains('arrived'));
+        expect(ar.session, same(native));
+        expect(native.closed, isFalse);
+        await tester.pumpWidget(const SizedBox());
+        session.dispose();
+      },
+    );
+  }
+
   testWidgets(
     'failed discovery retries after twenty seconds and reacquires after background',
     (tester) async {
@@ -137,6 +281,9 @@ void main() {
       expect(anchors.requests.length, 2);
       anchors.resolveRequest(anchors.requests.keys.last);
       await tester.pump();
+      for (var i = 0; i < 8; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
       expect(find.text('Selected floor'), findsOneWidget);
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
       await tester.pump();
@@ -146,6 +293,9 @@ void main() {
       expect(anchors.requests.length, 3);
       anchors.resolveRequest(anchors.requests.keys.last);
       await tester.pump();
+      for (var i = 0; i < 8; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
       expect(find.text('Selected floor'), findsOneWidget);
       expect(identical(ar.session, session), true);
       await tester.pumpWidget(const SizedBox());
@@ -244,6 +394,9 @@ void main() {
       });
       anchors.resolveRequest(anchors.requests.keys.last);
       await tester.pump();
+      for (var i = 0; i < 8; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
       expect(find.text('Selected map'), findsOneWidget);
       expect(identical(ar.session, session), true);
       await tester.pumpWidget(const SizedBox());
@@ -502,6 +655,9 @@ void main() {
       expect(anchors.requests.length, 2);
       anchors.resolveRequest(anchors.requests.keys.last);
       await tester.pump();
+      for (var i = 0; i < 8; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
       expect(find.text('Floor 1'), findsOneWidget);
       expect(identical(ar.session, session), true);
       expect(session.closed, false);

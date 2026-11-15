@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:madmaps_client/madmaps_client.dart' as api;
 import '../navigation/floor_data.dart';
 import '../navigation/routing.dart';
 
@@ -6,7 +7,25 @@ import '../navigation/routing.dart';
 /// Both the shell and the session can be tested without creating a platform view.
 class NavigationSession extends ChangeNotifier {
   FloorLocation? destination;
+  Map<int, FloorGraph> floors = {};
+  List<api.FloorConnector> connectors = [];
+  void updateMaps(Map<int, FloorGraph> value, List<api.FloorConnector> links) {
+    floors = value;
+    connectors = links;
+    revision++;
+    notifyListeners();
+  }
+
   bool attached = false;
+  bool avoidStairs = false;
+  int? currentFloor;
+  void setAvoidStairs(bool value) {
+    if (avoidStairs == value) return;
+    avoidStairs = value;
+    revision++;
+    notifyListeners();
+  }
+
   String instruction = 'Find your location to start navigation';
   double? remainingMeters;
   bool _arrivalRecorded = false;
@@ -35,7 +54,7 @@ class NavigationSession extends ChangeNotifier {
   bool update(GuidanceState guidance, {required bool tracking}) {
     final previousInstruction = instruction;
     final previousDistance = remainingMeters;
-    remainingMeters = tracking ? guidance.remainingMeters : null;
+    remainingMeters = tracking ? guidance.tripMeters : null;
     instruction = !tracking
         ? 'Tracking paused - scan surroundings to resume'
         : guidance.arrived

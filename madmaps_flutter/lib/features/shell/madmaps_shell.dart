@@ -1,4 +1,8 @@
 import 'dart:async';
+import '../../client.dart';
+import 'package:madmaps_client/madmaps_client.dart' as api;
+import '../localization/shared_captures.dart';
+import '../localization/capture_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import '../localization/map_data.dart';
@@ -31,6 +35,18 @@ class _MadMapsShellState extends State<MadMapsShell>
   FloorGraph? graph;
   Map<int, FloorGraph> floors = {};
   int displayedFloor = 1;
+  List<api.FloorConnector> connectors = [];
+  String? connectorError;
+  int loadGeneration = 0;
+  @override
+  void reassemble() {
+    super.reassemble();
+    if (widget.repository == null && reconnectClient()) {
+      (repository as ServerMapRepository).invalidate();
+      unawaited(load());
+    }
+  }
+
   String? selectedPlace;
   String? error;
   int tab = 0;
@@ -49,21 +65,38 @@ class _MadMapsShellState extends State<MadMapsShell>
   }
 
   Future<void> load() async {
+    final generation = ++loadGeneration;
     try {
       final source = repository;
       final loaded = source is MultiFloorMapRepository
           ? await source.loadFloors()
           : {1: await source.load()};
       final result = loaded[1]!;
+      var catalog = <api.FloorConnector>[];
+      String? issue;
+      if (source is ServerMapRepository) {
+        try {
+          catalog = await (await source.connection).buildingMap
+              .listConnectors('morgridge-hall')
+              .timeout(const Duration(seconds: 12));
+        } catch (e) {
+          issue = 'Cross-floor connections unavailable: $e';
+        }
+      }
+      if (!mounted || generation != loadGeneration) return;
+      session.updateMaps(loaded, catalog);
       if (mounted) {
         setState(() {
           graph = result;
           floors = loaded;
+          connectors = catalog;
+          connectorError = issue;
           error = null;
         });
       }
     } catch (e) {
-      if (mounted) setState(() => error = 'Could not load destinations: $e');
+      if (mounted && generation == loadGeneration)
+        setState(() => error = 'Could not load destinations: $e');
     }
   }
 
@@ -139,28 +172,15 @@ class _MadMapsShellState extends State<MadMapsShell>
       tab = 1;
     });
     viewport.overview();
-    if (place.floor != 1) return;
     session.choose(place);
-    setState(() => tab = 1);
+    if (session.attached) setState(() => displayedFloor = 1);
     if (!session.attached) unawaited(openSession());
   }
 
   Future<void> openTools() async {
-    setState(() => tab = 1);
-    if (session.attached) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Use Mapping tools and Floor 1 setup in the active map toolbar. Back closes the session to manage maps.',
-          ),
-        ),
-      );
-      return;
-    }
-    await mapNavigator.currentState!.push(
-      MaterialPageRoute<void>(builder: (_) => MapsScreen(graph: graph!)),
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => CaptureHome(floors: floors)),
     );
-    if (mounted) setState(() {});
   }
 
   Future<void> openSession() async {
@@ -171,7 +191,14 @@ class _MadMapsShellState extends State<MadMapsShell>
     });
     try {
       final store = MapStore();
-      final maps = await store.load();
+      final local = await store.load();
+      final shared = repository is ServerMapRepository
+          ? await SharedCaptures().load(floors)
+          : <AnchorMap>[];
+      final maps = <AnchorMap>[
+        ...local,
+        ...shared.where((m) => !local.any((l) => l.id == m.id)),
+      ];
       if (!mounted) return;
       final usable = maps.where((m) => m.floor.calibration(m) != null).toList();
       if (usable.isEmpty) {
@@ -186,11 +213,11 @@ class _MadMapsShellState extends State<MadMapsShell>
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    'Set up Floor 1',
+                    'Scan a floor to enable live guidance',
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const Text(
-                    'Create or open an AR map, save two anchors, then calibrate them in Floor 1 setup. Your destination will stay selected.',
+                    'Choose a floor in Map with AR and capture two known points, or download shared scans. Your destination will stay selected.',
                   ),
                   const SizedBox(height: 16),
                   FilledButton(
@@ -207,15 +234,18 @@ class _MadMapsShellState extends State<MadMapsShell>
         );
         return;
       }
+      setState(() => displayedFloor = 1);
       await mapNavigator.currentState!.push(
         MaterialPageRoute<void>(
           builder: (_) => MapSessionScreen(
             map: usable.length == 1 ? usable.single : null,
             maps: usable,
-            save: () => store.save(maps),
+            save: () => store.save(local),
             session: session,
             appState: widget.state,
             graph: graph,
+            floors: floors,
+            connectors: connectors,
           ),
         ),
       );
@@ -319,26 +349,30 @@ class _MadMapsShellState extends State<MadMapsShell>
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      floorNumber != 1 || session.destination == null
+                      session.destination == null
                           ? 'Explore ${g.floorLabel}'
                           : widget.state.label(session.destination!),
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     Text(
-                      floorNumber == 1
-                          ? 'Locate with saved AR anchors to start live guidance.'
-                          : 'Navigation available on Floor 1 only',
+                      connectorError ??
+                          'Locate with shared or saved AR anchors to start live guidance.',
                     ),
                     const SizedBox(height: 12),
-                    if (floorNumber == 1)
-                      FilledButton.icon(
-                        onPressed: opening ? null : openSession,
-                        icon: const Icon(Icons.camera_alt_outlined),
-                        label: Text(
-                          opening ? 'Opening...' : 'Find my location',
-                        ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Avoid stairs'),
+                      value: session.avoidStairs,
+                      onChanged: session.setAvoidStairs,
+                    ),
+                    FilledButton.icon(
+                      onPressed: opening ? null : openSession,
+                      icon: const Icon(Icons.camera_alt_outlined),
+                      label: Text(
+                        opening ? 'Opening...' : 'Find my location',
                       ),
-                    if (floorNumber == 1 && session.destination != null)
+                    ),
+                    if (session.destination != null)
                       TextButton(
                         onPressed: session.cancel,
                         child: const Text('Cancel'),
@@ -375,6 +409,7 @@ class _MadMapsShellState extends State<MadMapsShell>
                 index: tab,
                 children: [
                   HomeScreen(
+                    key: ValueKey(clientRevision.value),
                     repository: repository,
                     places: places,
                     state: widget.state,

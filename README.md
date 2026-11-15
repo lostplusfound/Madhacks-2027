@@ -3,8 +3,9 @@
 MadMaps is an **Android indoor-navigation prototype with Serverpod map and search reads**.
 See [backend integration and setup](docs/LURAY_INTEGRATION.md) and
 [one-command Windows startup](docs/LOCAL_WINDOWS_RUNTIME.md).
-Named AR maps, saved anchor metadata, floor calibration, and map overrides stay
-on the phone. Cloud Anchor hosting/resolution uses Google directly. The visitor shell requires
+Legacy AR maps and overrides stay on the phone. New two-point AR captures can
+be shared through Serverpod; see [navigation and capture](docs/ALL_FLOOR_NAVIGATION.md).
+Cloud Anchor hosting/resolution uses Google directly. The visitor shell requires
 a successful Serverpod map load; already-loaded maps remain usable in memory.
 
 The visitor UI now provides Home search, Map, Saved and Profile tabs, using real
@@ -15,8 +16,8 @@ calibration**. Set up two anchors and Floor 1 calibration there, return to Map,
 then select **Find my location**. A missing-setup prompt retains the destination.
 Tab changes retain the active session; Cancel clears the trip, and Back closes it.
 Basement and floors 1?3 support browsing, room selection, search, and saved places.
-Only Floor 1 is routable. See [map/UI integration](docs/MAPS_UI_RECOVERY.md).
-Multi-floor/step-free routes, text-based localization,
+All four floors support graph routing through stairs and elevators. See [current navigation and capture](docs/ALL_FLOOR_NAVIGATION.md). See [map/UI integration](docs/MAPS_UI_RECOVERY.md).
+Text-based localization,
 opening hours, and report submission remain unsupported.
 
 Floor-associated maps provide a full-screen floor plan, live position/heading,
@@ -80,9 +81,8 @@ flutter devices
 flutter run -d <android-device-id> -t lib/driver.dart
 ```
 
-The phone defaults to `http://10.138.33.209:8080/`. Both devices must be on a
-network that permits device-to-device traffic. If the laptop IP changes, use
-`--dart-define=SERVER_URL=http://<new-IP>:8080/` and fully restart the app.
+The phone address is the `serverUrl` getter in `madmaps_flutter/lib/client.dart`. Both devices must be on a
+network that permits device-to-device traffic. If the laptop IP changes, edit that getter and hot reload to reconnect.
 See [Windows startup and troubleshooting](docs/LOCAL_WINDOWS_RUNTIME.md).
 
 The debug APK is `madmaps_flutter/build/app/outputs/flutter-apk/app-debug.apk`.

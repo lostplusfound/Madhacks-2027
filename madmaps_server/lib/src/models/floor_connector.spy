@@ -1,0 +1,20 @@
+class: FloorConnector
+table: floor_connector
+fields:
+  connectorId: String
+  buildingId: String
+  label: String
+  fromGraphId: String
+  fromFloor: int
+  fromNodeId: String
+  toGraphId: String
+  toFloor: int
+  toNodeId: String
+  type: EdgeType
+  seconds: double
+  bidirectional: bool, default=true
+  active: bool, default=true
+indexes:
+  floor_connector_public_idx:
+    fields: connectorId
+    unique: true

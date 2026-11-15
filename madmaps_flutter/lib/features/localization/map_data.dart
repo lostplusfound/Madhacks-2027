@@ -35,11 +35,13 @@ class AnchorMap {
   final String id;
   String name;
   final List<SavedAnchor> anchors;
+  final List<double> scanCoverage = [];
   FloorSetup floor = FloorSetup();
   Map<String, dynamic> toJson() => {
     'id': id,
     'name': name,
     'anchors': anchors.map((a) => a.toJson()).toList(),
+    if (scanCoverage.isNotEmpty) 'scanCoverage': scanCoverage,
     'floor': floor.toJson(),
   };
   factory AnchorMap.fromJson(Map<String, dynamic> j) =>
@@ -52,6 +54,9 @@ class AnchorMap {
                     SavedAnchor.fromJson(Map<String, dynamic>.from(a as Map)),
               )
               .toList(),
+        )
+        ..scanCoverage.addAll(
+          (j['scanCoverage'] as List? ?? []).map((v) => (v as num).toDouble()),
         )
         ..floor = FloorSetup.fromJson(
           j['floor'] == null

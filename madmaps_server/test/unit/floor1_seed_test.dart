@@ -12,7 +12,9 @@ MapGraphSnapshot fixture([int floorNumber = 1]) {
           as Map<String, dynamic>;
   final r = data['request'] as Map<String, dynamic>;
   return MapGraphSnapshot(
-    walls: [],
+    walls: [
+      for (final w in r['walls']) WallInput.fromJson(w as Map<String, dynamic>),
+    ],
     graph: MapGraph(
       graphId: r['graphId'],
       buildingId: 1,

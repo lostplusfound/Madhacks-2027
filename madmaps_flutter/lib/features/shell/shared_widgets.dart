@@ -46,9 +46,7 @@ class PlaceTile extends StatelessWidget {
       subtitle: Text(
         place.node == null
             ? '${place.floorLabel} - Not mapped yet'
-            : place.floor != 1
-            ? '${place.floorLabel} - View on map'
-            : 'Floor 1 - Navigate to entrance',
+            : '${place.floorLabel} - Navigate to entrance',
       ),
       onTap: showDetails
           ? () => showPlaceDetails(context, place, state, onChoose)
@@ -100,8 +98,7 @@ Future<void> showPlaceDetails(
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             Text('${place.floorLabel} - Draft floor plan'),
-            if (place.floor != 1)
-              const Text('Navigation available on Floor 1 only'),
+
             StatefulBuilder(
               builder: (context, refresh) => TextButton.icon(
                 onPressed: () {
@@ -122,16 +119,14 @@ Future<void> showPlaceDetails(
             ),
             const SizedBox(height: 16),
             FilledButton.icon(
-              onPressed: place.floor == 1 && place.node == null
+              onPressed: place.node == null
                   ? null
                   : () {
                       Navigator.pop(context);
                       navigate();
                     },
-              icon: Icon(
-                place.floor == 1 ? Icons.directions_walk : Icons.map_outlined,
-              ),
-              label: Text(place.floor == 1 ? 'Navigate' : 'View on map'),
+              icon: const Icon(Icons.directions_walk),
+              label: const Text('Navigate'),
             ),
             if (place.node == null)
               const Text('This destination has no mapped entrance yet.'),

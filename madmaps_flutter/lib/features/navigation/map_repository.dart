@@ -24,12 +24,47 @@ class ServerMapRepository implements MultiFloorMapRepository {
             return client;
           });
   final Future<api.Client> Function() _connect;
+  void invalidate() {
+    _connectionEpoch = clientRevision.value;
+    _generation++;
+    _activeClient = null;
+    _connection = null;
+    _floors.clear();
+    _categories.clear();
+    _supportedCategories.clear();
+    _searches.clear();
+  }
+
+  void checkConnection(api.Client c) {
+    if (_connectionEpoch != clientRevision.value ||
+        !identical(c, _activeClient))
+      throw StateError('Server address changed; retry the map load');
+  }
+
+  int _connectionEpoch = clientRevision.value;
   Future<api.Client>? _connection;
-  Future<api.Client> get connection =>
-      _connection ??= _connect().catchError((Object e) {
-        _connection = null;
-        throw e;
-      });
+  api.Client? _activeClient;
+  int _generation = 0;
+  Future<api.Client> get connection {
+    if (_connection != null) return _connection!;
+    final generation = _generation;
+    final pending = _connect();
+    _connectionEpoch = clientRevision.value;
+    late final Future<api.Client> future;
+    future = pending
+        .then((c) {
+          if (generation != _generation)
+            throw StateError('Server changed during connection');
+          _activeClient = c;
+          return c;
+        })
+        .catchError((Object e) {
+          if (identical(_connection, future)) _connection = null;
+          throw e;
+        });
+    return _connection = future;
+  }
+
   static const graphId = String.fromEnvironment(
     'MAP_GRAPH_ID',
     defaultValue: 'morgridge-floor1',
@@ -55,6 +90,7 @@ class ServerMapRepository implements MultiFloorMapRepository {
     final snapshot = result.snapshot;
     if (snapshot == null)
       throw const FormatException('Server returned no map.');
+    checkConnection(c);
     final graph = await adaptSnapshot(
       snapshot,
       floorNumber: floorNumber,
@@ -62,6 +98,7 @@ class ServerMapRepository implements MultiFloorMapRepository {
     final supported = await c.locationSearch
         .listQuickAccessCategories(graphFor(floorNumber))
         .timeout(const Duration(seconds: 12));
+    checkConnection(c);
     _supportedCategories = {
       ..._supportedCategories,
       ...supported.map((c) => c.name),
@@ -103,6 +140,7 @@ class ServerMapRepository implements MultiFloorMapRepository {
             100,
           )
           .timeout(const Duration(seconds: 12));
+      checkConnection(c);
       ids.addAll(results.map((r) => r.location.locationId));
     }
     return _searches[key] = ids.toList();
@@ -117,10 +155,22 @@ FloorGraph adaptSnapshot(api.MapGraphSnapshot snapshot, {int floorNumber = 1}) {
       floor.height != floorImageSize.height) {
     throw const FormatException('Map dimensions do not match the floor image.');
   }
-  if (snapshot.walls.any((w) => w.floorId == floor.floorId)) {
-    throw const FormatException(
-      'This app version supports floor graphs without wall polygons only.',
-    );
+  final barriers = <List<Offset>>[];
+  for (final wall in snapshot.walls.where((w) => w.floorId == floor.floorId)) {
+    final points = wall.vertices.map((p) => Offset(p.x, p.y)).toList();
+    if (points.length < 3 ||
+        points.any(
+          (p) =>
+              !p.dx.isFinite ||
+              !p.dy.isFinite ||
+              p.dx < 0 ||
+              p.dy < 0 ||
+              p.dx > floor.width ||
+              p.dy > floor.height,
+        )) {
+      throw const FormatException('Invalid wall geometry');
+    }
+    barriers.add(points);
   }
   final nodes = <String, FloorNode>{};
   for (final n in snapshot.nodes.where((n) => n.floor == floorNumber)) {
@@ -177,6 +227,12 @@ FloorGraph adaptSnapshot(api.MapGraphSnapshot snapshot, {int floorNumber = 1}) {
     edges,
     locations,
     floor: floorNumber,
+    graphId: snapshot.graph.graphId,
+    version: snapshot.graph.version,
+    metersPerPixel: floor.metersPerUnit == 1
+        ? const {0: .07, 1: .11, 2: .09, 3: .07}[floorNumber] ?? .1
+        : floor.metersPerUnit,
+    barriers: barriers,
     imageSize: Size(floor.width, floor.height),
   );
 }
