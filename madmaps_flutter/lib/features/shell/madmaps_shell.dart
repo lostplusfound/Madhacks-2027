@@ -29,6 +29,9 @@ class _MadMapsShellState extends State<MadMapsShell>
   final viewport = FloorViewportController();
   final tts = FlutterTts();
   FloorGraph? graph;
+  Map<int, FloorGraph> floors = {};
+  int displayedFloor = 1;
+  String? selectedPlace;
   String? error;
   int tab = 0;
   bool opening = false;
@@ -47,10 +50,15 @@ class _MadMapsShellState extends State<MadMapsShell>
 
   Future<void> load() async {
     try {
-      final result = await repository.load();
+      final source = repository;
+      final loaded = source is MultiFloorMapRepository
+          ? await source.loadFloors()
+          : {1: await source.load()};
+      final result = loaded[1]!;
       if (mounted) {
         setState(() {
           graph = result;
+          floors = loaded;
           error = null;
         });
       }
@@ -125,6 +133,13 @@ class _MadMapsShellState extends State<MadMapsShell>
   }
 
   void choose(FloorLocation place) {
+    setState(() {
+      displayedFloor = place.floor;
+      selectedPlace = place.id;
+      tab = 1;
+    });
+    viewport.overview();
+    if (place.floor != 1) return;
     session.choose(place);
     setState(() => tab = 1);
     if (!session.attached) unawaited(openSession());
@@ -215,8 +230,8 @@ class _MadMapsShellState extends State<MadMapsShell>
     }
   }
 
-  Widget mapLanding() {
-    final g = graph;
+  Widget mapLanding([int floorNumber = 1]) {
+    final g = floors[floorNumber];
     if (g == null) return const Center(child: CircularProgressIndicator());
     return Column(
       children: [
@@ -230,7 +245,23 @@ class _MadMapsShellState extends State<MadMapsShell>
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
               ),
-              const Chip(label: Text('Floor 1')),
+              Chip(label: Text(g.floorLabel)),
+              IconButton(
+                tooltip: 'Map help',
+                icon: const Icon(Icons.help_outline),
+                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Tap a room or marker for details. Pinch to zoom and rotate; drag to pan.',
+                    ),
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Show whole floor',
+                icon: const Icon(Icons.center_focus_strong),
+                onPressed: viewport.overview,
+              ),
               IconButton(
                 tooltip: 'Mapping tools',
                 onPressed: openTools,
@@ -241,52 +272,79 @@ class _MadMapsShellState extends State<MadMapsShell>
         ),
         Expanded(
           child: InteractiveFloorMap(
+            key: ValueKey(g.floor),
             graph: g,
+            selectedLocation: selectedPlace,
+            highContrast: widget.state.contrast,
             setup: FloorSetup(),
             controller: viewport,
             position: null,
             heading: null,
             route: const [],
             fullRoute: const [],
-            onLocation: (place) => showPlaceDetails(
-              context,
-              place,
-              widget.state,
-              () => choose(place),
-            ),
+            onLocation: (place) {
+              setState(() => selectedPlace = place.id);
+              showPlaceDetails(
+                context,
+                place,
+                widget.state,
+                () => choose(place),
+              );
+            },
           ),
         ),
         SafeArea(
           top: false,
-          child: Card(
-            margin: const EdgeInsets.all(16),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    session.destination == null
-                        ? 'Explore Floor 1'
-                        : widget.state.label(session.destination!),
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const Text(
-                    'Locate with saved AR anchors to start live guidance.',
-                  ),
-                  const SizedBox(height: 12),
-                  FilledButton.icon(
-                    onPressed: opening ? null : openSession,
-                    icon: const Icon(Icons.camera_alt_outlined),
-                    label: Text(opening ? 'Opening...' : 'Find my location'),
-                  ),
-                  if (session.destination != null)
-                    TextButton(
-                      onPressed: session.cancel,
-                      child: const Text('Cancel'),
+          child: AnimatedSwitcher(
+            duration: MediaQuery.disableAnimationsOf(context)
+                ? Duration.zero
+                : const Duration(milliseconds: 260),
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0, .04),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              ),
+            ),
+            child: Card(
+              key: ValueKey('$floorNumber-${session.destination?.id}'),
+              margin: const EdgeInsets.all(16),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      floorNumber != 1 || session.destination == null
+                          ? 'Explore ${g.floorLabel}'
+                          : widget.state.label(session.destination!),
+                      style: Theme.of(context).textTheme.titleMedium,
                     ),
-                ],
+                    Text(
+                      floorNumber == 1
+                          ? 'Locate with saved AR anchors to start live guidance.'
+                          : 'Navigation available on Floor 1 only',
+                    ),
+                    const SizedBox(height: 12),
+                    if (floorNumber == 1)
+                      FilledButton.icon(
+                        onPressed: opening ? null : openSession,
+                        icon: const Icon(Icons.camera_alt_outlined),
+                        label: Text(
+                          opening ? 'Opening...' : 'Find my location',
+                        ),
+                      ),
+                    if (floorNumber == 1 && session.destination != null)
+                      TextButton(
+                        onPressed: session.cancel,
+                        child: const Text('Cancel'),
+                      ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -297,7 +355,7 @@ class _MadMapsShellState extends State<MadMapsShell>
 
   @override
   Widget build(BuildContext context) {
-    final places = graph?.locations ?? <FloorLocation>[];
+    final places = floors.values.expand((g) => g.locations).toList();
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -324,23 +382,79 @@ class _MadMapsShellState extends State<MadMapsShell>
                     onMap: () => setState(() => tab = 1),
                     onProfile: () => setState(() => tab = 3),
                   ),
-                  NavigatorPopHandler<void>(
-                    enabled: tab == 1,
-                    onPopWithResult: (_) => mapNavigator.currentState!.pop(),
-                    child: Navigator(
-                      key: mapNavigator,
-                      onGenerateRoute: (_) => MaterialPageRoute<void>(
-                        builder: (_) => AnimatedBuilder(
-                          animation: Listenable.merge([widget.state, session]),
-                          builder: (_, _) => mapLanding(),
+                  Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Row(
+                          children: [
+                            const Text('Floor: '),
+                            DropdownButton<int>(
+                              value: displayedFloor,
+                              items: [
+                                for (final f in [0, 1, 2, 3])
+                                  if (floors.containsKey(f))
+                                    DropdownMenuItem(
+                                      value: f,
+                                      child: Text(floors[f]!.floorLabel),
+                                    ),
+                              ],
+                              onChanged: (f) {
+                                if (f != null) {
+                                  setState(() {
+                                    displayedFloor = f;
+                                    selectedPlace = null;
+                                  });
+                                  viewport.overview();
+                                }
+                              },
+                            ),
+                            const Spacer(),
+                            if (session.destination != null &&
+                                displayedFloor != 1)
+                              TextButton(
+                                onPressed: () =>
+                                    setState(() => displayedFloor = 1),
+                                child: const Text('Return to navigation'),
+                              ),
+                          ],
                         ),
                       ),
-                    ),
+                      Expanded(
+                        child: IndexedStack(
+                          index: displayedFloor == 1 ? 0 : 1,
+                          children: [
+                            NavigatorPopHandler<void>(
+                              enabled: tab == 1 && displayedFloor == 1,
+                              onPopWithResult: (_) =>
+                                  mapNavigator.currentState!.pop(),
+                              child: Navigator(
+                                key: mapNavigator,
+                                onGenerateRoute: (_) => MaterialPageRoute<void>(
+                                  builder: (_) => AnimatedBuilder(
+                                    animation: Listenable.merge([
+                                      widget.state,
+                                      session,
+                                    ]),
+                                    builder: (_, _) => mapLanding(),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            if (displayedFloor != 1)
+                              mapLanding(displayedFloor)
+                            else
+                              const SizedBox.shrink(),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                   SavedScreen(
                     places: places,
                     state: widget.state,
                     onChoose: choose,
+                    displayedFloor: displayedFloor,
                   ),
                   ProfileScreen(state: widget.state, onTools: openTools),
                 ],
@@ -364,7 +478,10 @@ class _MadMapsShellState extends State<MadMapsShell>
                   '${widget.state.label(session.destination!)}${session.remainingMeters == null ? '' : ' - ${widget.state.distance(session.remainingMeters!)} remaining'}',
                 ),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => setState(() => tab = 1),
+                onTap: () => setState(() {
+                  tab = 1;
+                  displayedFloor = 1;
+                }),
               ),
             ),
           NavigationBar(

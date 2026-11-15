@@ -22,8 +22,8 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Local Serverpod CLI preparation failed.' }
     dart $localCli --no-analytics runner start --no-docker --no-flutter
     if ($LASTEXITCODE -ne 0) { throw 'Serverpod runner startup failed.' }
-    dart run bin/seed_floor1.dart
-    if ($LASTEXITCODE -ne 0) { throw 'Floor 1 seed verification failed.' }
+    dart run bin/seed_all_floors.dart
+    if ($LASTEXITCODE -ne 0) { throw 'Floor seed verification failed.' }
     Write-Host 'Backend ready. Streaming logs; launch Flutter separately on your phone.'
     Write-Host 'Ctrl+C stops the backend and both project-local databases.'
     # Keep log following in PowerShell so Ctrl+C reaches this script's finally.

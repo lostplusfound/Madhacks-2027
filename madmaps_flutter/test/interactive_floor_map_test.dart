@@ -176,10 +176,17 @@ void main() {
         pointer: 2,
       );
       await tester.pump();
-      // Rotate ninety degrees and enlarge around the same focal point.
-      await first.moveTo(middle - const Offset(0, 75));
-      await second.moveTo(middle + const Offset(0, 75));
+      // Move both pointers beyond gesture slop before rotating incrementally.
+      await first.moveTo(middle - const Offset(100, 0));
+      await second.moveTo(middle + const Offset(100, 0));
       await tester.pump();
+      for (var step = 1; step <= 12; step++) {
+        final angle = math.pi / 2 * step / 12;
+        final offset = Offset(math.cos(angle) * 100, math.sin(angle) * 100);
+        await first.moveTo(middle - offset);
+        await second.moveTo(middle + offset);
+        await tester.pump();
+      }
       await first.up();
       await second.up();
       await tester.pumpAndSettle();

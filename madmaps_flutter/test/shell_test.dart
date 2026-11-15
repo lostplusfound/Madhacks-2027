@@ -134,6 +134,8 @@ void main() {
       expect(find.text('My room'), findsOneWidget);
       await tester.tap(find.text('My room'));
       await tester.pumpAndSettle();
+      await tester.tap(find.text('Navigate'));
+      await tester.pumpAndSettle();
       expect(find.text('Set up Floor 1'), findsOneWidget);
       expect(find.text('Open mapping tools'), findsOneWidget);
       await tester.tap(find.text('Open mapping tools'));

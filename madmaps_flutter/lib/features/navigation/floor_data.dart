@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:ui' show Path;
 import 'dart:math' as math;
 import 'package:flutter/services.dart';
 import '../localization/map_data.dart';
@@ -125,7 +127,9 @@ class FloorEdge {
 }
 
 class FloorLocation {
-  FloorLocation(this.id, this.label, this.aliases, this.node);
+  FloorLocation(this.id, this.label, this.aliases, this.node, {this.floor = 1});
+  final int floor;
+  String get floorLabel => floor == 0 ? 'Basement' : 'Floor $floor';
   final String id, label, aliases;
   final String? node;
 }
@@ -163,7 +167,64 @@ List<List<String>> readCsv(String text) {
 }
 
 class FloorGraph {
-  FloorGraph(this.nodes, this.edges, this.locations);
+  FloorGraph(
+    this.nodes,
+    this.edges,
+    this.locations, {
+    this.floor = 1,
+    this.imageSize = floorImageSize,
+    this.rooms = const [],
+  });
+  final int floor;
+  final Size imageSize;
+  final List<RoomPolygon> rooms;
+  String get imageAsset =>
+      floor == 1 ? 'assets/floor1/plan.png' : 'assets/maps/floor$floor.png';
+  String get floorLabel => floor == 0 ? 'Basement' : 'Floor $floor';
+  FloorGraph withRooms(List<RoomPolygon> shapes) => FloorGraph(
+    nodes,
+    edges,
+    locations,
+    floor: floor,
+    imageSize: imageSize,
+    rooms: shapes,
+  );
+  FloorLocation? roomAt(Offset point) {
+    final hits = rooms.where((r) => r.path.contains(point)).toList()
+      ..sort((a, b) => a.area.compareTo(b.area));
+    for (final room in hits) {
+      for (final location in locations) {
+        if (location.id == room.locationId) return location;
+      }
+    }
+    return null;
+  }
+
+  Future<FloorGraph> loadRooms() async {
+    final data =
+        jsonDecode(await rootBundle.loadString('assets/maps/room_shapes.json'))
+            as Map<String, dynamic>;
+    if (data['version'] != 1)
+      throw const FormatException('Unsupported polygon version');
+    final metadata = (data['floors'] as List)
+        .cast<Map<String, dynamic>>()
+        .singleWhere((f) => f['floor'] == floor);
+    if (metadata['width'] != imageSize.width ||
+        metadata['height'] != imageSize.height) {
+      throw const FormatException('Polygon image dimensions do not match');
+    }
+    final ids = <String>{};
+    final shapes = <RoomPolygon>[];
+    for (final value in metadata['rooms'] as List) {
+      final id = value['location_id'] as String;
+      if (!ids.add(id) || !locations.any((l) => l.id == id)) {
+        throw const FormatException('Invalid polygon destination');
+      }
+      shapes.add(RoomPolygon.parse(id, value['polygon'] as List, imageSize));
+    }
+    return withRooms(shapes);
+  }
+
   final Map<String, FloorNode> nodes;
   final List<FloorEdge> edges;
   final List<FloorLocation> locations;
@@ -235,4 +296,48 @@ class FloorGraph {
       s.nodePoints.containsKey(e.from) || s.nodePoints.containsKey(e.to)
       ? (point(e.from, s) - point(e.to, s)).distance
       : e.cost;
+}
+
+class RoomPolygon {
+  RoomPolygon(this.locationId, this.points);
+  final String locationId;
+  final List<Offset> points;
+  Path get path => Path()..addPolygon(points, true);
+  double get area {
+    var sum = 0.0;
+    for (var i = 0; i < points.length; i++) {
+      final a = points[i], b = points[(i + 1) % points.length];
+      sum += a.dx * b.dy - b.dx * a.dy;
+    }
+    return sum.abs() / 2;
+  }
+
+  static RoomPolygon parse(String id, List values, Size bounds) {
+    final points = <Offset>[];
+    for (final value in values) {
+      if (value is! List ||
+          value.length != 2 ||
+          value[0] is! num ||
+          value[1] is! num) {
+        throw const FormatException('Invalid polygon vertex');
+      }
+      final p = Offset(
+        (value[0] as num).toDouble(),
+        (value[1] as num).toDouble(),
+      );
+      if (!p.dx.isFinite ||
+          !p.dy.isFinite ||
+          p.dx < 0 ||
+          p.dy < 0 ||
+          p.dx > bounds.width ||
+          p.dy > bounds.height) {
+        throw const FormatException('Polygon vertex outside image');
+      }
+      points.add(p);
+    }
+    final room = RoomPolygon(id, List.unmodifiable(points));
+    if (points.length < 3 || room.area <= 0)
+      throw const FormatException('Empty polygon');
+    return room;
+  }
 }

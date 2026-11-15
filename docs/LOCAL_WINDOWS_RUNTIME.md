@@ -13,7 +13,7 @@ powershell -ExecutionPolicy Bypass -File scripts/start-local-backend.ps1
 The script downloads the [EDB Windows PostgreSQL binaries](https://productsdl.enterprisedb.com/download-postgresql-binaries)
 into ignored `.dart_tool/toolchains` if absent, starts project-local development
 and test databases, starts the Serverpod runner with Docker disabled, and seeds
-or verifies Floor 1, then streams backend logs in the same terminal. It disables
+or verifies basement and floors 1?3 without overwriting edits, then streams backend logs in the same terminal. It disables
 automatic Flutter launch; launch the phone app separately. Keep this terminal
 open while testing. Ctrl+C stops the Serverpod runner and both project-local
 databases, including on startup failure. Use Ctrl+C for a clean shutdown.
@@ -102,3 +102,25 @@ Do not delete the data directories to fix a startup failure. A working LAN clien
 request was verified on the laptop; actual phone Wi-Fi access and the latest
 complete Ctrl+C path remain user acceptance checks. The earlier script cleanup
 was observed stopping the runner and both databases after an interrupted startup.
+
+## Build memory and November 14 crash investigation
+
+Android builds now use a 2 GB Gradle heap, 1 GB maximum metaspace, two workers,
+and in-process Kotlin compilation. Previously Gradle allowed an 8 GB heap plus
+4 GB metaspace on this 16 GB laptop. Run builds and test suites sequentially.
+These limits reduce build pressure; they do not establish a Windows driver fix.
+
+Two reboot events on November 14 recorded bugcheck 0xD1
+(DRIVER_IRQL_NOT_LESS_OR_EQUAL), with dump files
+`C:\Windows\Minidump\111426-12140-01.dmp` and
+`C:\Windows\Minidump\111426-11578-01.dmp`. The current non-elevated session
+cannot read the protected dumps. No responsible driver has been identified and
+no drivers or Windows security settings were changed.
+
+To continue diagnosis, open those dumps locally in WinDbg with administrator
+access, configure Microsoft symbols, and run `!analyze -v` and `kv` on both.
+Compare the faulting modules and stacks, then use the implicated driver's vendor
+update or rollback path. Keep dumps local; they can contain private memory data.
+Do not infer the culprit from the stop code, VPN presence, or memory use alone.
+
+Reference: [Microsoft bugcheck 0xD1 documentation](https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/bug-check-0xd1--driver-irql-not-less-or-equal).

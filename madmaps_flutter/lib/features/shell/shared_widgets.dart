@@ -28,7 +28,9 @@ class PlaceTile extends StatelessWidget {
     required this.state,
     required this.onChoose,
     this.onRename,
+    this.showDetails = false,
   });
+  final bool showDetails;
   final FloorLocation place;
   final AppState state;
   final VoidCallback onChoose;
@@ -43,10 +45,14 @@ class PlaceTile extends StatelessWidget {
       title: Text(state.label(place)),
       subtitle: Text(
         place.node == null
-            ? 'Floor 1 - Not mapped yet'
+            ? '${place.floorLabel} - Not mapped yet'
+            : place.floor != 1
+            ? '${place.floorLabel} - View on map'
             : 'Floor 1 - Navigate to entrance',
       ),
-      onTap: onChoose,
+      onTap: showDetails
+          ? () => showPlaceDetails(context, place, state, onChoose)
+          : onChoose,
       onLongPress: onRename,
       trailing: IconButton(
         tooltip: state.saved.contains(place.id)
@@ -93,17 +99,39 @@ Future<void> showPlaceDetails(
               state.label(place),
               style: Theme.of(context).textTheme.headlineSmall,
             ),
-            const Text('Floor 1 - Draft hallway map'),
+            Text('${place.floorLabel} - Draft floor plan'),
+            if (place.floor != 1)
+              const Text('Navigation available on Floor 1 only'),
+            StatefulBuilder(
+              builder: (context, refresh) => TextButton.icon(
+                onPressed: () {
+                  state.toggleSaved(place.id);
+                  refresh(() {});
+                },
+                icon: Icon(
+                  state.saved.contains(place.id)
+                      ? Icons.bookmark
+                      : Icons.bookmark_border,
+                ),
+                label: Text(
+                  state.saved.contains(place.id)
+                      ? 'Remove saved place'
+                      : 'Save place',
+                ),
+              ),
+            ),
             const SizedBox(height: 16),
             FilledButton.icon(
-              onPressed: place.node == null
+              onPressed: place.floor == 1 && place.node == null
                   ? null
                   : () {
                       Navigator.pop(context);
                       navigate();
                     },
-              icon: const Icon(Icons.directions_walk),
-              label: const Text('Navigate'),
+              icon: Icon(
+                place.floor == 1 ? Icons.directions_walk : Icons.map_outlined,
+              ),
+              label: Text(place.floor == 1 ? 'Navigate' : 'View on map'),
             ),
             if (place.node == null)
               const Text('This destination has no mapped entrance yet.'),

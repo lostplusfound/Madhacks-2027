@@ -14,7 +14,9 @@ Profile offers units, high contrast, spoken directions, and **Manage AR maps and
 calibration**. Set up two anchors and Floor 1 calibration there, return to Map,
 then select **Find my location**. A missing-setup prompt retains the destination.
 Tab changes retain the active session; Cancel clears the trip, and Back closes it.
-Only Floor 1 is routable. Multi-floor/step-free routes, text-based localization,
+Basement and floors 1?3 support browsing, room selection, search, and saved places.
+Only Floor 1 is routable. See [map/UI integration](docs/MAPS_UI_RECOVERY.md).
+Multi-floor/step-free routes, text-based localization,
 opening hours, and report submission remain unsupported.
 
 Floor-associated maps provide a full-screen floor plan, live position/heading,
@@ -34,7 +36,7 @@ searches cover all live saved anchors in batches of at most 20. Off-route and
 distant-start guidance use estimated connectors back to reachable hallway routes.
 See [AR setup and recovery](docs/AR_PROTOTYPE.md).
 
-Latest recorded verification on November 14, 2026: **94 Flutter tests and 24 backend tests passed**,
+Latest recorded verification on November 14, 2026: **102 Flutter tests and 27 backend tests passed**,
 `dart analyze` reported no errors or warnings (informational notices remain), and
 the Android debug APK built successfully. Earlier anchor hosting was confirmed
 on Pixel 6a. The user has reported positive hands-on feedback, but measured

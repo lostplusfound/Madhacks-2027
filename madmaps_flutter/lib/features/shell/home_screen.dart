@@ -211,7 +211,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       'elevator' => 'Elevators',
                       _ => 'Study spaces',
                     },
-                    subtitle: 'Floor 1 destinations',
+                    subtitle: 'All floors',
                     onTap: () => searchFor('', filter: c),
                   ),
                 ),
@@ -220,7 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
           FilledButton.tonalIcon(
             onPressed: widget.onMap,
             icon: const Icon(Icons.map_outlined),
-            label: const Text('Explore Floor 1'),
+            label: const Text('Explore all floors'),
           ),
           if (state.saved.isNotEmpty) ...[
             const SectionHeading('Saved places'),

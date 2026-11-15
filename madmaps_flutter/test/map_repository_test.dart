@@ -10,11 +10,11 @@ import 'package:madmaps/features/shell/app_state.dart';
 import 'package:madmaps/features/shell/home_screen.dart';
 import 'package:madmaps/main.dart';
 
-api.MapGraphSnapshot fixture() {
+api.MapGraphSnapshot fixture([int floorNumber = 1]) {
   final data =
       jsonDecode(
             File(
-              '../madmaps_server/assets/floor1_seed.json',
+              '../madmaps_server/assets/floor${floorNumber}_seed.json',
             ).readAsStringSync(),
           )
           as Map<String, dynamic>;
@@ -41,7 +41,7 @@ api.MapGraphSnapshot fixture() {
         api.Nodes.fromJson({
           ...Map<String, dynamic>.from(n),
           'floorId': 1,
-          'floor': 1,
+          'floor': floorNumber,
         }),
     ],
     edges: [
@@ -56,7 +56,7 @@ api.MapGraphSnapshot fixture() {
         api.Locations.fromJson({
           ...Map<String, dynamic>.from(l),
           'floorId': 1,
-          'floor': 1,
+          'floor': floorNumber,
           'reviewNote': data['reviewNotes'][l['locationId']],
         }),
     ],
@@ -128,6 +128,45 @@ class StubClient extends api.Client {
   }
 }
 
+class MultiFloorClient extends StubClient {
+  final loadedFloors = <int>[];
+  final searchedFloors = <int>[];
+  int? missingFloor;
+  @override
+  Future<T> callServerEndpoint<T>(
+    String endpoint,
+    String method,
+    Map<String, dynamic> args, {
+    bool authenticated = true,
+  }) async {
+    if (offline) throw const SocketException('offline');
+    final floor = int.parse((args['graphId'] as String).split('floor').last);
+    if (floor == missingFloor) throw const SocketException('missing floor');
+    if (method == 'getGraph') {
+      loadedFloors.add(floor);
+      return api.GraphReadResult(unchanged: false, snapshot: fixture(floor))
+          as T;
+    }
+    if (method == 'searchLocations') {
+      expect(args['floorNumber'], floor);
+      searchedFloors.add(floor);
+      return [
+            api.SearchResult(
+              location: fixture(floor).locations.first,
+              score: 100,
+            ),
+          ]
+          as T;
+    }
+    return super.callServerEndpoint<T>(
+      endpoint,
+      method,
+      args,
+      authenticated: authenticated,
+    );
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   test(
@@ -146,6 +185,40 @@ void main() {
         throwsA(isA<SocketException>()),
       );
       client.close();
+    },
+  );
+  test(
+    'loads and searches all four Serverpod graphs with cached offline results',
+    () async {
+      final client = MultiFloorClient();
+      addTearDown(client.close);
+      final repository = ServerMapRepository(connect: () async => client);
+      final floors = await repository.loadFloors();
+      expect(client.loadedFloors, [1, 0, 2, 3]);
+      expect(floors.keys, [1, 0, 2, 3]);
+      final ids = await repository.search('room');
+      expect(client.searchedFloors, [1, 0, 2, 3]);
+      expect(ids.toSet().length, 4);
+      client.offline = true;
+      expect(await repository.search(' ROOM '), ids);
+      await expectLater(
+        repository.search('uncached'),
+        throwsA(isA<SocketException>()),
+      );
+    },
+  );
+  test(
+    'missing floor fails visibly and retry loads the complete set',
+    () async {
+      final client = MultiFloorClient()..missingFloor = 2;
+      addTearDown(client.close);
+      final repository = ServerMapRepository(connect: () async => client);
+      await expectLater(
+        repository.loadFloors(),
+        throwsA(isA<SocketException>()),
+      );
+      client.missingFloor = null;
+      expect((await repository.loadFloors()).length, 4);
     },
   );
   testWidgets('late search replies cannot replace newer results', (

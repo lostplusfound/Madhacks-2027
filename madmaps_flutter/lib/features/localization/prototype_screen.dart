@@ -557,7 +557,16 @@ class _MapSessionScreenState extends State<MapSessionScreen>
             widget.appState?.recordVisit(place.id);
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('You have arrived near the entrance.'),
+                backgroundColor: Color(0xffc5050c),
+                content: Row(
+                  children: [
+                    Icon(Icons.celebration_rounded, color: Colors.white),
+                    SizedBox(width: 10),
+                    Expanded(
+                      child: Text('You have arrived near the entrance!'),
+                    ),
+                  ],
+                ),
               ),
             );
           }
@@ -1044,12 +1053,14 @@ class _MapSessionScreenState extends State<MapSessionScreen>
                 if (mapFirst && floorGraph != null)
                   Positioned.fill(
                     child: NavigationPanel(
+                      highContrast: widget.appState?.contrast ?? false,
                       graph: floorGraph!,
                       setup: map.floor,
                       pose: pose,
                       calibration: calibration,
                       guidance: guidance,
                       destination: roomName,
+                      destinationId: widget.session?.destination?.id,
                       message: discoveryMessage ?? localization.status,
                       busy: busy,
                       estimated: localization.estimated,

@@ -10,13 +10,22 @@ class SavedScreen extends StatelessWidget {
     required this.places,
     required this.state,
     required this.onChoose,
+    this.displayedFloor = 1,
   });
   final List<FloorLocation> places;
   final AppState state;
+  final int displayedFloor;
   final ValueChanged<FloorLocation> onChoose;
   @override
   Widget build(BuildContext context) {
     final saved = places.where((p) => state.saved.contains(p.id)).toList();
+    final suggested =
+        places
+            .where(
+              (p) => p.floor == displayedFloor && !state.saved.contains(p.id),
+            )
+            .toList()
+          ..sort((a, b) => state.label(a).compareTo(state.label(b)));
     return ListView(
       padding: const EdgeInsets.all(24),
       children: [
@@ -29,6 +38,7 @@ class SavedScreen extends StatelessWidget {
         for (final place in saved)
           PlaceTile(
             place: place,
+            showDetails: true,
             state: state,
             onChoose: () => onChoose(place),
             onRename: () async {
@@ -39,6 +49,14 @@ class SavedScreen extends StatelessWidget {
               );
               if (name != null) state.rename(place.id, name);
             },
+          ),
+        if (suggested.isNotEmpty) const SectionHeading('Suggested'),
+        for (final place in suggested.take(3))
+          PlaceTile(
+            place: place,
+            showDetails: true,
+            state: state,
+            onChoose: () => onChoose(place),
           ),
         for (final id in state.saved.where(
           (id) => !places.any((p) => p.id == id),

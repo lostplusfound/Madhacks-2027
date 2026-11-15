@@ -60,7 +60,9 @@ class InteractiveFloorMap extends StatefulWidget {
     this.rejoinPoint,
     required this.onLocation,
     this.selectedLocation,
+    this.highContrast = false,
   });
+  final bool highContrast;
   final FloorGraph graph;
   final FloorSetup setup;
   final FloorViewportController controller;
@@ -218,6 +220,14 @@ class _InteractiveFloorMapState extends State<InteractiveFloorMap>
         child: GestureDetector(
           key: const ValueKey('interactive-floor-map'),
           behavior: HitTestBehavior.opaque,
+          onTapUp: (details) {
+            final point = MatrixUtils.transformPoint(
+              Matrix4.inverted(matrix),
+              details.localPosition,
+            );
+            final location = widget.graph.roomAt(point);
+            if (location != null) widget.onLocation(location);
+          },
           onScaleStart: (d) {
             gestureFocal = d.localFocalPoint;
             startZoom = zoom;
@@ -253,14 +263,16 @@ class _InteractiveFloorMapState extends State<InteractiveFloorMap>
               Positioned(
                 left: 0,
                 top: 0,
-                width: floorImageSize.width,
-                height: floorImageSize.height,
+                width: widget.graph.imageSize.width,
+                height: widget.graph.imageSize.height,
                 child: Transform(
                   alignment: Alignment.topLeft,
                   transform: matrix,
                   child: IgnorePointer(
                     child: FloorCanvas(
                       graph: widget.graph,
+                      selectedLocation: widget.selectedLocation,
+                      highContrast: widget.highContrast,
                       setup: widget.setup,
                       camera: widget.position,
                       headingPoint: widget.heading,

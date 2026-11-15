@@ -17,7 +17,11 @@ class FloorCanvas extends StatelessWidget {
     this.showGraph = true,
     this.interactive = true,
     this.rejoinPoint,
+    this.selectedLocation,
+    this.highContrast = false,
   });
+  final String? selectedLocation;
+  final bool highContrast;
   final FloorGraph graph;
   final FloorSetup setup;
   final Offset? camera, headingPoint;
@@ -34,7 +38,7 @@ class FloorCanvas extends StatelessWidget {
     builder: (context, bounds) {
       final fitted = applyBoxFit(
         BoxFit.contain,
-        floorImageSize,
+        graph.imageSize,
         bounds.biggest,
       ).destination;
       return Center(
@@ -49,16 +53,16 @@ class FloorCanvas extends StatelessWidget {
                       Offset(
                         d.localPosition.dx /
                             fitted.width *
-                            floorImageSize.width,
+                            graph.imageSize.width,
                         d.localPosition.dy /
                             fitted.height *
-                            floorImageSize.height,
+                            graph.imageSize.height,
                       ),
                     ),
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.asset('assets/floor1/plan.png', fit: BoxFit.fill),
+                  Image.asset(graph.imageAsset, fit: BoxFit.fill),
                   CustomPaint(
                     painter: _FloorPainter(
                       graph,
@@ -70,6 +74,8 @@ class FloorCanvas extends StatelessWidget {
                       showLabels,
                       showGraph,
                       rejoinPoint,
+                      selectedLocation,
+                      highContrast,
                     ),
                   ),
                 ],
@@ -100,7 +106,11 @@ class _FloorPainter extends CustomPainter {
     this.labels,
     this.showGraph,
     this.rejoinPoint,
+    this.selectedLocation,
+    this.highContrast,
   );
+  final String? selectedLocation;
+  final bool highContrast;
   final FloorGraph graph;
   final FloorSetup setup;
   final Offset? camera, headingPoint;
@@ -112,9 +122,23 @@ class _FloorPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     Offset p(Offset q) => Offset(
-      q.dx / floorImageSize.width * size.width,
-      q.dy / floorImageSize.height * size.height,
+      q.dx / graph.imageSize.width * size.width,
+      q.dy / graph.imageSize.height * size.height,
     );
+    for (final room in graph.rooms) {
+      final path = Path()..addPolygon(room.points.map(p).toList(), true);
+      final selected = room.locationId == selectedLocation;
+      final color = highContrast ? Colors.deepOrange.shade900 : Colors.indigo;
+      if (selected)
+        canvas.drawPath(path, Paint()..color = color.withValues(alpha: .22));
+      canvas.drawPath(
+        path,
+        Paint()
+          ..color = color.withValues(alpha: selected || highContrast ? 1 : .35)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = selected ? 3 : 1.5,
+      );
+    }
     final edgePaint = Paint()
       ..color = Colors.orange.withValues(alpha: .8)
       ..strokeWidth = 2;

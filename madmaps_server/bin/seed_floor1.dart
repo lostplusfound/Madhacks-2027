@@ -6,15 +6,29 @@ import 'package:madmaps_server/src/generated/protocol.dart';
 import 'package:madmaps_server/src/endpoints/map_graph_service.dart';
 
 /// Explicit operator-only seed; never called by app startup or an endpoint.
-Future<void> main(List<String> args) async {
+Future<void> main(List<String> args) => seedFloors(args, [1]);
+
+Future<void> seedFloors(List<String> args, List<int> floors) async {
   final pod = Serverpod(args);
+  try {
+    for (final floor in floors) {
+      await seedFloor(pod, floor);
+    }
+  } finally {
+    await pod.shutdown();
+  }
+}
+
+Future<void> seedFloor(Serverpod pod, int floorNumber) async {
   final session = await pod.createSession(enableLogging: false);
   session.updateAuthenticated(
     AuthenticationInfo('floor1-seed-operator', {}, authId: 'operator-seed'),
   );
   try {
     final data =
-        jsonDecode(await File('assets/floor1_seed.json').readAsString())
+        jsonDecode(
+              await File('assets/floor${floorNumber}_seed.json').readAsString(),
+            )
             as Map<String, dynamic>;
     final request = CreateGraphRequest.fromJson(
       data['request'] as Map<String, dynamic>,
@@ -45,11 +59,10 @@ Future<void> main(List<String> args) async {
     }
     verifySeed(snapshot, request, notes);
     stdout.writeln(
-      'Floor 1 seed verified: ${snapshot.nodes.length} nodes, ${snapshot.edges.length} edges, ${snapshot.locations.length} destinations. Geometry remains draft.',
+      'Floor $floorNumber seed verified: ${snapshot.nodes.length} nodes, ${snapshot.edges.length} edges, ${snapshot.locations.length} destinations. Geometry remains draft.',
     );
   } finally {
     await session.close();
-    await pod.shutdown();
   }
 }
 
@@ -61,7 +74,7 @@ void verifySeed(
   void check(bool valid) {
     if (!valid)
       throw StateError(
-        'Existing Floor 1 differs from the seed. No existing graph data was overwritten.',
+        'Existing graph differs from the seed. No existing graph data was overwritten.',
       );
   }
 
@@ -75,7 +88,11 @@ void verifySeed(
         snapshot.edges.length == request.edges.length &&
         snapshot.locations.length == request.locations.length,
   );
-  final floor = snapshot.floors.singleWhere((f) => f.floorNumber == 1);
+  final expectedFloor = request.floors.single;
+  final floorNumber = expectedFloor.floorNumber;
+  final floor = snapshot.floors.singleWhere(
+    (f) => f.floorNumber == floorNumber,
+  );
   check(
     floor.width == 1632 &&
         floor.height == 1056 &&
@@ -86,7 +103,7 @@ void verifySeed(
     final actual = nodes[n.nodeId];
     check(
       actual != null &&
-          actual.floor == 1 &&
+          actual.floor == floorNumber &&
           actual.x == n.x &&
           actual.y == n.y &&
           actual.kind == n.kind &&
@@ -110,7 +127,7 @@ void verifySeed(
     final actual = locations[l.locationId];
     check(
       actual != null &&
-          actual.floor == 1 &&
+          actual.floor == floorNumber &&
           actual.name == l.name &&
           actual.roomNumber == l.roomNumber &&
           actual.category == l.category &&

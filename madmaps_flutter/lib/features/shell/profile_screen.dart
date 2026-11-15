@@ -13,23 +13,45 @@ class ProfileScreen extends StatelessWidget {
       const SectionHeading('Your preferences'),
       const Text('Preferences and saved places stay on this phone.'),
       const SizedBox(height: 20),
-      SwitchListTile(
-        title: const Text('High contrast'),
-        subtitle: const Text('Stronger controls and text contrast'),
-        value: state.contrast,
-        onChanged: state.setContrast,
+      Card(
+        child: SwitchListTile(
+          title: const Text('High contrast'),
+          subtitle: const Text('Stronger controls and text contrast'),
+          value: state.contrast,
+          onChanged: state.setContrast,
+        ),
       ),
-      SwitchListTile(
-        title: const Text('Spoken directions'),
-        subtitle: const Text('Read live navigation instructions aloud'),
-        value: state.voice,
-        onChanged: state.setVoice,
+      Card(
+        child: SwitchListTile(
+          title: const Text('Spoken directions'),
+          subtitle: const Text('Read live navigation instructions aloud'),
+          value: state.voice,
+          onChanged: state.setVoice,
+        ),
       ),
-      SwitchListTile(
-        title: const Text('Use feet'),
-        subtitle: const Text('Show distances in feet instead of meters'),
-        value: state.feet,
-        onChanged: state.setFeet,
+      Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.straighten_rounded),
+                title: Text('Distance units'),
+                subtitle: Text('Choose how route distances are shown'),
+              ),
+              SegmentedButton<bool>(
+                segments: const [
+                  ButtonSegment(value: false, label: Text('Meters')),
+                  ButtonSegment(value: true, label: Text('Feet')),
+                ],
+                selected: {state.feet},
+                onSelectionChanged: (values) => state.setFeet(values.single),
+              ),
+            ],
+          ),
+        ),
       ),
       const SectionHeading('Mapping tools'),
       ListTile(

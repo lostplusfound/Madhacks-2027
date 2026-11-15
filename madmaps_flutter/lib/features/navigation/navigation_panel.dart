@@ -22,7 +22,11 @@ class NavigationPanel extends StatefulWidget {
     this.onNavigate,
     this.distanceLabel,
     this.estimated = false,
+    this.highContrast = false,
+    this.destinationId,
   });
+  final String? destinationId;
+  final bool highContrast;
   final bool estimated;
   final String Function(double)? distanceLabel;
   final ValueChanged<FloorLocation>? onNavigate;
@@ -154,7 +158,8 @@ class _NavigationPanelState extends State<NavigationPanel> {
               route: remaining,
               fullRoute: points,
               rejoinPoint: g.remainingMeters == null ? null : g.rejoinPoint,
-              selectedLocation: selectedLocation,
+              selectedLocation: selectedLocation ?? w.destinationId,
+              highContrast: w.highContrast,
               onLocation: showLocation,
             ),
           ),

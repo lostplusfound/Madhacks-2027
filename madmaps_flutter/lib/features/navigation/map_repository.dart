@@ -11,7 +11,11 @@ abstract class MapRepository {
   String? categoryOf(String id);
 }
 
-class ServerMapRepository implements MapRepository {
+abstract interface class MultiFloorMapRepository implements MapRepository {
+  Future<Map<int, FloorGraph>> loadFloors();
+}
+
+class ServerMapRepository implements MultiFloorMapRepository {
   ServerMapRepository({Future<api.Client> Function()? connect})
     : _connect =
           connect ??
@@ -38,28 +42,46 @@ class ServerMapRepository implements MapRepository {
       _supportedCategories.where(_categories.containsValue).toList();
   @override
   String? categoryOf(String id) => _categories[id];
+  final Map<int, FloorGraph> _floors = {};
+  String graphFor(int floor) => floor == 1 ? graphId : 'morgridge-floor$floor';
   @override
-  Future<FloorGraph> load() async {
+  Future<FloorGraph> load() => loadFloor(1);
+
+  Future<FloorGraph> loadFloor(int floorNumber) async {
     final c = await connection;
     final result = await c.mapGraph
-        .getGraph(graphId, null)
+        .getGraph(graphFor(floorNumber), null)
         .timeout(const Duration(seconds: 12));
     final snapshot = result.snapshot;
     if (snapshot == null)
       throw const FormatException('Server returned no map.');
-    final graph = adaptSnapshot(snapshot);
+    final graph = await adaptSnapshot(
+      snapshot,
+      floorNumber: floorNumber,
+    ).loadRooms();
     final supported = await c.locationSearch
-        .listQuickAccessCategories(graphId)
+        .listQuickAccessCategories(graphFor(floorNumber))
         .timeout(const Duration(seconds: 12));
-    _supportedCategories = supported.map((c) => c.name).toList();
-    _categories.clear();
+    _supportedCategories = {
+      ..._supportedCategories,
+      ...supported.map((c) => c.name),
+    }.toList();
     _categories.addEntries(
       snapshot.locations
-          .where((l) => l.floor == 1)
+          .where((l) => l.floor == floorNumber)
           .map((l) => MapEntry(l.locationId, l.category?.name ?? 'other')),
     );
+    _floors[floorNumber] = graph;
     _searches.clear();
     return graph;
+  }
+
+  @override
+  Future<Map<int, FloorGraph>> loadFloors() async {
+    for (final floor in [1, 0, 2, 3]) {
+      await loadFloor(floor);
+    }
+    return Map.unmodifiable(_floors);
   }
 
   @override
@@ -68,34 +90,40 @@ class ServerMapRepository implements MapRepository {
     final cached = _searches[key];
     if (cached != null) return cached;
     final c = await connection;
-    final results = await c.locationSearch
-        .searchLocations(
-          graphId,
-          query,
-          category == null
-              ? null
-              : api.LocationCategory.values.byName(category),
-          1,
-          100,
-        )
-        .timeout(const Duration(seconds: 12));
-    return _searches[key] = results.map((r) => r.location.locationId).toList();
+    final ids = <String>{};
+    for (final floor in _floors.isEmpty ? [1] : _floors.keys) {
+      final results = await c.locationSearch
+          .searchLocations(
+            graphFor(floor),
+            query,
+            category == null
+                ? null
+                : api.LocationCategory.values.byName(category),
+            floor,
+            100,
+          )
+          .timeout(const Duration(seconds: 12));
+      ids.addAll(results.map((r) => r.location.locationId));
+    }
+    return _searches[key] = ids.toList();
   }
 }
 
-FloorGraph adaptSnapshot(api.MapGraphSnapshot snapshot) {
-  final floor = snapshot.floors.where((f) => f.floorNumber == 1).single;
+FloorGraph adaptSnapshot(api.MapGraphSnapshot snapshot, {int floorNumber = 1}) {
+  final floor = snapshot.floors
+      .where((f) => f.floorNumber == floorNumber)
+      .single;
   if (floor.width != floorImageSize.width ||
       floor.height != floorImageSize.height) {
     throw const FormatException('Map dimensions do not match the floor image.');
   }
   if (snapshot.walls.any((w) => w.floorId == floor.floorId)) {
     throw const FormatException(
-      'This app version supports the Floor 1 graph without wall polygons only.',
+      'This app version supports floor graphs without wall polygons only.',
     );
   }
   final nodes = <String, FloorNode>{};
-  for (final n in snapshot.nodes.where((n) => n.floor == 1)) {
+  for (final n in snapshot.nodes.where((n) => n.floor == floorNumber)) {
     if (nodes.containsKey(n.nodeId) ||
         !n.x.isFinite ||
         !n.y.isFinite ||
@@ -127,7 +155,7 @@ FloorGraph adaptSnapshot(api.MapGraphSnapshot snapshot) {
   }
   final ids = <String>{};
   final locations = <FloorLocation>[];
-  for (final l in snapshot.locations.where((l) => l.floor == 1)) {
+  for (final l in snapshot.locations.where((l) => l.floor == floorNumber)) {
     if (!ids.add(l.locationId) ||
         (l.routeNodeId != null && !nodes.containsKey(l.routeNodeId)))
       throw const FormatException('Invalid destination reference.');
@@ -138,10 +166,17 @@ FloorGraph adaptSnapshot(api.MapGraphSnapshot snapshot) {
             (l.roomNumber == null ? l.locationId : 'Room ${l.roomNumber}'),
         l.aliases ?? '',
         l.routeNodeId,
+        floor: floorNumber,
       ),
     );
   }
   if (nodes.isEmpty || edges.isEmpty || locations.isEmpty)
-    throw const FormatException('Floor 1 map is empty.');
-  return FloorGraph(nodes, edges, locations);
+    throw const FormatException('Floor map is empty.');
+  return FloorGraph(
+    nodes,
+    edges,
+    locations,
+    floor: floorNumber,
+    imageSize: Size(floor.width, floor.height),
+  );
 }
