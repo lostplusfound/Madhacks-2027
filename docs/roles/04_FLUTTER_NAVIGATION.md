@@ -2,7 +2,22 @@
 
 ## Mission and current state
 
-Build map navigation independently of physical AR. The app currently contains only a generated Serverpod greeting example. No shared models, fixtures, mocks, routing, or map UI exist. ../CONTRACTS.md and coordinate rules are proposals; settle the first revision with teammates before implementing them.
+Local floor-1 navigation is implemented under
+`madmaps_flutter/lib/features/navigation/` and integrated with the AR session.
+It includes two-anchor image calibration, CSV graph loading, local overrides,
+directed Dijkstra routing, progress/turns/ETA, off-route and distant-start recovery,
+and a map-first UI with interactive markers and heading-follow. Disabling floor
+association restores the legacy AR layout. The latest recorded combined suite
+has 80 passing Flutter tests, clean analysis apart from informational notices,
+and a successful Android debug APK build.
+
+Read [current navigation behavior](../FLOOR_NAVIGATION.md), [architecture](../ARCHITECTURE.md),
+and [testing/physical acceptance](../TESTING.md) before extending it. The floor
+plan remains an image with interactive overlays, not wall/room polygons. All
+routes and amenity approaches are draft. Shared domain types, repository/service
+adapters, backend persistence, revision enforcement, and multi-floor transitions
+remain future work. The proposed ownership/interface/task checklist below is a
+future integration handoff, not a claim that current local features are absent.
 
 ## Ownership and proposed interface
 
@@ -12,11 +27,11 @@ Inputs: published IndoorMap, room selection, and localized pose stream. Output: 
 
 ## Task checklist
 
-1. First task: agree and implement minimal shared types plus a synthetic floor and mock walk stream, with affected teammates reviewing the proposed contracts.
+1. For shared-domain integration, agree minimal shared types and adapters with affected teammates. Preserve the implemented synthetic routing fixtures and local tests; add a mock walk stream at the agreed service boundary.
 2. Render original-pixel map coordinates using a consistent image-to-screen transform for the image, nodes, route, and position.
 3. Implement Dijkstra with meter-based weights derived from calibration. Snap localized position to an appropriate verified corridor edge, not an arbitrary destination node.
 4. Add room selection, route polyline, distance, and explicit unreachable state. Respect directionality and agreed publication policy.
-5. Hide precise live location before localization and show limited/lost states honestly.
+5. Preserve estimated AR movement after cloud failures; hide the dot and pause directions on actual tracking loss, with automatic recovery status.
 6. Compose mock localization initially. Replace only the injected service when AR is ready; preserve the same widget inputs.
 7. Replace fixture repository with backend adapter and verify map/anchor revision alignment.
 

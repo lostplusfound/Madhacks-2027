@@ -7,11 +7,26 @@ Cloud directly; no Serverpod domain endpoints or migrations are required.
 The published `ar_flutter_plugin_plus` version remains pinned at 1.1.3. A local
 override under `third_party/` fixes its Android cloud-result delivery from the
 render thread, reports native cloud errors, and prevents a fast-upload callback
-race. See [patch provenance](../third_party/ar_flutter_plugin_plus/PATCHES.md).
+race. It also handles camera-surface replacement during compact/expanded layout,
+exposes consistent localization frames, and supports retained/cancelled anchors.
+See [patch provenance](../third_party/ar_flutter_plugin_plus/PATCHES.md).
 This source came from the published package, not the InsideOut prototype.
 After this native patch, fully stop and rebuild/run the app yourself; hot reload
 or Dart hot restart cannot replace its Android code. App builds, installation,
 and launches require the user's explicit request.
+
+## Current status
+
+The latest local integration includes map-first floor-1 navigation, tappable and
+rotatable map controls, heading-follow, estimated return-to-route guidance, and
+compact/expanded AR. See [floor setup and controls](FLOOR_NAVIGATION.md) and the
+[testing guide](TESTING.md) for the complete behavior and physical checklist.
+The legacy AR-first layout remains available by disabling floor association.
+
+Latest recorded checks on November 14, 2026: **80 Flutter tests passed**, analysis
+had no errors/warnings (informational notices remain), and the Android debug APK
+built. Historical 19/30/36-test snapshots below describe earlier stages. Current
+compact-device localization and measured navigation accuracy remain unverified.
 
 ## Configure and run
 
@@ -97,15 +112,17 @@ flutter build apk --debug
    hosting. Save remains available even with low coverage while tracking works.
    A success message confirms persistence. Failed saves retain the draft for retry;
    **Cancel** discards it. Add more anchors in the same tracked session.
-3. Select **Anchors** and tap a destination, or tap its mini-map marker. The arrow
+3. In the legacy AR-first layout, select **Anchors** and tap a destination,
+   or tap its mini-map marker. The arrow
    points directly toward it; walls and obstacles are not considered. Arrival is
    within one horizontal meter.
-4. Expand the mini-map with its upper-right button; pinch to zoom and pan. The
+4. In the legacy layout, expand the mini-map with its upper-right button;
+   pinch to zoom and pan. The
    blue dot is your current position and its line shows camera heading. Orange
    marks the selected destination, teal marks anchors, and gray marks expired ones.
 5. From home, choose **Find my location** and scan near any saved anchor.
-   Discovery searches up to 20 distinct, unexpired Cloud Anchor IDs across this
-   phone's saved maps. The first successful match opens its map in the same AR
+   Initial discovery searches distinct, unexpired Cloud Anchor IDs across this
+   phone's saved maps in batches of at most 20. The first successful match opens its map in the same AR
    session, with the position dot and existing navigation. Treat each saved map
    as one floor and name it accordingly. Alternatively, open a map and use the
    location icon to search only that map, or choose an anchor's **Localize here**
@@ -115,15 +132,21 @@ flutter build apk --debug
    be used to localize, but remain usable as destination coordinates after
    localization using another live anchor. If all anchors expire, create a new map.
 
-Use the app bar's **Find my location again** icon after changing floors. A session
-opened through home-screen discovery searches all saved maps again; one opened
-by selecting a map searches that map only. To broaden that search, return home.
-There is no continuous floor detection or cross-floor route guidance. **Cancel
-search** stops pending native resolves; retry starts a fresh attempt. Discovery
-ends after 90 seconds. Expired records are skipped, and a catalog above 20 live IDs
-must be narrowed by opening a map. Map metadata and IDs are local to this phone;
-ARCore does not discover unknown IDs nearby. Internet and configured keyless authorization are required.
-Similar-looking floors still require physical testing for incorrect matches.
+Opening a floor-associated map automatically searches that map's live anchors.
+Once a map is established, **Locate** / **Find my location again** refreshes its
+alignment while retaining the old fix on failure. Global discovery across saved
+maps is available by returning home and using **Find my location**. No unknown
+nearby IDs are discovered, and there is no continuous floor detection or
+cross-floor route guidance.
+
+Automatic discovery batches time out after 10 seconds and retry after 20 seconds
+from completion of the search. Explicit initial searches retain the 90-second
+per-batch timeout. Larger catalogs continue through subsequent batches rather
+than being rejected or silently truncated. **Cancel search** stops pending
+resolves and automatic discovery retries until Locate or reopening an associated map.
+Expired records are skipped. Metadata and IDs stay local to this phone; Google
+Cloud hosting/resolution still requires internet and configured authorization.
+Similar-looking floors need physical testing for incorrect matches.
 
 Placement accepts detected horizontal and vertical planes, preserving their full
 orientation and height. Curved or arbitrary sloped surfaces are not guaranteed by
@@ -132,8 +155,9 @@ anchor is on a wall. Distances and arrival checks continue to use horizontal X/Z
 only; mounting height does not add to walking distance.
 
 New Cloud Anchors use a 365-day TTL, with expiry estimated locally from hosting
-completion. Hosting/resolution have a 90-second timeout; native ARCore errors
-also appear as snackbars. Retry with a better scan, working internet, and correct
+completion. Hosting and explicit initial/manual anchor resolution have a
+90-second timeout; automatic discovery and refresh batches use the shorter
+bounds described below. Native errors are surfaced in the UI and diagnostic logs. Retry with a better scan, working internet, and correct
 credentials. No cloud ID is saved for a failed operation.
 
 ## Coordinates and lifecycle
@@ -149,9 +173,12 @@ to preserve anchor rotation and height.
 Camera forward is local −Z. Heading is `atan2(forwardX, -forwardZ)`, and the arrow
 uses destination bearing minus camera heading. All navigation distances use
 `sqrt(dx*dx + dz*dz)`, ignoring height. The mini-map shows +X right and +Z down.
-Camera poses are sampled at most every 100 ms. Tracking loss hides the live dot
-and pauses guidance. Backgrounding invalidates alignment, so resolve again after
-returning; a fresh map session always requires resolution.
+Localization sampling is scheduled every 100 ms; candidate validation samples
+separately. Tracking loss hides the live dot
+and pauses guidance. Backgrounding invalidates the old pose/alignment and
+cancels pending work; resuming automatically rediscovers the current map while
+preserving a same-map destination. Fresh sessions still require actual anchor
+resolution, which floor-associated maps start automatically.
 
 ## Verification
 
@@ -168,7 +195,7 @@ permission, disconnected internet, expired IDs, background/resume, and walking
 while rotating the phone. Record measured position/heading error; automated tests
 cannot establish real-device AR accuracy.
 
-### Verified on November 14, 2026
+### Earlier hosting verification on November 14, 2026 (36-test snapshot)
 
 - Pixel 6a connected over wireless ADB: the user confirmed successful anchor
   saving after rebuilding with the Android Cloud Anchor callback patch.
@@ -213,7 +240,7 @@ The Serverpod runner could not start with the installed SDK because its expected
 inspection was unavailable in this session. This local-only AR prototype does
 not require a backend round trip; backend map persistence remains future work.
 
-### Automatic discovery implementation validation
+### Earlier automatic discovery implementation validation
 
 On November 14, 2026, all 19 Flutter tests passed. `dart analyze` reported no
 errors or warnings (existing deprecation notices remain), formatting completed,
@@ -266,7 +293,7 @@ horizontal meters of the reference, proximity is labeled estimated. Tracking los
 hides the dot and live guidance without discarding alignment, while timed retries
 continue. Background/resume clears the old pose and automatically rediscovers the
 current map. Initial discovery failures retry after 20 seconds; cancelling a search
-stops discovery retries until Locate or reopening the map. Regular use refreshes even with no destination selected.
+stops discovery retries until Locate or reopening an associated map. Regular use refreshes even with no destination selected.
 
 Map extension recommends a reference confirmed within 30 seconds, currently
 tracking, with camera and new placement within 20 horizontal meters of it. These
@@ -299,7 +326,7 @@ No installation or physical drift measurements were performed. Serverpod MCP
 restart/log tools were unavailable in this session. Native changes require a
 full reinstall/relaunch, rather than Flutter hot restart alone.
 
-### Continuous refresh verification
+### Earlier continuous refresh verification
 
 On November 14, 2026, all 36 Flutter tests passed after separating attempt timing
 from fix freshness and removing large-correction blocking. Analysis reports no
@@ -317,3 +344,22 @@ hands-on use and requested that the implementation and documentation be committe
 The current intended behavior is the continuous 20m/20s refresh flow above, including
 automatic retries after failure, automatic acceptance of stable corrections, and
 advisory mapping warnings. Formal accuracy measurements remain outstanding.
+
+
+### Latest navigation and recovery integration (November 14, 2026)
+
+The combined Flutter suite now has **80 passing tests**; analysis reports no
+errors/warnings, formatting completed, and the Android debug APK built. This
+includes automatic discovery retry/cancellation, background reacquisition, camera
+widget retention across expansion, estimated AR movement after cloud failures,
+timed retries while camera samples are lost or blocked, and heading-follow/map
+interaction. No new physical accuracy or live-device validation is claimed.
+
+Time scheduling runs independently of successful camera sampling, including when
+a sample is outstanding. Interval revisions prevent a fast failed refresh from
+counting pre-attempt movement toward a second immediate refresh. Reference loss
+uses the saved map catalog for automatic reacquisition. Tracking loss hides the
+dot rather than freezing a last-known position; turn/ETA guidance pauses until a
+valid pose returns. Failed cloud refreshes with valid AR tracking retain the
+accepted alignment and update estimated movement; estimate notices do not replace
+turn instructions. Detailed navigation and controls are in FLOOR_NAVIGATION.md.

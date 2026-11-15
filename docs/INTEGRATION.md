@@ -1,17 +1,51 @@
 # Integration procedure
 
-## Starter integration
+## Current local Android integration
 
-Follow README.md to run the generated endpoint/client example. This verifies framework wiring only. Check docs/SETUP_STATUS.md for commands actually executed and local blockers.
+The Flutter entry flow opens locally saved AR maps. `MapStore` persists map and
+anchor metadata plus floor calibration/overrides in SharedPreferences. Google
+Cloud hosts/resolves Cloud Anchors directly. The bundled floor-1 image and CSV
+graph are loaded by Flutter; Serverpod domain endpoints, generated client models,
+and database migrations are not part of this flow.
 
-## Future feature integration
+1. Configure the pinned plugin/keyless authorization using [AR setup](AR_PROTOTYPE.md).
+2. Create a map, host separated anchors, associate it with floor 1, and calibrate
+   their image positions. Opening an associated map starts map-scoped discovery.
+3. Pick a room/amenity from search or a tappable marker. Dijkstra routes through
+   hallway approaches; the UI shows route progress, turns, estimated ETA, and Cancel.
+4. Test heading-follow, interactive browsing, compact AR, far-from-segment starts,
+   return guidance, automatic cloud retries, tracking loss, and background recovery.
+5. Disable floor association to check the legacy layout without deleting setup.
+   See [floor navigation](FLOOR_NAVIGATION.md) and [testing](TESTING.md).
 
-1. Agree a revision of the proposed contracts before implementing consumers. A shared package is future work, not present scaffolding.
-2. Navigation and AI owners exchange a synthetic map; backend stores/returns equivalent domain data through explicit adapters.
-3. Navigation consumes a mock LocalizationService. AR later replaces that service through the same boundary; widgets must not import AR plugin internals.
-4. Verify map revision, floor ID, calibration, and anchor pose agree before rendering a live position.
-5. Review an actual corridor route on the physical floor, including tracking loss and recovery.
+Update root and bundled `nodes.csv`, `edges.csv`, and `locations.csv` together.
+Preserve saved anchor frames and local overrides; never silently reinterpret
+pixels as meters. Current graph/amenity approaches are draft and need on-site
+walkability checks. Shared domain contracts remain proposals, not a description
+of the current local serialization format.
 
-For Android emulators use the host alias 10.0.2.2 rather than localhost. For a phone use the development machine's LAN address, same network, and an appropriate local firewall rule. Supply the endpoint through the generated app's SERVER_URL configuration. A browser connection test is not evidence of Android networking or AR success.
+Latest recorded local checks: 80 Flutter tests, analysis without errors/warnings,
+and a successful Android debug APK build on November 14, 2026. These are not a
+physical localization test or proof of backend map integration.
 
-Keep changes to shared schemas coordinated; regeneration belongs with endpoint/protocol changes. Integration owner checks a clean build and records accepted contract decisions. Never silently change pixels to meters or replace a map revision under existing anchors.
+## Optional starter backend integration
+
+README describes the generated endpoint/client greeting example. That verifies
+framework wiring only. Backend map persistence, shared domain types, review state,
+AI processing, and production map publication remain future work. Any future
+backend implementation must use Serverpod. Follow `AGENTS.md` for runner,
+generation, migration, restart, and log tooling; do not edit generated code.
+
+For an emulator/backend round trip, use 10.0.2.2 for the host; a physical phone
+uses the development machine's LAN address and suitable firewall/network settings.
+`SERVER_URL` is relevant to this greeting/backend flow, not the local AR/map flow.
+See [setup history](SETUP_STATUS.md) for earlier environment blockers.
+
+## Future shared-domain integration
+
+Agree a revision of the proposed contracts, introduce explicit repository and
+localization service adapters, and coordinate shared types with the AR/navigation
+owners. Validate floor/map revision, calibrated poses, and persistence semantics
+before replacing local storage. Add publication/review and accessibility policies
+before claiming verified routes. No cross-floor routing, backend migration, or
+shared domain package was introduced by the local navigation enhancements.

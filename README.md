@@ -1,19 +1,34 @@
 # MadMaps
 
-The Android localization prototype supports local named maps, automatic Cloud
-Anchor discovery across saved maps/floors, horizontal and vertical placement,
-nearby-anchor handoffs, camera arrow guidance, and a bird's-eye mini-map.
-Regular use and navigation refresh after 20 meters traveled or 20 seconds from
-the previous attempt's completion. Failed refreshes retain the old fix and retry;
-adding an anchor pauses refreshes, and mapping quality warnings are advisory.
-See [AR prototype setup and usage](docs/AR_PROTOTYPE.md).
+MadMaps currently runs as a **local-only Android indoor-navigation prototype**.
+Named AR maps, saved anchor metadata, floor calibration, and map overrides stay
+on the phone. Cloud Anchor hosting/resolution uses Google directly; these flows
+do not require the Serverpod backend, PostgreSQL, or a backend round trip.
 
-On November 14, 2026, the user reported that the updated flow works well in
-hands-on use, following earlier confirmed hosting on Pixel 6a. All 36 Flutter
-tests pass. Measured position/heading accuracy and the full physical acceptance
-checklist remain outstanding; this is not a measured accuracy claim.
+Floor-associated maps provide a full-screen floor plan, live position/heading,
+highlighted remaining route, turn instructions, distance, estimated walking time
+and arrival time, Cancel, and an expandable AR camera. The map supports pan,
+pinch, rotation, tappable places, clustered markers, and Navigate cards.
+Navigation automatically keeps the dot centered and rotates the map to the phone's
+horizontal camera heading. Disable **Associate this AR map with floor 1** to
+restore the legacy AR-first layout without deleting calibration or overrides.
+See [floor navigation and controls](docs/FLOOR_NAVIGATION.md).
 
-First-floor graph navigation is integrated on the integration branch: place two saved anchors on the corrected floor plan, calibrate, then select a room for Dijkstra hallway routing and compass/turn guidance. See [floor navigation setup and limitations](docs/FLOOR_NAVIGATION.md). Graph geometry is draft and physical navigation acceptance is pending.
+Localization refreshes after **20 meters traveled or 20 seconds** from the previous
+attempt's completion. Failed cloud refreshes retain alignment and continue
+estimated AR movement. Tracking loss hides the dot and pauses directions/ETA;
+automatic retries continue, and background/resume restarts discovery. Initial
+searches cover all live saved anchors in batches of at most 20. Off-route and
+distant-start guidance use estimated connectors back to reachable hallway routes.
+See [AR setup and recovery](docs/AR_PROTOTYPE.md).
+
+Latest recorded verification on November 14, 2026: **80 Flutter tests passed**,
+`dart analyze` reported no errors or warnings (informational notices remain), and
+the Android debug APK built successfully. Earlier anchor hosting was confirmed
+on Pixel 6a. The user has reported positive hands-on feedback, but measured
+position/heading accuracy, compact-camera localization, and the latest physical
+acceptance checklist remain outstanding. All floor-1 graph geometry and the six
+new amenity approaches remain draft.
 
 Indoor navigation for MadHacks: Flutter, Serverpod/PostgreSQL, and the third-party AR package `ar_flutter_plugin_plus: 1.1.3`.
 
@@ -34,6 +49,27 @@ docs/roles/         Independent teammate handoffs
 
 Tools used: Flutter 3.50.0, Dart 3.14.0, Serverpod CLI/packages 4.1.2. See [setup results and blockers](docs/SETUP_STATUS.md). Android is the initial AR target. The web greeting example cannot validate AR.
 
+For the local Android prototype, configure keyless Cloud Anchor authorization
+using the [AR guide](docs/AR_PROTOTYPE.md#configure-and-run), then run:
+
+```powershell
+# Repository root
+dart analyze
+# Flutter package
+cd madmaps_flutter
+flutter test
+flutter build apk --debug
+# Standalone physical Android run; no SERVER_URL is needed for the AR/map flow.
+flutter run -d <android-device-id> -t lib/driver.dart
+```
+
+The debug APK is `madmaps_flutter/build/app/outputs/flutter-apk/app-debug.apk`.
+Fully stop and rebuild/relaunch after native plugin changes; hot reload or Dart
+hot restart cannot replace Android code. See [testing](docs/TESTING.md) for the
+physical checklist. Use Serverpod/Dart MCP tooling for connected app control when
+available, as described in `AGENTS.md`.
+
+The commands below concern the optional generated backend/greeting example.
 From repository root in PowerShell:
 
 ```powershell
@@ -45,7 +81,7 @@ dart analyze
 dart format --output=none --set-exit-if-changed madmaps_flutter/lib madmaps_client/lib madmaps_server/lib madmaps_server/bin
 ```
 
-The CLI executable is not on PATH on the setup machine, so use its explicit global-run entry point:
+Use Serverpod MCP for generation/migrations, restarts, and logs as specified in AGENTS.md. Generation is normally handled by the runner. The following CLI commands are fallbacks when MCP is unavailable or the runner cannot start; the initial setup machine required an explicit global-run entry point:
 
 ```powershell
 cd madmaps_server
@@ -65,7 +101,7 @@ dart test
 dart pub global run serverpod_cli:serverpod_cli --no-analytics runner start
 ```
 
-Docker is not installed here; this alternative is untested. Start the database before attempting a backend round trip. In another terminal:
+Initial setup recorded Docker unavailable; this alternative was not verified. Start the database before attempting a backend round trip. In another terminal:
 
 ```powershell
 cd madmaps_flutter
@@ -87,4 +123,4 @@ Use flutter devices to select a phone. Configure keyless Cloud Anchor authorizat
 | Backend | [Serverpod](docs/roles/03_SERVERPOD_BACKEND.md) | Run the greeting endpoint and demonstrate a client response |
 | Navigation | [Flutter navigation](docs/roles/04_FLUTTER_NAVIGATION.md) | Agree shared types, then create a synthetic floor and mock walk |
 
-Read [architecture](docs/ARCHITECTURE.md), [coordinates](docs/COORDINATE_SYSTEMS.md), [24-hour plan](docs/HACKATHON_PLAN.md), [integration](docs/INTEGRATION.md), [testing](docs/TESTING.md), and [contributing](CONTRIBUTING.md). Domain contracts and domain tests are future work.
+Read [architecture](docs/ARCHITECTURE.md), [coordinates](docs/COORDINATE_SYSTEMS.md), [24-hour plan](docs/HACKATHON_PLAN.md), [integration](docs/INTEGRATION.md), [testing](docs/TESTING.md), and [contributing](CONTRIBUTING.md). Shared/backend domain contracts remain proposals; local routing, calibration, localization, and map-interaction tests are implemented.

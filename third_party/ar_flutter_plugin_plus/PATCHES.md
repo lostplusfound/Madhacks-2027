@@ -24,12 +24,14 @@ plugin API. No version upgrade or generated-code changes are required.
 
 This override is required for reproducible builds; do not patch the user's Pub cache.
 
-Verification: all 36 app Flutter tests pass, including native failure propagation,
-fast callback delivery, retained-anchor cleanup, draft-host retry, discovery,
-and handoff lifecycle tests. The Android debug build succeeded. On November 14,
-2026, the user reported that the updated flow works well in hands-on use, after
-earlier hosting confirmation on Pixel 6a. Measured AR accuracy and the formal
-physical acceptance checklist remain outstanding.
+Latest recorded verification on November 14, 2026: **80 app Flutter tests pass**,
+including failure propagation, callback races, cleanup, lifecycle recovery,
+pending-search retention across camera expansion, and local navigation/UI tests.
+Analysis reported no errors/warnings and the Android debug APK built successfully.
+Earlier hosting was confirmed on Pixel 6a, and the user gave positive hands-on
+feedback. These are not measurements of position/heading accuracy or proof that
+the latest compact-camera localization works physically. See
+[the device checklist](../../docs/TESTING.md#physical-android-checklist).
 
 Drift-reduction additions:
 
@@ -44,3 +46,21 @@ Drift-reduction additions:
 - `cancelCloudTask(name)` stops a failed/timed-out host operation without removing
   its original local draft, allowing retry without a stale completion race. Host
   error anchors are detached, and pending Dart uploads are cleared on completion.
+
+
+Compact-camera additions:
+
+- The app replaces full-screen cropping with a real compact/expanded viewport
+  while preserving the keyed Android view and ARCore session.
+- Native surface replacement retains the existing Session, reinitializes render
+  resources, rebinds its camera texture, and updates display geometry. Rendering
+  waits for a valid surface; resume/frame errors are logged rather than silently
+  obscuring the compact-view failure.
+- Debug diagnostics include viewport size, surface generation, session identity,
+  throttled frame timestamps/tracking, and resolve completion.
+- Camera permission prompts use a scrollable layout so they fit in the compact
+  viewport without overflowing.
+
+These are source changes to the vendored override, not generated code or edits to
+the Pub cache. The published version remains pinned at 1.1.3. A full Android
+rebuild/relaunch is required; Dart hot reload cannot apply native changes.

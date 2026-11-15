@@ -2,8 +2,8 @@
 
 An initial Android anchor-map prototype is implemented under
 `madmaps_flutter/lib/features/localization/`. See [setup, behavior, and physical
-acceptance steps](../AR_PROTOTYPE.md). Image calibration and shared/backend domain
-integration below remain future work.
+acceptance steps](../AR_PROTOTYPE.md). Floor-1 image calibration is integrated;
+shared/backend domain integration below remains future work.
 
 The prototype now includes automatic discovery across local maps, wall/floor
 placement, live reference tracking, and continuous current-map handoffs. Regular
@@ -12,11 +12,20 @@ failures; mapping pauses refreshes only while adding an anchor. Stable matches
 are accepted and blended automatically, and mapping warnings never force a refresh.
 
 On November 14, 2026, the user reported that the updated flow works well in
-hands-on use after earlier hosting confirmation on Pixel 6a. All 36 Flutter tests
-pass. Formal restart-and-resolve acceptance and measured navigation accuracy
+hands-on use after earlier hosting confirmation on Pixel 6a. The latest recorded
+combined suite has 80 passing Flutter tests and a successful Android debug build. Formal restart-and-resolve acceptance and measured navigation accuracy
 remain to be recorded. The local plugin override remains pinned at 1.1.3, sourced
 from the published package; no InsideOut source was copied. See the prototype
 guide for current behavior, setup, patch provenance, and physical acceptance.
+
+Current recovery also retries without a tracked camera sample, retains estimated
+AR movement after cloud failures, hides the dot on tracking loss, and automatically
+rediscovers the map after background/resume. Cancel search suppresses discovery
+until Locate/reopening. Compact camera expansion preserves the keyed native view;
+surface replacement rebinds the existing session's camera texture. These behaviors
+need physical verification, especially while compact. See [navigation integration](../FLOOR_NAVIGATION.md)
+and [latest test coverage](../TESTING.md). The proposed service/interface checklist
+below has not been implemented as a shared backend contract.
 
 ## Mission and current state
 

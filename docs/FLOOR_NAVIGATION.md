@@ -1,101 +1,155 @@
 # First-floor navigation
 
-The integration combines the existing AR prototype with the first-floor graph from main and the corrected 1632 × 1056 Morgridge Hall image. Only floor 1 is enabled. All graph edges are draft: an image overlay is not evidence of physical walkability, entrance accuracy, or accessibility.
+## Current integration
 
-## Setup on the phone
+Floor 1 combines the corrected 1632 by 1056 Morgridge Hall image, bundled CSV
+routing graph, saved AR map poses, and local calibration/overrides. It runs
+without Serverpod domain endpoints or a database. Only floor 1 is routable.
+Graph edges, amenity entrances, and estimated return connectors are draft;
+the graph does not describe walls, hallway widths, accessibility, or opening hours.
 
-1. Open or create an AR map and save at least two anchors at identifiable landmarks, at least 2 meters apart. A larger separation generally makes placement errors less influential.
-2. Open **Floor 1 setup** from the map's home-screen menu or the edit-location icon in the AR session.
-3. Enable **Associate this AR map with floor 1**. Select each anchor and tap its physical location on the plan. Pinch and pan to place points precisely.
-4. Select exactly two **Calibrate** chips. The transform is derived from their saved horizontal AR positions and image points; height is ignored. No compass north setting is required.
-5. Place a third anchor as a check without selecting its calibration chip. Its check error compares its measured AR position against the independently placed image point. Recheck placement if the error is excessive for the hallway being used.
-6. Return to the session, use Locate to search saved anchors, and open **Rooms** using the directions icon. Search by name, room number, or alias and select a mapped destination.
+## Setup and legacy toggle
 
-Existing maps and direct anchor guidance continue to work without calibration. In the Anchors menu, **Navigate via hallways** is available after explicitly linking that anchor to an approach node in setup. Tapping the anchor itself retains direct, straight-line guidance.
+1. Open/create an AR map and save two identifiable anchors at least 2 meters
+   apart. Wider separation generally reduces sensitivity to placement error.
+2. Open **Floor 1 setup** from the home-screen map menu or the session's
+   edit-location icon. Enable **Associate this AR map with floor 1**.
+3. Select each anchor and tap its physical position on the plan. Pinch/pan to
+   place precisely, then select exactly two **Calibrate** chips.
+4. The calibration transforms saved horizontal AR X/Z meters into image pixels;
+   anchor height is ignored and no compass-north setting is required. Place a
+   third anchor without selecting its calibration chip to inspect check error.
+5. Opening an associated map automatically searches its live anchors. Use
+   **Locate** or the location icon to retry immediately. Pick a destination through
+   **Rooms**, **Choose destination**, or a map marker's **Navigate** card.
 
-## Draft editing
+Disable **Associate this AR map with floor 1** to restore the legacy AR-first
+layout, direct-anchor guidance, and mini-map. This retains saved calibration,
+anchor placements, and overrides. Re-enabling association restores the floor UI.
+Direct anchor guidance is straight-line and ignores walls. **Navigate via hallways**
+in the Anchors menu requires an explicit anchor-to-approach-node link in setup.
 
-Setup can move an existing graph node or associate a room/anchor with an approach node. Changes are local overrides; source CSVs remain unchanged. Moving a node recalculates incident edge lengths. Repositioning or deleting either calibration anchor invalidates the calibration. Editing a third check anchor does not invalidate the selected pair.
+## Navigation screen and map controls
 
-The bundled CSVs are snapshots of the root `nodes.csv`, `edges.csv`, and `locations.csv`. After teammate updates, refresh their copies in `madmaps_flutter/assets/floor1/` together and rerun the asset/import tests. The loader validates references and imports floor 1 only. Other-floor rooms are omitted from the current destination picker.
+The floor plan is the main view. A blue dot/heading shows the unsnapped live
+position; the remaining route is blue, traveled route is muted, and the destination
+has a red marker. The turn banner shows the next maneuver and distance. The bottom
+card shows destination, remaining meters, estimated duration and arrival clock
+time, and **Cancel**. Estimates use a fixed walking speed of **1.2 m/s**; short
+routes display **Less than 1 min**. Cancel clears the trip while localization
+continues. Arrival means proximity to the approach/entrance, not the room interior.
 
-## Guidance behavior
+| Control | Behavior |
+| --- | --- |
+| Start navigation | Enable heading-follow: center the dot and point the horizontal camera heading up |
+| Pinch | Change zoom while retaining follow mode |
+| Pan / two-finger rotation | Enter free browsing |
+| Recenter | Restore heading-follow during navigation; position-follow otherwise |
+| Heading follow | Explicitly enable centered pose-based rotation |
+| Reset rotation | Select image-up position-follow |
+| Map overview | Enter free browsing and fit the route plus current position, or the mapped building area |
+| Place marker | Open a Floor 1 card with Navigate; overlapping places open a chooser |
+| Expand/collapse AR | Switch camera viewport size while retaining the native view/session |
+| Toolbar mapping menu | Open Anchors or Add anchor |
 
-Associated maps open with a full floor map, an expandable AR camera overlay,
-location heading, remaining route, turn banner, estimated walking duration and
-arrival time, and Cancel. Walking estimates use 1.2 m/s. Pan to stop following;
-Recenter resumes following and Map overview fits the route or mapped building area. Mapping
-actions are in the toolbar menu. Disable **Associate this AR map with floor 1**
-to restore the legacy AR layout; saved calibration and overrides are retained.
+Heading changes blend over 220 ms using the short arc across angle wraparound.
+A nearly vertical camera retains the previous map heading. Place markers and
+labels remain upright; their tap targets do not shrink with zoom. Place cards
+currently contain a name, floor, and Navigate button. Opening/closing a card does
+not cancel the active trip; future details such as closing times are not supplied.
+The image remains the map background; no room/wall polygons were added.
 
-Opening an associated map automatically searches its unexpired anchors, in
-batches of at most 20. Locate retries the search and Cancel search stops it.
-The six restroom, elevator and main-stair destinations now have draft entrance
-approaches derived from the plan. Their earlier unmapped state was caused by
-empty route-node assignments, independent of Cloud Anchor proximity. These new
-approaches still require physical entrance and walkability checks.
+## Routing, off-route recovery, and distant starts
 
-Dijkstra respects imported costs and directionality. Route starts can attach within 3 meters of any mapped walk edge, including room and exit approaches. Nearby attachments are checked for a directed path; the nearest valid attachment wins, with route cost breaking distance ties. This fixes starts near the University exit, whose approach was previously excluded. Rooms without an assigned route node show **Not mapped yet**. Invalid destinations, missing nearby walkways, and disconnected routes have distinct messages.
+Dijkstra uses imported costs and directionality. Normal routing tries attachments
+within **3 meters** of every walk edge, including destination and exit approaches.
+The nearest attachment with a directed path wins, with route cost breaking ties.
+Moving a graph node recomputes its incident edge lengths.
 
-Guidance tracks projected distance along the route. For nearby starts, the initial projection is not a point you must visit. If no nearby segment can reach the destination, guidance finds the nearest reachable attachment and starts with an estimated return connector; its distance is included in the ETA. While walking beside the line, the compass translates a forward vector to your actual position instead of aiming sideways or backward at the centerline. Its 2-meter lookahead stops at the next turn. Left/right instructions use bends of at least 30 degrees; turn and remaining distances come from projected progress. The actual map position stays unsnapped.
+If a trip starts too far from a usable segment, or nearby segments cannot reach
+the destination, navigation searches for the nearest reachable attachment across
+the graph. Directed edges also consider valid endpoint entry. Guidance starts
+with **Return to route**, a directional arrow, distance, and an orange dashed
+connector. Return distance contributes to the remaining distance and ETA. The
+connector is estimated: arbitrary access to a hallway is not verified walkability.
+Truly unreachable or invalid destinations still have explicit failure messages.
 
-Segment matching favors the current leg within 3 meters, advances through connected turns, and reassesses progress after missed samples or localization corrections. Reverse walking updates progress too. More than 4 meters from the route starts a 2-second off-route timer; returning within 3 meters cancels it. Forward guidance continues during that grace period. Afterward, navigation tries a new hallway route. If no mapped edge is close enough, it retains the previous route and guides back to its matched segment with an estimated dashed connector. Rejoining within 3 meters restores turn guidance; tracking loss pauses the arrow and ETA without clearing the destination. Invalid destinations and disconnected graphs retain explicit failure messages. Arrival requires actual proximity within 1.5 meters of the final approach; projection alone cannot trigger it.
+On an established route, segment matching favors the current leg within 3 meters,
+advances through connected turns, supports reverse walking, and reassesses after
+missed samples or localization corrections. Parallel walking uses a translated
+forward vector instead of aiming sideways at the route centerline. A 2-meter
+lookahead stops at the next turn; bends of at least 30 degrees produce turn cues.
 
-Thresholds are centralized in `NavigationTuning`. Development builds emit `[MadMaps navigation]` diagnostics for the destination, selected start edge, attachment distance, calibration scale, progress, and failure reason. Messages are throttled by state transitions and 5-meter progress intervals. These tolerances accommodate walking and localization error; the draft graph still does not encode hallway widths or wall geometry.
+More than **4 meters** off-route starts a **2-second** grace timer. Forward guidance
+continues during that grace period. Recalculation replaces the route only on
+success. If no walkway is close enough, the existing trip remains visible and
+guidance points back to its matched segment. Recovery holds that segment to avoid
+jumping between parallel legs, while allowing localization corrections to reassess
+it. Rejoining within **3 meters** resumes ordinary turns. A reachable alternative
+route can replace recovery guidance. Arrival requires actual position within
+**1.5 meters** of the final approach; projection alone cannot trigger arrival.
 
-Guidance pauses when tracking/localization is unavailable. Same-map anchor handoffs retain the destination and reassess progress; changing maps clears the destination. A lost fix does not display a live map position. Floor transitions are unsupported.
+`NavigationTuning` centralizes thresholds. `GuidanceState` exposes maneuver,
+maneuver distance, remaining distance, estimated duration, phase, and rejoin
+point/distance. Debug `[MadMaps navigation]` messages report phase, selected edge,
+attachment distance, calibration scale, progress, and failure reason.
 
-## Verification
+## Localization and automatic recovery
 
-Automated coverage includes CSV imports, shortest paths, directionality, start projection, invalid/unreachable destinations, calibration/inverse transforms, legacy storage, turn instructions, guidance progression and loss, rerouting, image taps under zoom/letterboxing, and setup persistence. Routing regressions include University exit to Cafe across calibration scales, every mapped approach-to-approach pair, parallel walking offsets, missed turns, reverse movement, nearby parallel legs, and off-route hysteresis.
+Refresh is scheduled after **20 seconds or 20 meters**, measured from the previous
+attempt's completion. Failure does not advance fix freshness. Time-based retries
+run even if no valid camera sample arrives, and only one cloud operation runs at
+a time. Adding anchors and background suspension pause cloud refresh work.
 
-The first-floor graph has been visually overlaid on the corrected image. Verify the south lobby/stair area and destination approaches on site. Physical acceptance still requires calibrating two anchors, checking a third landmark, and walking a first-floor route with multiple turns and an anchor handoff. Serverpod/Dart MCP tools were unavailable during implementation, so app hot restart, live driver navigation, and runner/app log inspection could not be performed in this session.
+A failed cloud refresh retains the accepted alignment. While AR tracking is
+valid, movement continues as an estimated position and turn instructions remain
+visible; the estimate/retry notice appears separately. Actual tracking loss hides
+the dot, freezes map orientation, pauses directions/ETA, and announces automatic
+relocalization. No frozen last-known dot or invented movement is displayed.
 
+When no reference remains, discovery automatically searches the selected map's
+unexpired anchors in batches of up to 20; automatic batches have 10-second
+timeouts. Failed discovery retries after 20 seconds. Background/resume clears the
+old pose and restarts discovery; same-map destinations survive. A different map
+clears the trip. **Cancel search** stops automatic discovery until Locate or
+reopening the map. Global home-screen **Find my location** searches saved maps;
+there is no continuous floor detection or cross-floor route guidance.
 
-## Map interaction and compact AR
+## Amenities, local editing, and source data
 
-Use two fingers to rotate and pinch, or one finger to pan. Place markers stay
-upright and tappable; overlapping places open a chooser. Tap a place to see its
-Floor 1 card and Navigate button. Navigation starts in heading-follow mode: the
-dot stays centered and the map rotates so your horizontal camera heading points
-up. Heading changes blend over 220 ms using the short arc across angle wraparound.
-Holding the phone nearly vertical retains the previous map heading. Pinching
-changes zoom while keeping follow mode; panning or manually rotating enters free
-browsing. Recenter restores heading-follow during navigation and position-follow
-otherwise. Heading follow explicitly enables rotation; Reset rotation selects
-image-up position-follow. Map overview enters free browsing and fits the current
-route (including your position), or the mapped building area.
-No room polygons or additional building geometry are required.
+Both Cafe restroom symbols, both auditorium restroom symbols, the elevator bank,
+and Main Stairs now have draft entrance approaches and hallway connections.
+Their earlier **Not mapped yet** labels came from blank `route_node_id` assignments,
+not from insufficient nearby anchors. Anchors locate the user; graph assignments
+connect destinations. New approaches need entrance/walkability checks on site.
+Stair/elevator destinations stop at their floor-1 approaches.
 
-The compact camera uses a real 140 by 170 viewport instead of cropping a
-full-screen native camera. Expansion preserves the keyed Android view and ARCore
-session. The vendored plugin rebinds camera textures when Android replaces its
-rendering surface. Debug logs include viewport, surface generation, session
-identity, frame timestamps/tracking, and resolve completions. This native change
-requires a full Android rebuild/relaunch; Flutter hot reload cannot apply it.
+Floor setup can move existing nodes and associate rooms/anchors with approach
+nodes. Changes are phone-local overrides; they do not edit source CSVs. Moving or
+deleting a calibration anchor invalidates its selected pair; editing a third
+check anchor does not. Existing local destination links take precedence over
+bundled assignments.
 
-On a physical Android device, start localization while compact, verify new frame
-timestamps and successful anchor resolution, expand/collapse repeatedly during
-a pending resolve, and confirm the session identity and resolved anchors survive.
-Walk off a route, follow the return indicator, and rejoin until turn instructions
-resume. Repeat after temporarily losing tracking. These physical checks remain
-necessary even when widget tests and the APK build pass.
+The root `nodes.csv`, `edges.csv`, and `locations.csv` are mirrored under
+`madmaps_flutter/assets/floor1/`. Update all three source/asset copies together.
+The loader validates references and imports floor 1 only. It does not establish
+physical walkability or publication review. Shared/backend contracts remain
+proposals rather than the current local data model.
 
+## Compact AR implementation and verification
 
-## Automatic localization recovery
+The compact camera has a real **140 by 170 logical-pixel viewport**, replacing a
+crop of a full-screen native view. The keyed Android view and ARCore session
+survive expansion/collapse. The local plugin rebinds camera textures and updates
+display geometry after rendering-surface replacement. Debug logs include viewport,
+surface generation, session identity, frame timestamps/tracking, and resolve
+completion. Camera permission prompts scroll within the compact viewport.
+Native changes require a full Android rebuild/relaunch; hot reload is insufficient.
 
-Refresh remains scheduled after 20 seconds or 20 meters from the previous
-attempt's completion. The time scheduler runs even without a valid camera sample.
-Cloud failures retain alignment and use ongoing AR tracking for estimated
-movement; the estimate notice is separate from turn instructions. If AR tracking
-itself stops, the dot, directions and ETA pause and the user is told localization
-will recover automatically. No last-known dot is displayed.
-
-When a reference has been cleared, the app automatically rediscovers the selected
-map's anchors. Initial failed discovery retries after 20 seconds, using bounded
-10-second automatic batches of up to 20 anchors. Background/resume clears the old
-pose and restarts discovery; same-map destinations survive. Cancel search stops
-automatic discovery until Locate is pressed or the map is reopened. Mapping and
-background suspension prevent competing cloud operations. Physical verification
-must cover walking through repeated cloud failures, actual tracking loss,
-background/resume, a distant route start and heading-follow alignment.
+Latest recorded checks on November 14, 2026: **80 Flutter tests passed**, analysis
+reported no errors/warnings, formatting completed, and the Android debug APK
+built. This verifies automated behavior and compilation, not physical AR accuracy.
+Earlier hosting was confirmed on Pixel 6a; later UI feedback is qualitative.
+Follow the [physical checklist](TESTING.md#physical-android-checklist) for compact
+localization, multi-turn walking, anchor handoffs, recovery, heading-follow, and
+all six new approaches. See [AR setup and patch history](AR_PROTOTYPE.md).
