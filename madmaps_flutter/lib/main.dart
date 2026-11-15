@@ -1,49 +1,65 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
-import 'client.dart';
-import 'screens/greetings_screen.dart';
+import 'data/morgridge_mock_data.dart';
+import 'screens/madmaps_screens.dart';
+import 'state/madmaps_state.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await initializeClient();
-  runApp(const MyApp());
+void main() => runApp(const MadMapsApp());
+
+class MadMapsApp extends StatefulWidget {
+  const MadMapsApp({super.key});
+
+  @override
+  State<MadMapsApp> createState() => _MadMapsAppState();
 }
 
-/// Builds a theme for the given [brightness].
-ThemeData _buildTheme(Brightness brightness) {
-  return ThemeData(
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: Colors.blue,
-      brightness: brightness,
+class _MadMapsAppState extends State<MadMapsApp> {
+  late final MadMapsState state = MadMapsState();
+
+  @override
+  void dispose() {
+    state.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: state,
+    builder: (context, _) => MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'MadMaps',
+      theme: ThemeData(
+        useMaterial3: true,
+        scaffoldBackgroundColor: alabaster,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: state.highContrast
+              ? const Color(0xff005f73)
+              : brandCrimson,
+          surface: Colors.white,
+        ),
+        textTheme: const TextTheme(
+          bodyMedium: TextStyle(fontFamily: 'Arial'),
+          displayMedium: TextStyle(
+            fontFamily: 'Arial',
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+      builder: (context, child) {
+        final media = MediaQuery.of(context);
+        return MediaQuery(
+          data: state.highContrast
+              ? media.copyWith(
+                  textScaler: media.textScaler.clamp(
+                    minScaleFactor: 1.18,
+                    maxScaleFactor: 2.0,
+                  ),
+                )
+              : media,
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
+      home: MadMapsShell(state: state),
     ),
   );
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'MadMaps',
-      theme: _buildTheme(Brightness.light),
-      darkTheme: _buildTheme(Brightness.dark),
-      themeMode: ThemeMode.system,
-      home: const MyHomePage(title: 'MadMaps — connection check'),
-    );
-  }
-}
-
-class MyHomePage extends StatelessWidget {
-  const MyHomePage({super.key, required this.title});
-
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: const GreetingsScreen(),
-    );
-  }
 }

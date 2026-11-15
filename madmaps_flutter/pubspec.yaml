@@ -30,10 +30,12 @@ dependencies:
   cupertino_icons: ^1.0.5
   flutter:
     sdk: flutter
-  google_fonts: ^8.1.0
+  flutter_tts: ^4.2.5
+  material_ui: ^1.11.0
   madmaps_client:
     path: ../madmaps_client
   serverpod_flutter: 4.1.2
+  shared_preferences: ^2.5.6
 
 dev_dependencies:
   # Used for agents to drive the app through the Dart MCP
@@ -68,6 +70,9 @@ flutter:
   # https://flutter.dev/assets-and-images/#from-packages
   assets:
     - assets/config.json
+    - assets/graph/locations.csv
+    - assets/graph/nodes.csv
+    - assets/graph/edges.csv
 
   # To add custom fonts to your application, add a fonts section here,
   # in this "flutter" section. Each entry in this list should have a
