@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -9,36 +11,32 @@ const _mapHeight = 1056.0;
 const graphFeetPerPixel = .25;
 
 class MorgridgeGraphData {
-  MorgridgeGraphData._(this._locations, this._nodes, this._edges);
+  MorgridgeGraphData._(
+    this._locations,
+    this._nodes,
+    this._edges,
+    this._roomCenters,
+  );
 
   final Map<String, _GraphLocation> _locations;
   final Map<String, _GraphNode> _nodes;
   final Map<String, List<_GraphEdge>> _edges;
+  final Map<String, Offset> _roomCenters;
 
   static Future<MorgridgeGraphData> load() async {
     final values = await Future.wait([
-      rootBundle.loadString('assets/graph/locations.csv'),
-      rootBundle.loadString('assets/graph/nodes.csv'),
-      rootBundle.loadString('assets/graph/edges.csv'),
-      rootBundle.loadString('assets/floor1/locations.csv'),
-      rootBundle.loadString('assets/floor1/nodes.csv'),
-      rootBundle.loadString('assets/floor1/edges.csv'),
+      rootBundle.loadString('assets/morgridge_handoff/locations.csv'),
+      rootBundle.loadString('assets/morgridge_handoff/nodes.csv'),
+      rootBundle.loadString('assets/morgridge_handoff/edges.csv'),
+      rootBundle.loadString('assets/morgridge_handoff/room_shapes.json'),
     ]);
     final locations = <String, _GraphLocation>{};
     for (final row in _csv(values[0]).skip(1)) {
       final item = _GraphLocation.fromRow(row);
       locations[item.id] = item;
     }
-    for (final row in _csv(values[3]).skip(1)) {
-      final item = _GraphLocation.fromRow(row);
-      locations[item.id] = item;
-    }
     final nodes = <String, _GraphNode>{};
     for (final row in _csv(values[1]).skip(1)) {
-      final item = _GraphNode.fromRow(row);
-      nodes[item.id] = item;
-    }
-    for (final row in _csv(values[4]).skip(1)) {
       final item = _GraphNode.fromRow(row);
       nodes[item.id] = item;
     }
@@ -50,20 +48,33 @@ class MorgridgeGraphData {
         edges.putIfAbsent(edge.to, () => []).add(edge.reversed);
       }
     }
-    for (final row in _csv(values[5]).skip(1)) {
-      final edge = _GraphEdge.fromRow(row);
-      edges.putIfAbsent(edge.from, () => []).add(edge);
-      if (edge.bidirectional) {
-        edges.putIfAbsent(edge.to, () => []).add(edge.reversed);
+    final roomCenters = <String, Offset>{};
+    final shapes = jsonDecode(values[3]) as Map<String, dynamic>;
+    for (final floor in shapes['floors'] as List<dynamic>) {
+      for (final room in floor['rooms'] as List<dynamic>) {
+        final polygon = room['polygon'] as List<dynamic>;
+        if (polygon.isEmpty) continue;
+        final totalX = polygon.fold<double>(
+          0,
+          (sum, point) => sum + (point[0] as num).toDouble(),
+        );
+        final totalY = polygon.fold<double>(
+          0,
+          (sum, point) => sum + (point[1] as num).toDouble(),
+        );
+        roomCenters[room['location_id'] as String] = Offset(
+          totalX / polygon.length / _mapWidth,
+          totalY / polygon.length / _mapHeight,
+        );
       }
     }
-    return MorgridgeGraphData._(locations, nodes, edges);
+    return MorgridgeGraphData._(locations, nodes, edges, roomCenters);
   }
 
   List<Place> get places => _locations.values
       .where(
         (location) =>
-            location.floor <= 2 &&
+            location.floor <= 3 &&
             location.routeNodeId != null &&
             _nodes.containsKey(location.routeNodeId),
       )
@@ -203,7 +214,7 @@ class MorgridgeGraphData {
       floor: location.floor,
       icon: _icon(category),
       color: _color(category),
-      point: node.normalized,
+      point: _roomCenters[location.id] ?? node.normalized,
       category: _title(category),
       hours: location.room == '2532'
           ? const PlaceHours(Availability.closed)
@@ -263,7 +274,12 @@ class _GraphEdge {
   final bool bidirectional;
   _GraphEdge get reversed => _GraphEdge(to, from, cost, bidirectional);
   factory _GraphEdge.fromRow(List<String> r) =>
-      _GraphEdge(r[0], r[1], double.parse(r[3]), r[4].toLowerCase() == 'true');
+      _GraphEdge(
+        r[0],
+        r[1],
+        double.tryParse(r[3]) ?? 1,
+        r[4].toLowerCase() == 'true',
+      );
 }
 
 class _QueueEntry {
@@ -304,9 +320,13 @@ IconData _icon(String category) => switch (category) {
   'lounge' => Icons.weekend_rounded,
   _ => Icons.meeting_room_outlined,
 };
+
+// End of handoff graph helpers.
 Color _color(String category) => switch (category) {
   'elevator' || 'restroom' || 'exit' => const Color(0xff16817a),
   'cafe' || 'library' || 'study_room' || 'learning_center' => amber,
   'lounge' => loungeSlate,
   _ => mapTeal,
 };
+
+// End map category styling.

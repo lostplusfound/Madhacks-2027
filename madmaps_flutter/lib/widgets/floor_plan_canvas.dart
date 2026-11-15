@@ -18,6 +18,7 @@ class FloorPlanCanvas extends StatelessWidget {
     this.displayName = _identityName,
     this.routeStep = 0,
     this.walking = false,
+    this.pinScale = 1,
   });
 
   final int floor;
@@ -30,6 +31,7 @@ class FloorPlanCanvas extends StatelessWidget {
   final String Function(Place) displayName;
   final int routeStep;
   final bool walking;
+  final double pinScale;
 
   static String _identityName(Place place) => place.name;
 
@@ -40,14 +42,14 @@ class FloorPlanCanvas extends StatelessWidget {
       final floorPlaces = places
           .where((place) => place.floor == floor)
           .toList();
+      final pinDiameter = 32 / (pinScale * pinScale);
       return Stack(
         fit: StackFit.expand,
         children: [
-          if (floor == 1)
-            const Positioned.fill(
+          Positioned.fill(
               child: IgnorePointer(
                 child: Image(
-                  image: AssetImage('assets/floor1/plan.png'),
+                  image: AssetImage(_planAsset(floor)),
                   fit: BoxFit.contain,
                 ),
               ),
@@ -68,11 +70,11 @@ class FloorPlanCanvas extends StatelessWidget {
               left:
                   size.width *
                       _spreadPoint(entry.$2, entry.$1, floorPlaces).dx -
-                  16,
+                  pinDiameter / 2,
               top:
                   size.height *
                       _spreadPoint(entry.$2, entry.$1, floorPlaces).dy -
-                  16,
+                  pinDiameter / 2,
               child: Semantics(
                 button: true,
                 label:
@@ -88,8 +90,8 @@ class FloorPlanCanvas extends StatelessWidget {
                     // A long press deliberately avoids a modal dialog.
                     onLongPress: () {},
                     child: Container(
-                      width: 32,
-                      height: 32,
+                      width: pinDiameter,
+                      height: pinDiameter,
                       decoration: BoxDecoration(
                         color: entry.$2.color,
                         shape: BoxShape.circle,
@@ -102,7 +104,11 @@ class FloorPlanCanvas extends StatelessWidget {
                           ),
                         ],
                       ),
-                      child: Icon(entry.$2.icon, size: 16, color: Colors.white),
+                      child: Icon(
+                        entry.$2.icon,
+                        size: pinDiameter * .5,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
@@ -118,11 +124,28 @@ class FloorPlanCanvas extends StatelessWidget {
       for (var i = 0; i < all.length; i++)
         if ((all[i].point - place.point).distance < .028) i,
     ];
-    if (nearby.length < 2) return place.point;
+    if (nearby.length < 2) return _visualPoint(place);
     final rank = nearby.indexOf(index);
     final angle = rank * 6.283185307 / nearby.length;
-    return place.point + Offset(.018 * math.cos(angle), .018 * math.sin(angle));
+    return _visualPoint(place) +
+        Offset(.018 * math.cos(angle), .018 * math.sin(angle));
   }
+
+  Offset _visualPoint(Place place) {
+    // The graph remains untouched; these correct only visual pin anchoring
+    // against the imported Floor 1 reference plan.
+    if (floor == 1 && place.name == 'Exit to Orchard Street') {
+      return const Offset(.286, .494);
+    }
+    return place.point;
+  }
+
+  String _planAsset(int value) => switch (value) {
+    0 => 'assets/morgridge_handoff/B, Morgridge Hall.png',
+    1 => 'assets/morgridge_handoff/1, Morgridge Hall.png',
+    3 => 'assets/morgridge_handoff/3, Morgridge Hall.png',
+    _ => 'assets/morgridge_handoff/2, Morgridge Hall.png',
+  };
 }
 
 class _FloorPlanPainter extends CustomPainter {
@@ -149,7 +172,7 @@ class _FloorPlanPainter extends CustomPainter {
     final background = highContrast
         ? const Color(0xfff2f3ee)
         : const Color(0xffefeee9);
-    if (floor != 1) canvas.drawRect(Offset.zero & size, Paint()..color = background);
+    if (floor == -1) canvas.drawRect(Offset.zero & size, Paint()..color = background);
     Offset point(double x, double y) => Offset(size.width * x, size.height * y);
 
     final boundary = _boundary(size, point);
@@ -180,9 +203,9 @@ class _FloorPlanPainter extends CustomPainter {
           : const Color(0xffe2bd78);
 
     canvas.save();
-    if (floor != 1) canvas.clipPath(boundary);
+    if (floor == -1) canvas.clipPath(boundary);
 
-    if (floor == 2) {
+    if (floor == -1) {
       _room(
         canvas,
         [point(.13, .08), point(.78, .08), point(.78, .2), point(.16, .2)],
@@ -403,7 +426,7 @@ class _FloorPlanPainter extends CustomPainter {
     }
 
     canvas.restore();
-    if (floor != 1) {
+    if (floor == -1) {
       canvas.drawPath(
         boundary,
         linePaint..strokeWidth = highContrast ? 3.4 : 2.2,
@@ -490,7 +513,9 @@ class _FloorPlanPainter extends CustomPainter {
       text: TextSpan(
         text: String.fromCharCode(
           label == 'YOU'
-              ? Icons.directions_walk_rounded.codePoint
+              ? (walking && routeStep.isOdd
+                    ? Icons.directions_run_rounded.codePoint
+                    : Icons.directions_walk_rounded.codePoint)
               : Icons.flag_rounded.codePoint,
         ),
         style: TextStyle(

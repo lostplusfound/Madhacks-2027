@@ -71,6 +71,8 @@ flutter:
   assets:
     - assets/config.json
     - assets/floor1/
+    - assets/morgridge_handoff/
+    - assets/morgridge_handoff/routing_overlays/
     - assets/graph/locations.csv
     - assets/graph/nodes.csv
     - assets/graph/edges.csv

@@ -328,7 +328,7 @@ class MadMapsState extends ChangeNotifier {
     arrived = false;
     notifyListeners();
     _announceCurrentStep();
-    _walkTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+    _walkTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
       final route = activeRoute;
       if (route == null) {
         timer.cancel();

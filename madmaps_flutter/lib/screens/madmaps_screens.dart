@@ -672,6 +672,7 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
   final TransformationController _mapController = TransformationController();
+  double _mapScale = 1;
 
   @override
   void dispose() {
@@ -681,6 +682,7 @@ class _MapScreenState extends State<MapScreen> {
 
   void _resetMap() {
     _mapController.value = Matrix4.identity();
+    setState(() => _mapScale = 1);
   }
 
   @override
@@ -753,8 +755,10 @@ class _MapScreenState extends State<MapScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 18),
               child: SegmentedButton<int>(
                 segments: const [
-                  ButtonSegment(value: 1, label: Text('Floor 1')),
-                  ButtonSegment(value: 2, label: Text('Floor 2')),
+                  ButtonSegment(value: 0, label: Text('B')),
+                  ButtonSegment(value: 1, label: Text('1')),
+                  ButtonSegment(value: 2, label: Text('2')),
+                  ButtonSegment(value: 3, label: Text('3')),
                 ],
                 selected: {state.floor},
                 showSelectedIcon: false,
@@ -781,6 +785,10 @@ class _MapScreenState extends State<MapScreen> {
                       Positioned.fill(
                         child: InteractiveViewer(
                           transformationController: _mapController,
+                          onInteractionUpdate: (_) => setState(
+                            () => _mapScale = _mapController.value
+                                .getMaxScaleOnAxis(),
+                          ),
                           minScale: .75,
                           maxScale: 3,
                           boundaryMargin: const EdgeInsets.all(80),
@@ -797,6 +805,7 @@ class _MapScreenState extends State<MapScreen> {
                             displayName: state.displayName,
                             routeStep: state.stepIndex,
                             walking: state.isWalking,
+                            pinScale: _mapScale,
                           ),
                         ),
                       ),
@@ -2334,12 +2343,17 @@ class _SavedPlaceCard extends StatelessWidget {
     margin: const EdgeInsets.only(bottom: 10),
     color: Colors.white,
     elevation: 0,
+    clipBehavior: Clip.antiAlias,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(17),
       side: const BorderSide(color: Color(0xffe4e8e5)),
     ),
-    child: ListTile(
-      onTap: onTap,
+    child: Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(17),
+        child: ListTile(
       contentPadding: const EdgeInsets.fromLTRB(13, 7, 4, 7),
       leading: Container(
         width: 42,
@@ -2385,6 +2399,8 @@ class _SavedPlaceCard extends StatelessWidget {
             icon: const Icon(Icons.arrow_forward_rounded),
           ),
         ],
+      ),
+        ),
       ),
     ),
   );
