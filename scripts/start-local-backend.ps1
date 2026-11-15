@@ -19,10 +19,14 @@ try {
     dart run bin/prepare_local_cli.dart
     if ($LASTEXITCODE -ne 0) { throw 'Local Serverpod CLI preparation failed.' }
     $localCli = Join-Path $workspace '.dart_tool/toolchains/serverpod_cli/bin/local_cli.dill'
-    dart $localCli --no-analytics runner start --no-docker
+    dart $localCli --no-analytics runner start --no-docker --no-flutter
     if ($LASTEXITCODE -ne 0) { throw 'Serverpod runner startup failed.' }
     dart run bin/seed_floor1.dart
     if ($LASTEXITCODE -ne 0) { throw 'Floor 1 seed verification failed.' }
+    Write-Host 'Backend ready. Streaming logs; launch Flutter separately on your phone.'
+    Write-Host 'Ctrl+C detaches from logs and leaves the backend running.'
+    dart $localCli --no-analytics runner attach --no-tui
+    if ($LASTEXITCODE -ne 0) { throw 'Serverpod log attachment ended with an error.' }
 } finally {
     Pop-Location
 }

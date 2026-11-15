@@ -13,7 +13,9 @@ powershell -ExecutionPolicy Bypass -File scripts/start-local-backend.ps1
 The script downloads the [EDB Windows PostgreSQL binaries](https://productsdl.enterprisedb.com/download-postgresql-binaries)
 into ignored `.dart_tool/toolchains` if absent, starts project-local development
 and test databases, starts the Serverpod runner with Docker disabled, and seeds
-or verifies Floor 1. It returns with the databases and runner still running.
+or verifies Floor 1, then streams backend logs in the same terminal. It disables
+automatic Flutter launch; launch the phone app separately. Ctrl+C detaches from
+the logs and leaves the databases and runner running.
 Repeated invocations reuse the databases and runner. It never installs a system
 service. The x64 PostgreSQL binaries run on this Windows ARM64 laptop.
 
