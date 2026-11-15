@@ -1,0 +1,6 @@
+{
+  "host": "https://your-workspace.cloud.databricks.com",
+  "profile": "madmaps",
+  "endpoint": "databricks-gemma-3-12b",
+  "api_format": "chat"
+}

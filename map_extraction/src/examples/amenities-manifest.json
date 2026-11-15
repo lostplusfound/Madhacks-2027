@@ -1,0 +1,6 @@
+{
+  "dataset": "synthetic-amenity-smoke-only",
+  "iou_threshold": 0.5,
+  "door_tolerance_px": 10,
+  "cases": [{"id": "unnumbered-amenities", "config": "amenities-config.json", "ground_truth": "amenities-ground-truth.json"}]
+}

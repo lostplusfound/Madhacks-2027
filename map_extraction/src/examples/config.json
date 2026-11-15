@@ -1,0 +1,14 @@
+{
+  "input": "plan.png",
+  "output_dir": "../runs/extraction",
+  "adapter": "recorded",
+  "recorded_output": "recorded.json",
+  "graph_id": "demo-graph",
+  "building_id": "demo-building",
+  "floor_id": "demo-floor-1",
+  "floor_number": 1,
+  "calibration": {"points": [[20, 120], [220, 120]], "distance_m": 10},
+  "grid_spacing_px": 20,
+  "clearance_m": 0.1,
+  "min_confidence": 0.7
+}

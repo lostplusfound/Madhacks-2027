@@ -430,6 +430,35 @@ class EndpointEmailIdp extends _iaic.EndpointEmailOtpIdpBase {
   );
 }
 
+/// Development-only bridge. The application backend remains Serverpod;
+/// Python is an isolated worker and never exposes an HTTP service.
+/// {@category Endpoint}
+class EndpointExtractionLab extends _isc.EndpointRef {
+  EndpointExtractionLab(_isc.EndpointCaller caller) : super(caller);
+
+  @override
+  String get name => 'extractionLab';
+
+  _ida.Future<String> capabilities() => caller.callServerEndpoint<String>(
+    'extractionLab',
+    'capabilities',
+    {},
+  );
+
+  _ida.Future<String> start(String requestJson) =>
+      caller.callServerEndpoint<String>(
+        'extractionLab',
+        'start',
+        {'requestJson': requestJson},
+      );
+
+  _ida.Future<String> getJob(String jobId) => caller.callServerEndpoint<String>(
+    'extractionLab',
+    'getJob',
+    {'jobId': jobId},
+  );
+}
+
 /// {@category Endpoint}
 class EndpointLocation extends _isc.EndpointRef {
   EndpointLocation(_isc.EndpointCaller caller) : super(caller);
@@ -888,6 +917,7 @@ class Client extends _isc.ServerpodClientShared {
     building = EndpointBuilding(this);
     buildingMap = EndpointBuildingMap(this);
     emailIdp = EndpointEmailIdp(this);
+    extractionLab = EndpointExtractionLab(this);
     location = EndpointLocation(this);
     locationSearch = EndpointLocationSearch(this);
     mapEdge = EndpointMapEdge(this);
@@ -903,6 +933,8 @@ class Client extends _isc.ServerpodClientShared {
   late final EndpointBuildingMap buildingMap;
 
   late final EndpointEmailIdp emailIdp;
+
+  late final EndpointExtractionLab extractionLab;
 
   late final EndpointLocation location;
 
@@ -925,6 +957,7 @@ class Client extends _isc.ServerpodClientShared {
     'building': building,
     'buildingMap': buildingMap,
     'emailIdp': emailIdp,
+    'extractionLab': extractionLab,
     'location': location,
     'locationSearch': locationSearch,
     'mapEdge': mapEdge,

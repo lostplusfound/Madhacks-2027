@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../client.dart';
+import '../../screens/extraction_lab_screen.dart';
+import '../../screens/greetings_screen.dart';
 import 'app_state.dart';
 import 'shared_widgets.dart';
 
@@ -81,6 +84,30 @@ class ProfileScreen extends StatelessWidget {
         title: const Text('Manage AR maps and calibration'),
         trailing: const Icon(Icons.chevron_right),
         onTap: onTools,
+      ),
+      ListTile(
+        leading: const Icon(Icons.document_scanner_outlined),
+        title: const Text('Floor-plan extraction lab'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () {
+          reconnectClient();
+          Navigator.push(
+            context,
+            MaterialPageRoute<void>(
+              builder: (context) => ExtractionLabScreen(
+                onConnectionCheck: () => Navigator.push(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (_) => Scaffold(
+                      appBar: AppBar(title: const Text('Connection check')),
+                      body: const GreetingsScreen(),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
       const SectionHeading('About this prototype'),
       const EmptyCard(

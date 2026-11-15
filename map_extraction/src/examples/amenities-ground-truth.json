@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "width": 600,
+  "height": 300,
+  "coordinate_origin": "top-left",
+  "coordinate_units": "pixels",
+  "rooms": [
+    {
+      "id": "restroom",
+      "label": "WC",
+      "category": "bathroom",
+      "bbox": [
+        20,
+        30,
+        180,
+        270
+      ],
+      "rotation_deg": 0,
+      "confidence": 1
+    },
+    {
+      "id": "lift",
+      "label": "Elevator",
+      "category": "elevator",
+      "bbox": [
+        220,
+        30,
+        380,
+        270
+      ],
+      "rotation_deg": 0,
+      "confidence": 1
+    },
+    {
+      "id": "stairwell",
+      "label": "Stairs",
+      "category": "stairs",
+      "bbox": [
+        420,
+        30,
+        580,
+        270
+      ],
+      "rotation_deg": 0,
+      "confidence": 1
+    }
+  ],
+  "walls": [],
+  "doors": [],
+  "walkable_areas": []
+}

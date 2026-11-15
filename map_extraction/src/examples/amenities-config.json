@@ -1,0 +1,9 @@
+{
+  "input": "amenities.png",
+  "adapter": "recorded",
+  "recorded_output": "amenities-ground-truth.json",
+  "graph_id": "amenities-smoke",
+  "building_id": "synthetic-amenities",
+  "floor_id": "amenities-floor-1",
+  "calibration": null
+}

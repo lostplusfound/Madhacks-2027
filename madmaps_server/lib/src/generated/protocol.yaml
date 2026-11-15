@@ -21,6 +21,10 @@ emailIdp:
   - verifyPasswordResetCode:
   - finishPasswordReset:
   - hasAccount:
+extractionLab:
+  - capabilities:
+  - start:
+  - getJob:
 location:
   - createLocation:
   - getLocation:

@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "madmaps-extraction"
+version = "0.1.0"
+description = "Reproducible floor-plan extraction and benchmarking for MadMaps"
+requires-python = ">=3.11"
+dependencies = ["Pillow>=11,<13", "PyMuPDF>=1.25,<2", "jsonschema>=4.23,<5", "shapely>=2.0,<3", "scipy>=1.14,<2"]
+
+[project.optional-dependencies]
+dev = ["build>=1,<2", "setuptools>=75", "wheel", "PyYAML>=6,<7", "ruff>=0.9,<1"]
+databricks = ["databricks-sdk>=0.40,<1"]
+vlm = ["mlflow>=3,<4", "transformers>=4.51,<5", "torch>=2.6,<3", "accelerate>=1,<2", "pandas>=2,<3"]
+training = ["trl==0.21.0", "transformers>=4.55,<5", "peft>=0.17,<0.18", "datasets>=3,<4", "torch>=2.6,<3", "accelerate>=1,<2"]
+
+[project.scripts]
+madmaps-extract = "madmaps_extraction.cli:main"
+madmaps-fine-tune = "madmaps_extraction.training:main"
+
+[tool.setuptools.packages.find]
+include = ["madmaps_extraction*"]
+
+[tool.setuptools.package-data]
+madmaps_extraction = ["*.json"]

@@ -1,0 +1,64 @@
+bundle:
+  name: madmaps-extraction
+
+variables:
+  cluster_id:
+    description: Existing cluster with Unity Catalog access and VARIANT support (use a supported LTS runtime)
+  config_path:
+    description: Extraction config JSON in a Unity Catalog Volume
+  manifest_path:
+    description: Benchmark manifest JSON in a Unity Catalog Volume
+  benchmark_output:
+    description: Unique benchmark output directory in a Unity Catalog Volume
+  delta_table:
+    description: Existing catalog/schema destination, e.g. madmaps.extraction.history
+  endpoint:
+    description: Custom MLflow VLM serving endpoint name
+  model_revision:
+    description: Immutable Unity Catalog served-model version (provenance declaration)
+
+artifacts:
+  wheel:
+    type: whl
+    path: .
+    build: python3 -m build --wheel
+
+resources:
+  jobs:
+    extract:
+      name: madmaps-extract
+      max_concurrent_runs: 2
+      tasks:
+        - task_key: extract
+          existing_cluster_id: ${var.cluster_id}
+          timeout_seconds: 1800
+          max_retries: 0
+          python_wheel_task:
+            package_name: madmaps_extraction
+            entry_point: madmaps-extract
+            parameters: [run, --config, '${var.config_path}', --endpoint, '${var.endpoint}', --model-revision, '${var.model_revision}', --delta-table, '${var.delta_table}']
+          libraries:
+            - whl: ./dist/*.whl
+            - pypi:
+                package: databricks-sdk>=0.40,<1
+    benchmark:
+      name: madmaps-extraction-benchmark
+      max_concurrent_runs: 1
+      tasks:
+        - task_key: benchmark
+          existing_cluster_id: ${var.cluster_id}
+          timeout_seconds: 7200
+          max_retries: 0
+          python_wheel_task:
+            package_name: madmaps_extraction
+            entry_point: madmaps-extract
+            parameters: [benchmark, --manifest, '${var.manifest_path}', --output, '${var.benchmark_output}', --repeats, '3', --endpoint, '${var.endpoint}', --model-revision, '${var.model_revision}', --delta-table, '${var.delta_table}']
+          libraries:
+            - whl: ./dist/*.whl
+            - pypi:
+                package: databricks-sdk>=0.40,<1
+
+targets:
+  dev:
+    default: true
+    mode: development

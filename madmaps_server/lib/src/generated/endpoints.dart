@@ -33,6 +33,7 @@ import 'package:serverpod_auth_idp_server/serverpod_auth_idp_server.dart'
 import '../endpoints/building_endpoint.dart' as _iirhd8cp;
 import '../endpoints/building_map_endpoint.dart' as _i1x4rfk8;
 import '../endpoints/email_idp_endpoint.dart' as _ilutrrxn;
+import '../endpoints/extraction_lab_endpoint.dart' as _i8rft721;
 import '../endpoints/location_endpoint.dart' as _iu1rtxjg;
 import '../endpoints/location_search_endpoint.dart' as _ii6rip9e;
 import '../endpoints/map_edge_endpoint.dart' as _itjzzzju;
@@ -70,6 +71,12 @@ class Endpoints extends _is.EndpointDispatch {
         ..initialize(
           server,
           'emailIdp',
+          null,
+        ),
+      'extractionLab': _i8rft721.ExtractionLabEndpoint()
+        ..initialize(
+          server,
+          'extractionLab',
           null,
         ),
       'location': _iu1rtxjg.LocationEndpoint()
@@ -585,6 +592,66 @@ class Endpoints extends _is.EndpointDispatch {
                 Map<String, dynamic> params,
               ) async => (endpoints['emailIdp'] as _ilutrrxn.EmailIdpEndpoint)
                   .hasAccount(session),
+        ),
+      },
+    );
+    connectors['extractionLab'] = _is.EndpointConnector(
+      name: 'extractionLab',
+      endpoint: endpoints['extractionLab']!,
+      methodConnectors: {
+        'capabilities': _is.MethodConnector(
+          name: 'capabilities',
+          params: {},
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['extractionLab']
+                          as _i8rft721.ExtractionLabEndpoint)
+                      .capabilities(session),
+        ),
+        'start': _is.MethodConnector(
+          name: 'start',
+          params: {
+            'requestJson': _is.ParameterDescription(
+              name: 'requestJson',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['extractionLab']
+                          as _i8rft721.ExtractionLabEndpoint)
+                      .start(
+                        session,
+                        params['requestJson'],
+                      ),
+        ),
+        'getJob': _is.MethodConnector(
+          name: 'getJob',
+          params: {
+            'jobId': _is.ParameterDescription(
+              name: 'jobId',
+              type: _is.getType<String>(),
+              nullable: false,
+            ),
+          },
+          call:
+              (
+                _is.Session session,
+                Map<String, dynamic> params,
+              ) async =>
+                  (endpoints['extractionLab']
+                          as _i8rft721.ExtractionLabEndpoint)
+                      .getJob(
+                        session,
+                        params['jobId'],
+                      ),
         ),
       },
     );

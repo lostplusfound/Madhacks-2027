@@ -1,0 +1,407 @@
+{
+  "created_at": "2026-11-15T13:06:50.557643+00:00",
+  "scope": "Synthetic fixtures only; no real-world winner established",
+  "repeats": 1,
+  "results": [
+    {
+      "model": "databricks-llama-4-maverick",
+      "dataset": "manifest",
+      "summary": {
+        "runs": 1,
+        "failures": 1,
+        "failure_rate": 1.0,
+        "candidate_valid_rate": 0.0,
+        "latency_total_p50_s": 13.931994832819328,
+        "latency_total_p95_s": 13.931994832819328,
+        "evaluated_runs": 0,
+        "quality_aggregation": "micro counts over evaluated runs; inspect failure_rate alongside quality",
+        "iou_threshold": 0.5,
+        "door_tolerance_px": 10,
+        "latency_extraction_p50_s": 12.810879708034918,
+        "latency_extraction_p95_s": 12.810879708034918,
+        "inference_retries": 0,
+        "rooms": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "f1": null
+        },
+        "walls": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "f1": null
+        },
+        "doors": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "f1": null
+        },
+        "walkable_areas": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "f1": null
+        },
+        "text_recall_mean": null,
+        "matched_category_accuracy_mean": null,
+        "scale_relative_error_mean": null,
+        "door_position_error_px_mean": null,
+        "reference_route_success_mean": null,
+        "wall_crossing_rate_mean": null,
+        "features_by_category": {}
+      },
+      "failures": [
+        {
+          "type": "ValueError",
+          "stage": "validation",
+          "message": "Stage failed; inspect input and stage artifacts"
+        }
+      ]
+    },
+    {
+      "model": "databricks-llama-4-maverick",
+      "dataset": "amenities-manifest",
+      "summary": {
+        "runs": 1,
+        "failures": 0,
+        "failure_rate": 0.0,
+        "candidate_valid_rate": 0.0,
+        "latency_total_p50_s": 15.362102875020355,
+        "latency_total_p95_s": 15.362102875020355,
+        "evaluated_runs": 1,
+        "quality_aggregation": "micro counts over evaluated runs; inspect failure_rate alongside quality",
+        "iou_threshold": 0.5,
+        "door_tolerance_px": 10,
+        "latency_extraction_p50_s": 14.90852666599676,
+        "latency_extraction_p95_s": 14.90852666599676,
+        "inference_retries": 0,
+        "rooms": {
+          "tp": 3,
+          "fp": 0,
+          "fn": 0,
+          "f1": 1.0
+        },
+        "walls": {
+          "tp": 0,
+          "fp": 3,
+          "fn": 0,
+          "f1": 0.0
+        },
+        "doors": {
+          "tp": 0,
+          "fp": 3,
+          "fn": 0,
+          "f1": 0.0
+        },
+        "walkable_areas": {
+          "tp": 0,
+          "fp": 1,
+          "fn": 0,
+          "f1": 0.0
+        },
+        "text_recall_mean": 1.0,
+        "matched_category_accuracy_mean": 1.0,
+        "scale_relative_error_mean": null,
+        "door_position_error_px_mean": null,
+        "reference_route_success_mean": null,
+        "wall_crossing_rate_mean": null,
+        "features_by_category": {
+          "bathroom": {
+            "tp": 1,
+            "fp": 0,
+            "fn": 0,
+            "f1": 1.0
+          },
+          "elevator": {
+            "tp": 1,
+            "fp": 0,
+            "fn": 0,
+            "f1": 1.0
+          },
+          "stairs": {
+            "tp": 1,
+            "fp": 0,
+            "fn": 0,
+            "f1": 1.0
+          }
+        }
+      },
+      "failures": []
+    },
+    {
+      "model": "databricks-gemma-3-12b",
+      "dataset": "manifest",
+      "summary": {
+        "runs": 1,
+        "failures": 0,
+        "failure_rate": 0.0,
+        "candidate_valid_rate": 0.0,
+        "latency_total_p50_s": 5.928317582933232,
+        "latency_total_p95_s": 5.928317582933232,
+        "evaluated_runs": 1,
+        "quality_aggregation": "micro counts over evaluated runs; inspect failure_rate alongside quality",
+        "iou_threshold": 0.5,
+        "door_tolerance_px": 10,
+        "latency_extraction_p50_s": 5.39862004108727,
+        "latency_extraction_p95_s": 5.39862004108727,
+        "inference_retries": 0,
+        "rooms": {
+          "tp": 0,
+          "fp": 2,
+          "fn": 2,
+          "f1": 0.0
+        },
+        "walls": {
+          "tp": 0,
+          "fp": 4,
+          "fn": 2,
+          "f1": 0.0
+        },
+        "doors": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 2,
+          "f1": 0.0
+        },
+        "walkable_areas": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "f1": 0.0
+        },
+        "text_recall_mean": 0.0,
+        "matched_category_accuracy_mean": null,
+        "scale_relative_error_mean": 0.0,
+        "door_position_error_px_mean": null,
+        "reference_route_success_mean": 0.0,
+        "wall_crossing_rate_mean": null,
+        "features_by_category": {
+          "bathroom": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 0,
+            "f1": null
+          },
+          "classroom": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 2,
+            "f1": 0.0
+          },
+          "elevator": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 0,
+            "f1": null
+          },
+          "office": {
+            "tp": 0,
+            "fp": 2,
+            "fn": 0,
+            "f1": 0.0
+          },
+          "stairs": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 0,
+            "f1": null
+          }
+        }
+      },
+      "failures": []
+    },
+    {
+      "model": "databricks-gemma-3-12b",
+      "dataset": "amenities-manifest",
+      "summary": {
+        "runs": 1,
+        "failures": 0,
+        "failure_rate": 0.0,
+        "candidate_valid_rate": 0.0,
+        "latency_total_p50_s": 3.7270689168944955,
+        "latency_total_p95_s": 3.7270689168944955,
+        "evaluated_runs": 1,
+        "quality_aggregation": "micro counts over evaluated runs; inspect failure_rate alongside quality",
+        "iou_threshold": 0.5,
+        "door_tolerance_px": 10,
+        "latency_extraction_p50_s": 3.2942292920779437,
+        "latency_extraction_p95_s": 3.2942292920779437,
+        "inference_retries": 0,
+        "rooms": {
+          "tp": 1,
+          "fp": 2,
+          "fn": 2,
+          "f1": 0.3333333333333333
+        },
+        "walls": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "f1": null
+        },
+        "doors": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "f1": null
+        },
+        "walkable_areas": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "f1": null
+        },
+        "text_recall_mean": 0.3333333333333333,
+        "matched_category_accuracy_mean": 1.0,
+        "scale_relative_error_mean": null,
+        "door_position_error_px_mean": null,
+        "reference_route_success_mean": null,
+        "wall_crossing_rate_mean": null,
+        "features_by_category": {
+          "bathroom": {
+            "tp": 1,
+            "fp": 0,
+            "fn": 0,
+            "f1": 1.0
+          },
+          "elevator": {
+            "tp": 0,
+            "fp": 1,
+            "fn": 1,
+            "f1": 0.0
+          },
+          "stairs": {
+            "tp": 0,
+            "fp": 1,
+            "fn": 1,
+            "f1": 0.0
+          }
+        }
+      },
+      "failures": []
+    },
+    {
+      "model": "databricks-qwen35-122b-a10b",
+      "dataset": "manifest",
+      "summary": {
+        "runs": 1,
+        "failures": 1,
+        "failure_rate": 1.0,
+        "candidate_valid_rate": 0.0,
+        "latency_total_p50_s": 0.9544774999376386,
+        "latency_total_p95_s": 0.9544774999376386,
+        "evaluated_runs": 0,
+        "quality_aggregation": "micro counts over evaluated runs; inspect failure_rate alongside quality",
+        "iou_threshold": 0.5,
+        "door_tolerance_px": 10,
+        "latency_extraction_p50_s": 0.44257587497122586,
+        "latency_extraction_p95_s": 0.44257587497122586,
+        "inference_retries": 0,
+        "rooms": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "f1": null
+        },
+        "walls": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "f1": null
+        },
+        "doors": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "f1": null
+        },
+        "walkable_areas": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "f1": null
+        },
+        "text_recall_mean": null,
+        "matched_category_accuracy_mean": null,
+        "scale_relative_error_mean": null,
+        "door_position_error_px_mean": null,
+        "reference_route_success_mean": null,
+        "wall_crossing_rate_mean": null,
+        "features_by_category": {}
+      },
+      "failures": [
+        {
+          "type": "InferenceFailure",
+          "stage": "extraction",
+          "message": "Stage failed; inspect input and stage artifacts",
+          "databricks_code": "BAD_REQUEST"
+        }
+      ]
+    },
+    {
+      "model": "databricks-qwen35-122b-a10b",
+      "dataset": "amenities-manifest",
+      "summary": {
+        "runs": 1,
+        "failures": 1,
+        "failure_rate": 1.0,
+        "candidate_valid_rate": 0.0,
+        "latency_total_p50_s": 0.7949010408483446,
+        "latency_total_p95_s": 0.7949010408483446,
+        "evaluated_runs": 0,
+        "quality_aggregation": "micro counts over evaluated runs; inspect failure_rate alongside quality",
+        "iou_threshold": 0.5,
+        "door_tolerance_px": 10,
+        "latency_extraction_p50_s": 0.2662637080065906,
+        "latency_extraction_p95_s": 0.2662637080065906,
+        "inference_retries": 0,
+        "rooms": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "f1": null
+        },
+        "walls": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "f1": null
+        },
+        "doors": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "f1": null
+        },
+        "walkable_areas": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "f1": null
+        },
+        "text_recall_mean": null,
+        "matched_category_accuracy_mean": null,
+        "scale_relative_error_mean": null,
+        "door_position_error_px_mean": null,
+        "reference_route_success_mean": null,
+        "wall_crossing_rate_mean": null,
+        "features_by_category": {}
+      },
+      "failures": [
+        {
+          "type": "InferenceFailure",
+          "stage": "extraction",
+          "message": "Stage failed; inspect input and stage artifacts",
+          "databricks_code": "BAD_REQUEST"
+        }
+      ]
+    }
+  ],
+  "decision": "No reliable overall winner; Llama is provisional for amenity labels only",
+  "compatibility_exclusions": {
+    "databricks-qwen35-122b-a10b": "Databricks endpoint accepts text only; BAD_REQUEST is not a quality score"
+  },
+  "served_revisions_pinned": false
+}

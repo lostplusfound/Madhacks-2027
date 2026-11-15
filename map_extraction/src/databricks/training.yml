@@ -1,0 +1,58 @@
+# Opt in by adding `include: [databricks/training.yml]` to databricks.yml.
+# Use a GPU cluster with CUDA and compatible pinned training dependencies installed.
+variables:
+  training_cluster_id:
+    description: Existing CUDA GPU cluster with the training extra installed
+  training_manifest:
+    description: Reviewed dataset manifest in a Unity Catalog Volume
+  training_output:
+    description: Writable Volume directory; a unique run directory is created below it
+  training_revision:
+    description: Pinned base model Hugging Face commit SHA
+resources:
+  jobs:
+    fine_tune:
+      name: madmaps-vlm-fine-tune
+      max_concurrent_runs: 1
+      parameters:
+        - name: manifest
+          default: ${var.training_manifest}
+        - name: epochs
+          default: '1'
+        - name: learning_rate
+          default: '0.0001'
+        - name: rank
+          default: '16'
+      tasks:
+        - task_key: fine_tune
+          existing_cluster_id: ${var.training_cluster_id}
+          timeout_seconds: 21600
+          max_retries: 0
+          python_wheel_task:
+            package_name: madmaps_extraction
+            entry_point: madmaps-fine-tune
+            parameters:
+              - --manifest
+              - '{{job.parameters.manifest}}'
+              - --output
+              - '${var.training_output}/{{job.run_id}}'
+              - --revision
+              - ${var.training_revision}
+              - --epochs
+              - '{{job.parameters.epochs}}'
+              - --learning-rate
+              - '{{job.parameters.learning_rate}}'
+              - --rank
+              - '{{job.parameters.rank}}'
+          libraries:
+            - whl: ../dist/*.whl
+            - pypi:
+                package: trl==0.21.0
+            - pypi:
+                package: transformers>=4.55,<5
+            - pypi:
+                package: peft>=0.17,<0.18
+            - pypi:
+                package: datasets>=3,<4
+            - pypi:
+                package: accelerate>=1,<2
