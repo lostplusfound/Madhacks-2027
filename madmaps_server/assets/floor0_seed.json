@@ -789,7 +789,7 @@
       {
         "locationId": "f0-west-stairs",
         "floorId": "morgridge-floor0",
-        "name": "West stairs to Floor 1",
+        "name": "West stairs",
         "roomNumber": null,
         "category": "stairs",
         "aliases": null,
@@ -798,7 +798,7 @@
       {
         "locationId": "f0-north-stairs",
         "floorId": "morgridge-floor0",
-        "name": "Northeast stairs",
+        "name": "University stairs to Floor 1",
         "roomNumber": null,
         "category": "stairs",
         "aliases": null,

@@ -293,6 +293,14 @@
         "y": 834.0,
         "locationId": null,
         "kind": "junction"
+      },
+      {
+        "nodeId": "f1-university-basement-stairs",
+        "floorId": "morgridge-floor1",
+        "x": 962.0,
+        "y": 148.0,
+        "locationId": "f1-university-basement-stairs",
+        "kind": "approach"
       }
     ],
     "edges": [
@@ -575,6 +583,14 @@
         "type": "walk",
         "cost": 12.0,
         "bidirectional": true
+      },
+      {
+        "edgeId": "f1-university-basement-stairs--f1-exit-university",
+        "fromNodeId": "f1-university-basement-stairs",
+        "toNodeId": "f1-exit-university",
+        "type": "walk",
+        "cost": 36.235342,
+        "bidirectional": true
       }
     ],
     "locations": [
@@ -672,7 +688,7 @@
         "locationId": "f1-main-stairs",
         "floorId": "morgridge-floor1",
         "roomNumber": null,
-        "name": "Main Stairs",
+        "name": "Main Stairs to Floor 2",
         "category": "stairs",
         "aliases": null,
         "routeNodeId": "f1-main-stairs-approach"
@@ -698,7 +714,7 @@
       {
         "locationId": "f1-south-stairs",
         "floorId": "morgridge-floor1",
-        "name": "South stairs to Basement and upper floors",
+        "name": "South stairs",
         "roomNumber": null,
         "category": "stairs",
         "aliases": null,
@@ -707,7 +723,7 @@
       {
         "locationId": "f1-west-stairs",
         "floorId": "morgridge-floor1",
-        "name": "West stairs to Basement",
+        "name": "West stairs",
         "roomNumber": null,
         "category": "stairs",
         "aliases": null,
@@ -716,7 +732,7 @@
       {
         "locationId": "f1-north-stairs",
         "floorId": "morgridge-floor1",
-        "name": "Northeast stairs",
+        "name": "Cafe stairs",
         "roomNumber": null,
         "category": "stairs",
         "aliases": null,
@@ -725,11 +741,20 @@
       {
         "locationId": "f1-garden-stairs",
         "floorId": "morgridge-floor1",
-        "name": "Garden stairs to Basement",
+        "name": "Stairs beside restroom divider",
+        "roomNumber": null,
+        "category": "stairs",
+        "aliases": null,
+        "routeNodeId": "f1-garden-stairs"
+      },
+      {
+        "locationId": "f1-university-basement-stairs",
+        "floorId": "morgridge-floor1",
+        "name": "University stairs to Basement",
         "roomNumber": null,
         "category": "stairs",
         "aliases": "downstairs;basement stairs",
-        "routeNodeId": "f1-garden-stairs"
+        "routeNodeId": "f1-university-basement-stairs"
       }
     ],
     "walls": [
@@ -835,7 +860,7 @@
     "f1-south-stairs": "Floor-plan-derived approach; physical verification pending.",
     "f1-west-stairs": "Floor-plan-derived approach; physical verification pending.",
     "f1-north-stairs": "Floor-plan-derived approach; physical verification pending.",
-    "f1-garden-stairs": "User-identified descending stairs beside restroom divider. Basement landing not identifiable in source plan; cross-floor pairing awaits survey.",
+    "f1-garden-stairs": "Stairs beside restroom divider; not a connection to Basement or Floor 2, per user review.",
     "f1-1524": "East-side door, reached west of the gray core and around the north foyer, confirmed by user-marked route. Verify doorway alignment on site."
   },
   "geometryStatus": "draft",

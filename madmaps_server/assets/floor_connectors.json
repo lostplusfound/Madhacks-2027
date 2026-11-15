@@ -12,7 +12,7 @@
     "type": "stairs",
     "seconds": 18.0,
     "bidirectional": true,
-    "active": true
+    "active": false
   },
   {
     "connectorId": "south-1-2",
@@ -27,7 +27,7 @@
     "type": "stairs",
     "seconds": 18.0,
     "bidirectional": true,
-    "active": true
+    "active": false
   },
   {
     "connectorId": "south-2-3",
@@ -57,7 +57,7 @@
     "type": "stairs",
     "seconds": 18.0,
     "bidirectional": true,
-    "active": true
+    "active": false
   },
   {
     "connectorId": "west-1-2",
@@ -72,7 +72,7 @@
     "type": "stairs",
     "seconds": 18.0,
     "bidirectional": true,
-    "active": true
+    "active": false
   },
   {
     "connectorId": "west-2-3",
@@ -92,13 +92,13 @@
   {
     "connectorId": "north-0-1",
     "buildingId": "morgridge-hall",
-    "label": "Northeast stairs",
+    "label": "University stairs",
     "fromGraphId": "morgridge-floor0",
     "fromFloor": 0,
     "fromNodeId": "f0-stairs-landing",
     "toGraphId": "morgridge-floor1",
     "toFloor": 1,
-    "toNodeId": "f1-north-stairs",
+    "toNodeId": "f1-university-basement-stairs",
     "type": "stairs",
     "seconds": 18.0,
     "bidirectional": true,
@@ -117,7 +117,7 @@
     "type": "stairs",
     "seconds": 18.0,
     "bidirectional": true,
-    "active": true
+    "active": false
   },
   {
     "connectorId": "north-2-3",

@@ -820,6 +820,15 @@
           "after": {
             "locationId": "f0-north-stairs",
             "floorId": "morgridge-floor0",
+            "name": "University stairs to Floor 1",
+            "roomNumber": null,
+            "category": "stairs",
+            "aliases": null,
+            "routeNodeId": "f0-stairs-landing"
+          },
+          "intermediate": {
+            "locationId": "f0-north-stairs",
+            "floorId": "morgridge-floor0",
             "name": "Northeast stairs",
             "roomNumber": null,
             "category": "stairs",
@@ -866,6 +875,15 @@
         {
           "before": null,
           "after": {
+            "locationId": "f0-west-stairs",
+            "floorId": "morgridge-floor0",
+            "name": "West stairs",
+            "roomNumber": null,
+            "category": "stairs",
+            "aliases": null,
+            "routeNodeId": "f0-west-stairs"
+          },
+          "intermediate": {
             "locationId": "f0-west-stairs",
             "floorId": "morgridge-floor0",
             "name": "West stairs to Floor 1",
@@ -1197,6 +1215,17 @@
             "y": 371.0,
             "locationId": null,
             "kind": "landmark"
+          }
+        },
+        {
+          "before": null,
+          "after": {
+            "nodeId": "f1-university-basement-stairs",
+            "floorId": "morgridge-floor1",
+            "x": 962.0,
+            "y": 148.0,
+            "locationId": "f1-university-basement-stairs",
+            "kind": "approach"
           }
         }
       ],
@@ -1752,12 +1781,32 @@
             "cost": 27.202941,
             "bidirectional": true
           }
+        },
+        {
+          "before": null,
+          "after": {
+            "edgeId": "f1-university-basement-stairs--f1-exit-university",
+            "fromNodeId": "f1-university-basement-stairs",
+            "toNodeId": "f1-exit-university",
+            "type": "walk",
+            "cost": 36.235342,
+            "bidirectional": true
+          }
         }
       ],
       "locations": [
         {
           "before": null,
           "after": {
+            "locationId": "f1-garden-stairs",
+            "floorId": "morgridge-floor1",
+            "name": "Stairs beside restroom divider",
+            "roomNumber": null,
+            "category": "stairs",
+            "aliases": null,
+            "routeNodeId": "f1-garden-stairs"
+          },
+          "intermediate": {
             "locationId": "f1-garden-stairs",
             "floorId": "morgridge-floor1",
             "name": "Garden stairs to Basement",
@@ -1772,6 +1821,15 @@
           "after": {
             "locationId": "f1-north-stairs",
             "floorId": "morgridge-floor1",
+            "name": "Cafe stairs",
+            "roomNumber": null,
+            "category": "stairs",
+            "aliases": null,
+            "routeNodeId": "f1-north-stairs"
+          },
+          "intermediate": {
+            "locationId": "f1-north-stairs",
+            "floorId": "morgridge-floor1",
             "name": "Northeast stairs",
             "roomNumber": null,
             "category": "stairs",
@@ -1782,6 +1840,15 @@
         {
           "before": null,
           "after": {
+            "locationId": "f1-south-stairs",
+            "floorId": "morgridge-floor1",
+            "name": "South stairs",
+            "roomNumber": null,
+            "category": "stairs",
+            "aliases": null,
+            "routeNodeId": "f1-south-stairs"
+          },
+          "intermediate": {
             "locationId": "f1-south-stairs",
             "floorId": "morgridge-floor1",
             "name": "South stairs to Basement and upper floors",
@@ -1796,11 +1863,52 @@
           "after": {
             "locationId": "f1-west-stairs",
             "floorId": "morgridge-floor1",
+            "name": "West stairs",
+            "roomNumber": null,
+            "category": "stairs",
+            "aliases": null,
+            "routeNodeId": "f1-west-stairs"
+          },
+          "intermediate": {
+            "locationId": "f1-west-stairs",
+            "floorId": "morgridge-floor1",
             "name": "West stairs to Basement",
             "roomNumber": null,
             "category": "stairs",
             "aliases": null,
             "routeNodeId": "f1-west-stairs"
+          }
+        },
+        {
+          "before": {
+            "locationId": "f1-main-stairs",
+            "floorId": "morgridge-floor1",
+            "roomNumber": null,
+            "name": "Main Stairs",
+            "category": "stairs",
+            "aliases": null,
+            "routeNodeId": "f1-main-stairs-approach"
+          },
+          "after": {
+            "locationId": "f1-main-stairs",
+            "floorId": "morgridge-floor1",
+            "roomNumber": null,
+            "name": "Main Stairs to Floor 2",
+            "category": "stairs",
+            "aliases": null,
+            "routeNodeId": "f1-main-stairs-approach"
+          }
+        },
+        {
+          "before": null,
+          "after": {
+            "locationId": "f1-university-basement-stairs",
+            "floorId": "morgridge-floor1",
+            "name": "University stairs to Basement",
+            "roomNumber": null,
+            "category": "stairs",
+            "aliases": "downstairs;basement stairs",
+            "routeNodeId": "f1-university-basement-stairs"
           }
         }
       ],
@@ -1905,6 +2013,12 @@
           }
         }
       ]
+    },
+    "reviewNoteChanges": {
+      "f1-garden-stairs": {
+        "before": "User-identified descending stairs beside restroom divider. Basement landing not identifiable in source plan; cross-floor pairing awaits survey.",
+        "after": "Stairs beside restroom divider; not a connection to Basement or Floor 2, per user review."
+      }
     }
   },
   {

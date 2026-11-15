@@ -106,6 +106,56 @@ void main() {
         );
       },
     );
+    test(
+      'routing patches retain calibrated capture data on the new revision',
+      () async {
+        final snapshot = await graph();
+        final saved = await endpoints.buildingMap.publishCapture(
+          sessions,
+          input(snapshot.graph.version),
+        );
+        final owner = sessions.copyWith(
+          authentication: AuthenticationOverride.authenticationInfo(
+            'mapper-owner',
+            const {},
+          ),
+        );
+        final updated = await endpoints.mapGraph.patchGraph(
+          owner,
+          GraphPatchRequest(
+            graphId: 'capture-floor',
+            expectedVersion: snapshot.graph.version,
+            nodesToCreate: [],
+            nodesToUpdate: [],
+            nodeIdsToDelete: [],
+            edgesToCreate: [],
+            edgesToUpdate: [
+              MapEdgeInput(
+                edgeId: 'a-b',
+                fromNodeId: 'a',
+                toNodeId: 'b',
+                type: EdgeType.walk,
+                cost: 75,
+                bidirectional: true,
+              ),
+            ],
+            edgeIdsToDelete: [],
+            locationsToCreate: [],
+            locationsToUpdate: [],
+            locationIdsToDelete: [],
+          ),
+        );
+        final restored = await endpoints.buildingMap.listCaptures(
+          sessions,
+          'capture-floor',
+          updated.graph.version,
+        );
+        expect(restored.single.captureId, saved.captureId);
+        expect(restored.single.anchorMapJson, saved.anchorMapJson);
+        expect(restored.single.expiresAt, saved.expiresAt);
+        expect(restored.single.graphVersion, snapshot.graph.version + 1);
+      },
+    );
     test('capture ID conflicts cannot replace another contribution', () async {
       final snapshot = await graph();
       final original = input(snapshot.graph.version);

@@ -44,6 +44,67 @@ void main() {
     expect(g.maneuverMeters, isNull);
     expect(g.arrived, false);
   });
+  for (final scale in [1.0, 1.5, 2.0]) {
+    testWidgets(
+      'long floor-transition guidance stays separated at text scale $scale',
+      (tester) async {
+        tester.view.physicalSize = const Size(390, 780);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        const instruction =
+            'Take Northeast stairs to Floor 1. Scan surroundings after exiting.';
+        const status =
+            'Scan your surroundings slowly. Searching 7 saved anchors...';
+        final guidance = GuidanceState()..status = instruction;
+        Rect? mapBounds;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: MediaQuery(
+                data: MediaQueryData(
+                  size: const Size(390, 780),
+                  textScaler: TextScaler.linear(scale),
+                ),
+                child: NavigationPanel(
+                  graph: graph,
+                  setup: FloorSetup(),
+                  pose: null,
+                  calibration: FloorCalibration(
+                    Offset.zero,
+                    Offset.zero,
+                    10,
+                    0,
+                  ),
+                  guidance: guidance,
+                  destination: 'Room 1524',
+                  message: status,
+                  busy: true,
+                  onSearch: () {},
+                  onLocate: () {},
+                  onCancel: () {},
+                  onMapBoundsChanged: (rect) => mapBounds = rect,
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final instructionBox = tester.getRect(
+          find.byKey(const ValueKey('navigation-instruction')),
+        );
+        final statusBox = tester.getRect(
+          find.byKey(const ValueKey('navigation-status')),
+        );
+        expect(statusBox.top, greaterThan(instructionBox.bottom));
+        expect(find.text(instruction), findsOneWidget);
+        expect(find.text('Cancel search'), findsOneWidget);
+        expect(mapBounds, isNotNull);
+        expect(mapBounds!.height, greaterThan(0));
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
   testWidgets(
     'estimated localization notice preserves turns and phone layout controls',
     (tester) async {

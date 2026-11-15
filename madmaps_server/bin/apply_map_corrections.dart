@@ -150,13 +150,42 @@ Future<void> main(List<String> args) async {
       final refreshed = (await service.getGraph(session, floorId))!;
       for (final l in refreshed.locations) {
         final note = seed['reviewNotes'][l.locationId] as String?;
-        if (note != null && l.reviewNote == null)
+        final reviewed = update['reviewNoteChanges']?[l.locationId];
+        if (note != null &&
+            (l.reviewNote == null ||
+                (reviewed != null && l.reviewNote == reviewed['before'])))
           await Locations.db.updateRow(session, l.copyWith(reviewNote: note));
       }
     }
     final connectors =
         jsonDecode(await File('assets/floor_connectors.json').readAsString())
             as List;
+    final connectorCorrections =
+        jsonDecode(
+              await File('assets/connector_corrections.json').readAsString(),
+            )
+            as List;
+    for (final delta in connectorCorrections) {
+      final before = FloorConnector.fromJson(delta['before']);
+      final after = FloorConnector.fromJson(delta['after']);
+      final existing = await FloorConnector.db.findFirstRow(
+        session,
+        where: (t) => t.connectorId.equals(after.connectorId),
+      );
+      if (existing == null) continue;
+      final current = existing.toJson()..remove('id');
+      if (same(current, after.toJson())) continue;
+      if (!same(current, before.toJson())) {
+        throw StateError(
+          'Connector correction conflict for ${after.connectorId}. Existing edits preserved.',
+        );
+      }
+      await FloorConnector.db.updateRow(
+        session,
+        after.copyWith(id: existing.id),
+      );
+      stdout.writeln('Corrected stairs connection ${after.connectorId}');
+    }
     for (final raw in connectors) {
       final input = FloorConnector.fromJson(raw as Map<String, dynamic>);
       final existing = await FloorConnector.db.findFirstRow(

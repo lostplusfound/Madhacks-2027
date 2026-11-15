@@ -748,6 +748,7 @@ class _MapSessionScreenState extends State<MapSessionScreen>
 
   bool busy = false, placing = false, expanded = false, active = true;
   bool arExpanded = false;
+  Rect? navigationMapBounds;
   String? operation;
   int generation = 0;
   Matrix4? get camera => active && ar.tracking ? localization.camera : null;
@@ -1177,7 +1178,16 @@ class _MapSessionScreenState extends State<MapSessionScreen>
       // camera surfaces. Keep the native view size stable while dialogs type.
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
-        title: Text(identified ? map.name : 'Find my location'),
+        title: Text(
+          identified
+              ? map.name
+              : mapFirst
+              ? 'Locate'
+              : 'Find my location',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
         actions: [
           if (widget.session != null)
             IconButton(
@@ -1224,8 +1234,22 @@ class _MapSessionScreenState extends State<MapSessionScreen>
               onSelected: (value) {
                 if (value == 'anchors') showAnchors();
                 if (value == 'add') beginPlacement();
+                if (value == 'floor') unawaited(openFloorSetup());
+                if (value == 'rooms') unawaited(showRooms());
               },
               itemBuilder: (_) => [
+                if (identified || map.floor.enabled)
+                  PopupMenuItem(
+                    value: 'floor',
+                    enabled: !busy && draftPose == null,
+                    child: const Text('Floor setup'),
+                  ),
+                if (identified)
+                  PopupMenuItem(
+                    value: 'rooms',
+                    enabled: !busy && draftPose == null,
+                    child: const Text('Choose destination'),
+                  ),
                 PopupMenuItem(
                   value: 'anchors',
                   enabled: !busy,
@@ -1238,13 +1262,13 @@ class _MapSessionScreenState extends State<MapSessionScreen>
                 ),
               ],
             ),
-          if (identified || map.floor.enabled)
+          if (!mapFirst && (identified || map.floor.enabled))
             IconButton(
               tooltip: 'Floor setup',
               icon: const Icon(Icons.edit_location_alt),
               onPressed: busy || draftPose != null ? null : openFloorSetup,
             ),
-          if (identified)
+          if (!mapFirst && identified)
             IconButton(
               tooltip: 'Rooms',
               icon: const Icon(Icons.directions),
@@ -1263,6 +1287,10 @@ class _MapSessionScreenState extends State<MapSessionScreen>
                 if (mapFirst && floorGraph != null)
                   Positioned.fill(
                     child: NavigationPanel(
+                      onMapBoundsChanged: (bounds) {
+                        if (!mounted || navigationMapBounds == bounds) return;
+                        setState(() => navigationMapBounds = bounds);
+                      },
                       highContrast: widget.appState?.contrast ?? false,
                       graph: floorGraph!,
                       setup: map.floor,
@@ -1283,43 +1311,61 @@ class _MapSessionScreenState extends State<MapSessionScreen>
                   ),
                 Positioned(
                   key: const ValueKey('native-camera'),
-                  top: mapFirst && !arExpanded ? 190 : 0,
+                  top: mapFirst && !arExpanded
+                      ? (navigationMapBounds?.top ?? 140) + 56
+                      : 0,
                   right: mapFirst && !arExpanded ? 16 : 0,
                   left: mapFirst && !arExpanded ? null : 0,
                   bottom: mapFirst && !arExpanded ? null : 0,
                   width: mapFirst && !arExpanded ? 140 : null,
-                  height: mapFirst && !arExpanded ? 170 : null,
-                  child: ARView(
-                    planeDetectionConfig:
-                        PlaneDetectionConfig.horizontalAndVertical,
-                    onARViewCreated: (s, o, a, l) async {
-                      try {
-                        await ar.attach(s, a);
-                        if (!mounted) return;
-                        updateState(() => ready = true);
-                        if (mounted &&
-                            active &&
-                            (widget.map == null ||
-                                (map.floor.enabled &&
-                                    map.anchors.isNotEmpty))) {
-                          await discover();
-                        }
-                      } catch (e) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('AR initialization failed: $e'),
-                            ),
-                          );
-                        }
-                      }
-                    },
+                  height: mapFirst && !arExpanded
+                      ? ((navigationMapBounds?.height ?? 234) - 64).clamp(
+                          64.0,
+                          170.0,
+                        )
+                      : null,
+                  // Clip a short preview without resizing the native surface as
+                  // the instruction/status card changes height.
+                  child: ClipRect(
+                    child: OverflowBox(
+                      alignment: Alignment.topRight,
+                      minHeight: mapFirst && !arExpanded ? 170 : null,
+                      maxHeight: mapFirst && !arExpanded ? 170 : null,
+                      child: ARView(
+                        planeDetectionConfig:
+                            PlaneDetectionConfig.horizontalAndVertical,
+                        onARViewCreated: (s, o, a, l) async {
+                          try {
+                            await ar.attach(s, a);
+                            if (!mounted) return;
+                            updateState(() => ready = true);
+                            if (mounted &&
+                                active &&
+                                (widget.map == null ||
+                                    (map.floor.enabled &&
+                                        map.anchors.isNotEmpty))) {
+                              await discover();
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('AR initialization failed: $e'),
+                                ),
+                              );
+                            }
+                          }
+                        },
+                      ),
+                    ),
                   ),
                 ),
                 if (mapFirst)
                   Positioned(
                     right: 16,
-                    top: 132,
+                    top: arExpanded
+                        ? 12
+                        : (navigationMapBounds?.top ?? 140) + 8,
                     child: IconButton.filled(
                       tooltip: arExpanded ? 'Collapse AR' : 'Expand AR',
                       onPressed: () =>
@@ -1384,7 +1430,7 @@ class _MapSessionScreenState extends State<MapSessionScreen>
                       ],
                     ),
                   ),
-                if (!identified)
+                if (!identified && (!mapFirst || floorGraph == null))
                   Positioned(
                     top: 155,
                     left: 16,

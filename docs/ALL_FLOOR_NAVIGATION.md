@@ -4,7 +4,7 @@ The visitor app routes across Basement and Floors 1–3 through explicit stairs 
 
 ## Map review
 
-Basement and Floor 1 are the priority for further refinement. Hallways use centerline spines and short entrance branches. Floor 1 bathroom routes bypass the highlighted divider. University → 1524 follows the west side of the gray core, the north foyer, and the east-side passage to its door, following the user-marked route. Basement Stair 4 connects to the Cafe/University stairs on Floor 1. The separate descending stair beside the divider is shown without an invented lower-floor pairing.
+Basement and Floor 1 are the priority for further refinement. Hallways use centerline spines and short entrance branches. Floor 1 bathroom routes bypass the highlighted divider. University → 1524 follows the west side of the gray core, the north foyer, and the east-side passage to its door, following the user-marked route. The green University stair landings are the only stair connection between Basement and Floor 1. Floor 1 Main Stairs (yellow) are the only stairs connected to Floor 2. South, west, Cafe, and divider stairs have no lower-floor connections. Elevator connections and Floor 2–3 connections are retained.
 
 Upper-floor corrections already made are retained; further upper-floor auditing is deferred. All geometry requires on-site verification. Entrances that cannot be identified remain unmapped. Walking times use estimated scales until measured captures are available. Avoid stairs is not a certified accessibility assessment.
 

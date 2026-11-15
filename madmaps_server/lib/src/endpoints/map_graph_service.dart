@@ -386,6 +386,22 @@ class MapGraphService {
           ),
           transaction: transaction,
         );
+        // Patches change routing content, never the floor image coordinate frame.
+        // Keep calibrated captures usable across these graph-only revisions.
+        final captures = await ArCapture.db.find(
+          session,
+          where: (t) =>
+              t.graphId.equals(request.graphId) &
+              t.graphVersion.equals(lockedGraph.version),
+          transaction: transaction,
+        );
+        for (final capture in captures) {
+          await ArCapture.db.updateRow(
+            session,
+            capture.copyWith(graphVersion: lockedGraph.version + 1),
+            transaction: transaction,
+          );
+        }
       },
       settings: TransactionSettings(
         isolationLevel: IsolationLevel.serializable,

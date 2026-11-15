@@ -24,8 +24,10 @@ class NavigationPanel extends StatefulWidget {
     this.estimated = false,
     this.highContrast = false,
     this.destinationId,
+    this.onMapBoundsChanged,
   });
   final String? destinationId;
+  final ValueChanged<Rect>? onMapBoundsChanged;
   final bool highContrast;
   final bool estimated;
   final String Function(double)? distanceLabel;
@@ -46,6 +48,23 @@ class NavigationPanel extends StatefulWidget {
 class _NavigationPanelState extends State<NavigationPanel> {
   final viewport = FloorViewportController();
   String? selectedLocation;
+  final mapRegionKey = GlobalKey();
+  final panelKey = GlobalKey();
+
+  void reportMapBounds() {
+    if (widget.onMapBoundsChanged == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final region = mapRegionKey.currentContext?.findRenderObject();
+      final panel = panelKey.currentContext?.findRenderObject();
+      if (region is RenderBox && panel is RenderBox && region.hasSize) {
+        widget.onMapBoundsChanged!(
+          region.localToGlobal(Offset.zero, ancestor: panel) & region.size,
+        );
+      }
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -142,194 +161,239 @@ class _NavigationPanelState extends State<NavigationPanel> {
     final remaining = g.projected == null || points.length < 2
         ? points
         : <Offset>[g.projected!, ...points.skip(g.segment + 1)];
-    return ColoredBox(
-      color: const Color(0xfff6f4f0),
-      child: Stack(
-        children: [
-          Positioned.fill(
-            top: 140,
-            bottom: 205,
-            child: InteractiveFloorMap(
-              graph: w.graph,
-              setup: w.setup,
-              controller: viewport,
-              position: position,
-              heading: heading,
-              route: remaining,
-              fullRoute: points,
-              rejoinPoint: g.remainingMeters == null ? null : g.rejoinPoint,
-              selectedLocation: selectedLocation ?? w.destinationId,
-              highContrast: w.highContrast,
-              onLocation: showLocation,
-            ),
-          ),
-          Positioned(
-            top: 12,
-            left: 12,
-            right: 12,
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Transform.rotate(
-                      angle: g.phase == NavigationPhase.returningToRoute
-                          ? returnAngle
-                          : 0,
-                      child: Icon(
-                        g.arrived
-                            ? Icons.check_circle
-                            : g.maneuver == 'Turn left'
-                            ? Icons.turn_left
-                            : g.maneuver == 'Turn right'
-                            ? Icons.turn_right
-                            : g.maneuver == 'Turn around'
-                            ? Icons.u_turn_left
-                            : Icons.straight,
-                        size: 36,
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        w.destination == null
-                            ? 'Where to? — Floor 1'
-                            : g.remainingMeters == null
-                            ? g.status
-                            : g.phase == NavigationPhase.returningToRoute
-                            ? 'Return to route - ${distance(g.rejoinMeters!)}'
-                            : g.arrived
-                            ? 'Near entrance'
-                            : '${g.maneuver}${g.maneuverMeters == null ? '' : ' in ${distance(g.maneuverMeters!)}'}',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: w.onSearch,
-                      tooltip: 'Choose destination',
-                      icon: const Icon(Icons.search),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            top: 100,
-            left: 16,
-            right: 16,
-            child: Text(
-              c == null
-                  ? 'Calibrate two anchors in floor setup'
-                  : position == null || w.estimated || w.busy
-                  ? w.message
-                  : g.phase == NavigationPhase.returningToRoute
-                  ? 'Estimated return direction; check the floor plan'
-                  : 'Floor 1 • Draft hallway map',
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          Positioned(
-            left: 16,
-            top: 190,
-            child: Column(
-              children: [
-                FloatingActionButton.small(
-                  heroTag: 'recenter',
-                  tooltip: 'Recenter',
-                  onPressed: viewport.recenter,
-                  child: const Icon(Icons.my_location),
-                ),
-                const SizedBox(height: 8),
-                FloatingActionButton.small(
-                  heroTag: 'overview',
-                  tooltip: 'Map overview',
-                  onPressed: viewport.overview,
-                  child: const Icon(Icons.zoom_out_map),
-                ),
-                const SizedBox(height: 8),
-                FloatingActionButton.small(
-                  heroTag: 'north',
-                  tooltip: 'Reset rotation',
-                  onPressed: viewport.north,
-                  child: const Icon(Icons.explore),
-                ),
-                const SizedBox(height: 8),
-                FloatingActionButton.small(
-                  heroTag: 'heading',
-                  tooltip: 'Heading follow',
-                  onPressed: viewport.followHeading,
-                  child: const Icon(Icons.navigation),
-                ),
-              ],
-            ),
-          ),
-          Positioned(
-            bottom: 12,
-            left: 12,
-            right: 12,
-            child: SafeArea(
-              top: false,
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        w.destination ?? 'Explore ${w.graph.floorLabel}',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      if (w.destination != null)
-                        Text(
-                          duration == null
-                              ? g.status
-                              : g.arrived
-                              ? 'Near entrance (estimated)'
-                              : '${duration.inSeconds < 60 ? 'Less than 1 min' : '${(duration.inSeconds / 60).ceil()} min'} • ${distance(g.tripMeters!)} • ETA $eta',
-                          maxLines: 2,
-                        ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: FilledButton.icon(
-                              onPressed: w.destination == null
-                                  ? w.onSearch
-                                  : w.onCancel,
-                              icon: Icon(
-                                w.destination == null
-                                    ? Icons.search
-                                    : Icons.close,
-                              ),
-                              label: Text(
-                                w.destination == null
-                                    ? 'Choose destination'
-                                    : 'Cancel',
+    final instruction = w.destination == null
+        ? 'Explore ${w.graph.floorLabel}'
+        : g.remainingMeters == null
+        ? g.status
+        : g.phase == NavigationPhase.returningToRoute
+        ? 'Return to route - ${distance(g.rejoinMeters!)}'
+        : g.arrived
+        ? 'Near entrance'
+        : '${g.maneuver}${g.maneuverMeters == null ? '' : ' in ${distance(g.maneuverMeters!)}'}';
+    final status = c == null
+        ? 'Calibrate two anchors in floor setup'
+        : position == null || w.estimated || w.busy
+        ? w.message
+        : g.phase == NavigationPhase.returningToRoute
+        ? 'Estimated return direction; check the floor plan'
+        : '${w.graph.floorLabel} - Draft hallway map';
+    final theme = Theme.of(context);
+    reportMapBounds();
+    return LayoutBuilder(
+      builder: (context, bounds) => ColoredBox(
+        key: panelKey,
+        color: const Color(0xfff6f4f0),
+        child: Column(
+          children: [
+            ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: bounds.maxHeight * .42),
+              child: SingleChildScrollView(
+                child: Card(
+                  margin: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Transform.rotate(
+                                angle:
+                                    g.phase == NavigationPhase.returningToRoute
+                                    ? returnAngle
+                                    : 0,
+                                child: Icon(
+                                  g.arrived
+                                      ? Icons.check_circle
+                                      : g.maneuver == 'Turn left'
+                                      ? Icons.turn_left
+                                      : g.maneuver == 'Turn right'
+                                      ? Icons.turn_right
+                                      : g.maneuver == 'Turn around'
+                                      ? Icons.u_turn_left
+                                      : Icons.straight,
+                                  size: 28,
+                                  color: theme.colorScheme.primary,
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          TextButton(
-                            onPressed: w.onLocate,
-                            child: Text(w.busy ? 'Cancel search' : 'Locate'),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                instruction,
+                                key: const ValueKey('navigation-instruction'),
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  height: 1.35,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            IconButton(
+                              onPressed: w.onSearch,
+                              tooltip: 'Choose destination',
+                              icon: const Icon(Icons.search),
+                            ),
+                          ],
+                        ),
+                        if (status.isNotEmpty && status != instruction) ...[
+                          const SizedBox(height: 12),
+                          Text(
+                            status,
+                            key: const ValueKey('navigation-status'),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              height: 1.4,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
                           ),
                         ],
-                      ),
-                      const Text(
-                        'Walking times and map geometry are estimates.',
-                        style: TextStyle(fontSize: 11),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+            Expanded(
+              child: Stack(
+                key: mapRegionKey,
+                children: [
+                  Positioned.fill(
+                    child: InteractiveFloorMap(
+                      graph: w.graph,
+                      setup: w.setup,
+                      controller: viewport,
+                      position: position,
+                      heading: heading,
+                      route: remaining,
+                      fullRoute: points,
+                      rejoinPoint: g.remainingMeters == null
+                          ? null
+                          : g.rejoinPoint,
+                      selectedLocation: selectedLocation ?? w.destinationId,
+                      highContrast: w.highContrast,
+                      onLocation: showLocation,
+                    ),
+                  ),
+                  Positioned(
+                    top: 12,
+                    bottom: 12,
+                    left: 16,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          FloatingActionButton.small(
+                            heroTag: 'recenter',
+                            tooltip: 'Recenter',
+                            onPressed: viewport.recenter,
+                            child: const Icon(Icons.my_location),
+                          ),
+                          const SizedBox(height: 8),
+                          FloatingActionButton.small(
+                            heroTag: 'overview',
+                            tooltip: 'Map overview',
+                            onPressed: viewport.overview,
+                            child: const Icon(Icons.zoom_out_map),
+                          ),
+                          const SizedBox(height: 8),
+                          FloatingActionButton.small(
+                            heroTag: 'north',
+                            tooltip: 'Reset rotation',
+                            onPressed: viewport.north,
+                            child: const Icon(Icons.explore),
+                          ),
+                          const SizedBox(height: 8),
+                          FloatingActionButton.small(
+                            heroTag: 'heading',
+                            tooltip: 'Heading follow',
+                            onPressed: viewport.followHeading,
+                            child: const Icon(Icons.navigation),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: bounds.maxHeight * .32),
+              child: SingleChildScrollView(
+                child: SafeArea(
+                  top: false,
+                  child: Card(
+                    margin: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            w.destination ?? 'Explore ${w.graph.floorLabel}',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          if (w.destination != null && duration != null) ...[
+                            const SizedBox(height: 6),
+                            Text(
+                              g.arrived
+                                  ? 'Near entrance (estimated)'
+                                  : '${duration.inSeconds < 60 ? 'Less than 1 min' : '${(duration.inSeconds / 60).ceil()} min'} - ${distance(g.tripMeters!)} - ETA $eta',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 12,
+                            runSpacing: 8,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              FilledButton.icon(
+                                onPressed: w.destination == null
+                                    ? w.onSearch
+                                    : w.onCancel,
+                                icon: Icon(
+                                  w.destination == null
+                                      ? Icons.search
+                                      : Icons.close,
+                                ),
+                                label: Text(
+                                  w.destination == null
+                                      ? 'Choose destination'
+                                      : 'Cancel',
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: w.onLocate,
+                                child: Text(
+                                  w.busy ? 'Cancel search' : 'Locate',
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Walking times and map geometry are estimates.',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              height: 1.4,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

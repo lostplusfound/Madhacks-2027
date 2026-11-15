@@ -29,6 +29,24 @@ void main() {
       expect(floors[c.fromFloor]!.nodes.containsKey(c.fromNodeId), isTrue);
     }
   });
+  test('reviewed lower-floor stairs use only the marked landings', () {
+    final stairs = connectors.where(
+      (c) => c.active && c.type == api.EdgeType.stairs,
+    );
+    final basement = stairs.where((c) => c.fromFloor == 0).toList();
+    expect(basement.map((c) => c.connectorId), ['north-0-1']);
+    expect(basement.single.fromNodeId, 'f0-stairs-landing');
+    expect(basement.single.toNodeId, 'f1-university-basement-stairs');
+    expect(basement.single.bidirectional, isTrue);
+    final upper = stairs.where((c) => c.fromFloor == 1).toList();
+    expect(upper.map((c) => c.connectorId), ['atrium-1-2']);
+    expect(upper.single.fromNodeId, 'f1-main-stairs-approach');
+    expect(upper.single.bidirectional, isTrue);
+    expect(
+      floors[1]!.nodes[basement.single.toNodeId]!.point,
+      const Offset(962, 148),
+    );
+  });
   test('all seeded walking edges avoid registered walls', () {
     for (final g in floors.values) {
       for (final e in g.edges) {
